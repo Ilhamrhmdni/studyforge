@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin — StudyForge</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.tab-bar { display:flex; gap:0.5rem; margin-bottom:1.5rem; }
+.tab-btn {
+  padding:0.5rem 1.2rem; border-radius:8px; border:1px solid var(--border);
+  background:transparent; color:var(--text2); cursor:pointer; font-family:inherit;
+  font-size:0.875rem; font-weight:500; transition:all 0.2s;
+}
+.tab-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+.parse-log { background:rgba(0,0,0,0.3); border-radius:8px; padding:1rem; font-size:0.8rem; font-family:monospace; color:var(--text2); margin:1rem 0; max-height:120px; overflow-y:auto; }
+.parse-log p { margin:0; line-height:1.8; }
+.q-del-btn { margin-left:auto; background:rgba(239,68,68,0.1); border:none; color:var(--danger); cursor:pointer; padding:0.3rem 0.6rem; border-radius:6px; font-size:0.8rem; }
+.q-del-btn:hover { background:rgba(239,68,68,0.25); }
+.answer-select {
+  background:rgba(14,21,38,0.8); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); font-size:0.8rem; padding:0.3rem 0.5rem; margin-left:auto;
+}
+.quiz-list-row {
+  display:flex; align-items:center; gap:1rem; padding:1rem 1.2rem;
+  border-bottom:1px solid var(--border); font-size:0.875rem;
+}
+.quiz-list-row:last-child { border-bottom:none; }
+.quiz-list-row .name { flex:1; font-weight:600; }
+.quiz-list-row .meta { color:var(--text2); font-size:0.8rem; }
+.del-quiz-btn {
+  background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2);
+  color:var(--danger); padding:0.3rem 0.8rem; border-radius:6px;
+  cursor:pointer; font-size:0.8rem;
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/" class="nav-logo">⚡ StudyForge</a>
+  <div class="nav-links">
+    <a href="/">Beranda</a>
+    <a href="/admin">Admin</a>
+  </div>
+</nav>
+
+<div class="admin-wrap">
+  <div class="admin-title">🛠️ Dashboard Admin</div>
+  <div class="admin-sub">Upload PDF soal, edit, dan kelola paket ujian.</div>
+
+  <!-- GITHUB CONFIG -->
+  <div class="admin-box" id="configBox">
+    <h3>⚙️ Konfigurasi GitHub (simpan di browser)</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="form-group">
+        <label class="form-label">GitHub Owner (username)</label>
+        <input class="form-input" id="cfgOwner" placeholder="contoh: username"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Repository Name</label>
+        <input class="form-input" id="cfgRepo" placeholder="contoh: studyforge-db"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Branch</label>
+        <input class="form-input" id="cfgBranch" placeholder="main" value="main"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Personal Access Token</label>
+        <input class="form-input" id="cfgToken" type="password" placeholder="ghp_xxxxxxxxxxxx"/>
+        <div class="input-hint">Token hanya disimpan di browser kamu (localStorage)</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveConfig()">💾 Simpan Konfigurasi</button>
+    <span id="cfgStatus" style="margin-left:1rem;font-size:0.85rem;color:var(--success);"></span>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('upload',this)">📤 Upload & Parse PDF</button>
+    <button class="tab-btn" onclick="switchTab('manage',this)">📋 Kelola Soal</button>
+    <button class="tab-btn" onclick="switchTab('results',this)">📊 Lihat Hasil Ujian</button>
+  </div>
+
+  <!-- TAB: UPLOAD -->
+  <div class="tab-content active" id="tab-upload">
+    <div class="admin-box">
+      <h3>📤 Upload File PDF</h3>
+      <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📄</div>
+        <h3>Drag & Drop PDF di sini</h3>
+        <p>atau klik untuk pilih file • Maksimal 20MB</p>
+        <input type="file" id="fileInput" accept=".pdf" onchange="handleFile(this.files[0])"/>
+      </div>
+      <div id="parseLog" class="parse-log" style="display:none;"></div>
+    </div>
+
+    <!-- QUIZ META -->
+    <div class="admin-box" id="metaBox" style="display:none;">
+      <h3>📝 Info Paket Soal</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="form-group">
+          <label class="form-label">Judul Paket Soal</label>
+          <input class="form-input" id="quizTitle" placeholder="contoh: Try Out Manajemen Set B"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mata Pelajaran / Mata Kuliah</label>
+          <input class="form-input" id="quizSubject" placeholder="contoh: Manajemen"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Durasi (menit)</label>
+          <input class="form-input" id="quizDuration" type="number" value="60" min="5" max="300"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Deskripsi (opsional)</label>
+          <input class="form-input" id="quizDesc" placeholder="Deskripsi singkat paket soal"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUESTIONS EDITOR -->
+    <div id="questionsEditor" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:1rem;">
+        <div>
+          <div class="section-title">✏️ Edit Soal</div>
+          <div id="parseStats" class="section-sub"></div>
+        </div>
+        <div style="display:flex;gap:0.8rem;">
+          <button class="btn btn-outline" onclick="addQuestion()">+ Tambah Soal</button>
+          <button class="btn btn-success" id="saveBtn" onclick="saveQuiz()">💾 Simpan ke GitHub</button>
+        </div>
+      </div>
+      <div id="questionsList"></div>
+    </div>
+  </div>
+
+  <!-- TAB: MANAGE -->
+  <div class="tab-content" id="tab-manage">
+    <div class="admin-box">
+      <h3>📋 Daftar Paket Soal</h3>
+      <div id="manageList"><div style="text-align:center;padding:2rem;color:var(--text3);">Memuat...</div></div>
+    </div>
+  </div>
+
+  <!-- TAB: RESULTS -->
+  <div class="tab-content" id="tab-results">
+    <div class="admin-box">
+      <h3>📊 Hasil Ujian Peserta</h3>
+      <div id="resultsList"><div style="text-align:center;padding:2rem;color:var(--text3);">Memuat...</div></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2024 <span>StudyForge</span> — Dashboard Admin</p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let parsedQuestions = [];
+
+// ── CONFIG ──
+function saveConfig() {
+  const cfg = {
+    owner: document.getElementById('cfgOwner').value.trim(),
+    repo: document.getElementById('cfgRepo').value.trim(),
+    branch: document.getElementById('cfgBranch').value.trim() || 'main',
+    token: document.getElementById('cfgToken').value.trim()
+  };
+  if (!cfg.owner || !cfg.repo || !cfg.token) { showToast('Lengkapi semua field konfigurasi!','error'); return; }
+  localStorage.setItem('sf_config', JSON.stringify(cfg));
+  document.getElementById('cfgStatus').textContent = '✅ Tersimpan!';
+  setTimeout(()=>document.getElementById('cfgStatus').textContent='',2000);
+}
+
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('sf_config')||'null'); } catch{ return null; }
+}
+
+// Load saved config
+window.onload = () => {
+  const cfg = getConfig();
+  if (cfg) {
+    document.getElementById('cfgOwner').value = cfg.owner||'';
+    document.getElementById('cfgRepo').value = cfg.repo||'';
+    document.getElementById('cfgBranch').value = cfg.branch||'main';
+    document.getElementById('cfgToken').value = cfg.token||'';
+  }
+};
+
+// ── DRAG & DROP ──
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+
+// ── PDF PARSING ──
+async function handleFile(file) {
+  if (!file || file.type !== 'application/pdf') { showToast('Pilih file PDF!','error'); return; }
+  log('📂 File: ' + file.name);
+  log('⏳ Memproses PDF...');
+  document.getElementById('parseLog').style.display = 'block';
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+  log(`📄 Total halaman: ${pdf.numPages}`);
+
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const lines = content.items.map(it => it.str).join('\n');
+    fullText += lines + '\n';
+  }
+
+  log('🔍 Menganalisis struktur soal...');
+  parsedQuestions = parseQuestions(fullText);
+  log(`✅ Ditemukan ${parsedQuestions.length} soal`);
+
+  document.getElementById('metaBox').style.display = 'block';
+  document.getElementById('questionsEditor').style.display = 'block';
+  document.getElementById('quizTitle').value = file.name.replace('.pdf','');
+  document.getElementById('parseStats').textContent = `${parsedQuestions.length} soal berhasil diparse dari PDF`;
+  renderEditor();
+}
+
+function parseQuestions(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  const questions = [];
+  let current = null;
+
+  // Detect answer key section
+  let answerKeyStart = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/kunci\s*jawaban|answer\s*key|pembahasan|kunci\s*soal/i.test(lines[i])) {
+      answerKeyStart = i; break;
+    }
+  }
+  const answerKeys = {};
+  if (answerKeyStart > -1) {
+    for (let i = answerKeyStart; i < lines.length; i++) {
+      // Pattern: "1. A" or "1) A" or "No 1 = A"
+      const m = lines[i].match(/^(\d+)[.)]\s*([A-Ea-e])\b/) ||
+                lines[i].match(/no\.?\s*(\d+)\s*[=:]\s*([A-Ea-e])\b/i);
+      if (m) answerKeys[parseInt(m[1])] = m[2].toUpperCase();
+    }
+    log(`🔑 Kunci jawaban ditemukan: ${Object.keys(answerKeys).length} soal`);
+  }
+
+  const workLines = answerKeyStart > 0 ? lines.slice(0, answerKeyStart) : lines;
+
+  for (let i = 0; i < workLines.length; i++) {
+    const line = workLines[i];
+    // Detect question: starts with number followed by . or )
+    const qMatch = line.match(/^(\d+)[.)]\s+(.+)/);
+    if (qMatch) {
+      if (current) questions.push(current);
+      current = {
+        num: parseInt(qMatch[1]),
+        text: qMatch[2],
+        options: [],
+        answer: answerKeys[parseInt(qMatch[1])] || ''
+      };
+      continue;
+    }
+    if (!current) continue;
+
+    // Detect option: A. B. C. D. E. (also A) etc)
+    const optMatch = line.match(/^([A-Ea-e])[.)]\s+(.+)/);
+    if (optMatch) {
+      current.options.push({ key: optMatch[1].toUpperCase(), text: optMatch[2] });
+      continue;
+    }
+
+    // Continuation of question text or option
+    if (current.options.length > 0) {
+      // Append to last option
+      current.options[current.options.length-1].text += ' ' + line;
+    } else {
+      // Append to question
+      current.text += ' ' + line;
+    }
+  }
+  if (current) questions.push(current);
+  return questions.filter(q => q.options.length >= 2);
+}
+
+// ── EDITOR ──
+function renderEditor() {
+  const list = document.getElementById('questionsList');
+  list.innerHTML = parsedQuestions.map((q, qi) => `
+    <div class="question-editor" id="qe-${qi}">
+      <div class="q-header">
+        <div class="q-num">${qi+1}</div>
+        <div style="flex:1;">
+          <input class="form-input" value="${esc(q.text)}" oninput="parsedQuestions[${qi}].text=this.value" placeholder="Teks pertanyaan"/>
+        </div>
+        <select class="answer-select" onchange="parsedQuestions[${qi}].answer=this.value" title="Jawaban benar">
+          <option value="">Jawaban?</option>
+          ${['A','B','C','D','E'].map(k=>`<option value="${k}" ${q.answer===k?'selected':''}>${k}</option>`).join('')}
+        </select>
+        <button class="q-del-btn" onclick="deleteQuestion(${qi})">🗑️</button>
+      </div>
+      <div class="q-body">
+        <div class="options-grid">
+          ${q.options.map((o,oi)=>`
+            <div class="option-item ${o.key===q.answer?'correct':''}">
+              <span class="option-label">${o.key}</span>
+              <input class="form-input" style="border:none;background:transparent;padding:0;font-size:0.85rem;" value="${esc(o.text)}" oninput="parsedQuestions[${qi}].options[${oi}].text=this.value"/>
+            </div>
+          `).join('')}
+        </div>
+        ${q.options.length < 5 ? `<button class="btn btn-outline" style="font-size:0.8rem;margin-top:0.8rem;padding:0.4rem 0.8rem;" onclick="addOption(${qi})">+ Opsi</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function esc(s) { return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function addOption(qi) {
+  const opts = parsedQuestions[qi].options;
+  const keys = ['A','B','C','D','E'];
+  const nextKey = keys[opts.length] || 'E';
+  opts.push({ key: nextKey, text: '' });
+  renderEditor();
+}
+
+function deleteQuestion(qi) {
+  parsedQuestions.splice(qi, 1);
+  document.getElementById('parseStats').textContent = `${parsedQuestions.length} soal`;
+  renderEditor();
+}
+
+function addQuestion() {
+  parsedQuestions.push({
+    num: parsedQuestions.length + 1,
+    text: 'Pertanyaan baru',
+    options: [
+      {key:'A', text:'Opsi A'},
+      {key:'B', text:'Opsi B'},
+      {key:'C', text:'Opsi C'},
+      {key:'D', text:'Opsi D'}
+    ],
+    answer: 'A'
+  });
+  renderEditor();
+}
+
+// ── SAVE TO GITHUB ──
+async function saveQuiz() {
+  const cfg = getConfig();
+  if (!cfg) { showToast('Atur konfigurasi GitHub dulu!','error'); return; }
+  if (!parsedQuestions.length) { showToast('Tidak ada soal untuk disimpan!','error'); return; }
+
+  const title = document.getElementById('quizTitle').value.trim();
+  const subject = document.getElementById('quizSubject').value.trim();
+  if (!title) { showToast('Isi judul paket soal!','error'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+
+  const quizId = 'quiz-' + Date.now();
+  const quiz = {
+    id: quizId,
+    title,
+    subject: subject || 'Umum',
+    description: document.getElementById('quizDesc').value.trim(),
+    duration: parseInt(document.getElementById('quizDuration').value) || 60,
+    count: parsedQuestions.length,
+    createdAt: new Date().toISOString(),
+    questions: parsedQuestions
+  };
+
+  try {
+    // 1. Save quiz file
+    await githubPut(cfg, `quizzes/${quizId}.json`, quiz);
+    // 2. Update index
+    await updateIndex(cfg, quiz);
+    showToast('✅ Berhasil disimpan ke GitHub!','success');
+    btn.textContent = '✅ Tersimpan!';
+    setTimeout(()=>{ btn.disabled=false; btn.textContent='💾 Simpan ke GitHub'; },3000);
+  } catch(e) {
+    showToast('❌ Gagal: ' + e.message, 'error');
+    btn.disabled=false; btn.textContent='💾 Simpan ke GitHub';
+  }
+}
+
+async function githubPut(cfg, path, data) {
+  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`;
+  // Check if file exists (get SHA)
+  let sha = '';
+  try {
+    const existing = await fetch(url, {headers:{Authorization:`token ${cfg.token}`}});
+    if (existing.ok) { const d = await existing.json(); sha = d.sha; }
+  } catch {}
+
+  const body = { message: `StudyForge: update ${path}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))), branch: cfg.branch };
+  if (sha) body.sha = sha;
+
+  const res = await fetch(url, { method:'PUT', headers:{ Authorization:`token ${cfg.token}`, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+}
+
+async function updateIndex(cfg, newQuiz) {
+  const url = `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/${cfg.branch}/quizzes/index.json`;
+  let index = { quizzes: [], totalResults: 0 };
+  try {
+    const res = await fetch(url + '?t=' + Date.now());
+    if (res.ok) index = await res.json();
+  } catch {}
+  // Add to index (avoid duplicate)
+  index.quizzes = index.quizzes.filter(q => q.id !== newQuiz.id);
+  index.quizzes.unshift({ id:newQuiz.id, title:newQuiz.title, subject:newQuiz.subject, description:newQuiz.description, duration:newQuiz.duration, count:newQuiz.count, createdAt:newQuiz.createdAt });
+  await githubPut(cfg, 'quizzes/index.json', index);
+}
+
+// ── MANAGE TAB ──
+async function loadManage() {
+  const cfg = getConfig();
+  const el = document.getElementById('manageList');
+  if (!cfg) { el.innerHTML='<p style="color:var(--text3);padding:1rem;">Atur konfigurasi GitHub dulu.</p>'; return; }
+  try {
+    const url = `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/${cfg.branch}/quizzes/index.json?t=${Date.now()}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.quizzes?.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>Belum ada paket soal.</p></div>'; return; }
+    el.innerHTML = data.quizzes.map(q => `
+      <div class="quiz-list-row">
+        <div class="name">${q.title}</div>
+        <div class="meta">${q.subject} • ${q.count} soal</div>
+        <a href="/quiz?id=${q.id}" class="btn btn-outline" style="font-size:0.8rem;padding:0.3rem 0.8rem;">Preview</a>
+        <button class="del-quiz-btn" onclick="deleteQuiz('${q.id}')">🗑️ Hapus</button>
+      </div>
+    `).join('');
+  } catch(e) { el.innerHTML='<p style="color:var(--danger);padding:1rem;">Gagal memuat: '+e.message+'</p>'; }
+}
+
+async function deleteQuiz(id) {
+  if (!confirm('Hapus paket soal ini?')) return;
+  const cfg = getConfig();
+  // Update index
+  const url = `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/${cfg.branch}/quizzes/index.json?t=${Date.now()}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  data.quizzes = data.quizzes.filter(q=>q.id!==id);
+  await githubPut(cfg,'quizzes/index.json',data);
+  showToast('Paket soal dihapus','success');
+  loadManage();
+}
+
+// ── RESULTS TAB ──
+async function loadResults() {
+  const cfg = getConfig();
+  const el = document.getElementById('resultsList');
+  if (!cfg) { el.innerHTML='<p style="color:var(--text3);padding:1rem;">Atur konfigurasi GitHub dulu.</p>'; return; }
+  try {
+    const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/results`;
+    const res = await fetch(url, {headers:{Authorization:`token ${cfg.token}`}});
+    if (!res.ok) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada hasil ujian.</p></div>'; return; }
+    const files = await res.json();
+    const results = [];
+    for (const f of files.slice(0,20)) {
+      const r = await fetch(f.download_url);
+      results.push(await r.json());
+    }
+    results.sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+    el.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+        <thead><tr style="border-bottom:1px solid var(--border);color:var(--text2);">
+          <th style="padding:0.8rem;text-align:left;">Nama</th>
+          <th style="padding:0.8rem;text-align:left;">Paket Soal</th>
+          <th style="padding:0.8rem;text-align:center;">Nilai</th>
+          <th style="padding:0.8rem;text-align:center;">Benar</th>
+          <th style="padding:0.8rem;text-align:right;">Waktu</th>
+        </tr></thead>
+        <tbody>${results.map(r=>`
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:0.8rem;font-weight:600;">${r.userName||'Anonim'}</td>
+            <td style="padding:0.8rem;color:var(--text2);">${r.quizTitle||'-'}</td>
+            <td style="padding:0.8rem;text-align:center;"><span style="background:rgba(79,142,247,0.1);color:var(--primary);padding:0.2rem 0.6rem;border-radius:50px;font-weight:700;">${r.score}%</span></td>
+            <td style="padding:0.8rem;text-align:center;">${r.correct}/${r.total}</td>
+            <td style="padding:0.8rem;text-align:right;color:var(--text3);">${new Date(r.submittedAt).toLocaleString('id-ID')}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table>`;
+  } catch(e) { el.innerHTML='<p style="color:var(--danger);padding:1rem;">'+e.message+'</p>'; }
+}
+
+// ── TABS ──
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='manage') loadManage();
+  if (name==='results') loadResults();
+}
+
+// ── LOG & TOAST ──
+function log(msg) {
+  const el = document.getElementById('parseLog');
+  el.innerHTML += `<p>→ ${msg}</p>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function showToast(msg, type='') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hasil Ujian — StudyForge</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.grade-badge { display:inline-block;padding:0.4rem 1.2rem;border-radius:50px;font-weight:700;font-size:1rem;margin-bottom:1rem; }
+.grade-A { background:rgba(16,185,129,0.15);color:var(--success);border:1px solid rgba(16,185,129,0.3); }
+.grade-B { background:rgba(79,142,247,0.15);color:var(--primary);border:1px solid rgba(79,142,247,0.3); }
+.grade-C { background:rgba(245,158,11,0.15);color:var(--accent);border:1px solid rgba(245,158,11,0.3); }
+.grade-D { background:rgba(239,68,68,0.12);color:var(--danger);border:1px solid rgba(239,68,68,0.3); }
+.share-row { display:flex;gap:0.8rem;justify-content:center;flex-wrap:wrap;margin:1.5rem 0; }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/" class="nav-logo">⚡ StudyForge</a>
+  <a href="/" class="btn btn-outline">← Beranda</a>
+</nav>
+
+<div class="result-wrap">
+  <!-- No result -->
+  <div id="noResult" style="display:none;" class="empty-state" style="padding:5rem 2rem;">
+    <div class="empty-icon">😕</div>
+    <p>Tidak ada data hasil ujian.<br/><a href="/" style="color:var(--primary)">Kembali ke beranda →</a></p>
+  </div>
+
+  <!-- Result content -->
+  <div id="resultContent">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="font-size:1rem;color:var(--text2);margin-bottom:1rem;" id="congrats"></div>
+      <div class="score-circle" id="scoreCircle">
+        <div class="score-num" id="scoreNum">-</div>
+        <div class="score-label">NILAI</div>
+      </div>
+      <div class="grade-badge" id="gradeBadge"></div>
+      <h2 id="resultTitle" style="font-size:1.3rem;margin-bottom:0.3rem;"></h2>
+      <p id="resultMeta" style="color:var(--text2);font-size:0.875rem;"></p>
+    </div>
+
+    <!-- Stats -->
+    <div class="result-stats">
+      <div class="r-stat green"><div class="r-stat-num" id="correctNum">0</div><div class="r-stat-label">✅ Benar</div></div>
+      <div class="r-stat red"><div class="r-stat-num" id="wrongNum">0</div><div class="r-stat-label">❌ Salah</div></div>
+      <div class="r-stat blue"><div class="r-stat-num" id="timeNum">--</div><div class="r-stat-label">⏱️ Waktu</div></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="share-row">
+      <a href="/" class="btn btn-outline">🏠 Beranda</a>
+      <button class="btn btn-secondary" onclick="toggleReview()">📖 Review Jawaban</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak Hasil</button>
+    </div>
+
+    <!-- Review section -->
+    <div id="reviewSection" style="display:none;">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:1rem;">📖 Review Jawaban</div>
+      <div id="reviewList"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2024 <span>StudyForge</span> — Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
+</footer>
+
+<script>
+function getGrade(score) {
+  if (score >= 85) return { label:'A — Sangat Baik 🏆', cls:'grade-A' };
+  if (score >= 70) return { label:'B — Baik 👍', cls:'grade-B' };
+  if (score >= 55) return { label:'C — Cukup 📚', cls:'grade-C' };
+  return { label:'D — Perlu Belajar Lebih Giat 💪', cls:'grade-D' };
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds/60), s = seconds%60;
+  return `${m}m ${s}s`;
+}
+
+window.onload = () => {
+  const raw = sessionStorage.getItem('sf_result');
+  if (!raw) {
+    document.getElementById('noResult').style.display = 'block';
+    document.getElementById('resultContent').style.display = 'none';
+    return;
+  }
+  const r = JSON.parse(raw);
+  const grade = getGrade(r.score);
+
+  // Score circle color
+  const circle = document.getElementById('scoreCircle');
+  if (r.score >= 85) circle.style.borderColor = 'var(--success)';
+  else if (r.score >= 70) circle.style.borderColor = 'var(--primary)';
+  else if (r.score >= 55) circle.style.borderColor = 'var(--accent)';
+  else circle.style.borderColor = 'var(--danger)';
+
+  document.getElementById('congrats').textContent = r.score >= 70 ? `🎉 Selamat, ${r.userName}!` : `💪 Tetap semangat, ${r.userName}!`;
+  document.getElementById('scoreNum').textContent = r.score;
+  document.getElementById('gradeBadge').textContent = grade.label;
+  document.getElementById('gradeBadge').className = 'grade-badge ' + grade.cls;
+  document.getElementById('resultTitle').textContent = r.quizTitle;
+  document.getElementById('resultMeta').textContent = `Dikerjakan pada ${new Date(r.submittedAt).toLocaleString('id-ID')}`;
+  document.getElementById('correctNum').textContent = r.correct;
+  document.getElementById('wrongNum').textContent = r.total - r.correct;
+  document.getElementById('timeNum').textContent = formatTime(r.timeTaken||0);
+
+  // Render review
+  document.getElementById('reviewList').innerHTML = r.answers.map((a, i) => `
+    <div class="review-item">
+      <div class="review-header">
+        <strong style="font-size:0.85rem;">Soal ${i+1}</strong>
+        <span class="review-badge ${a.isCorrect?'correct':'wrong'}">${a.isCorrect?'✅ Benar':'❌ Salah'}</span>
+        ${!a.userAnswer ? '<span style="color:var(--text3);font-size:0.8rem;">Tidak dijawab</span>' : ''}
+      </div>
+      <div class="review-body">
+        <p style="margin-bottom:0.8rem;font-weight:500;">${a.question}</p>
+        <div style="display:flex;flex-direction:column;gap:0.4rem;">
+          ${a.options.map(o => {
+            let style = '';
+            if (o.key === a.correctAnswer) style = 'color:var(--success);font-weight:600;';
+            if (o.key === a.userAnswer && o.key !== a.correctAnswer) style = 'color:var(--danger);text-decoration:line-through;';
+            return `<div style="${style};font-size:0.85rem;"><strong>${o.key}.</strong> ${o.text} ${o.key===a.correctAnswer?' ✓':''}${o.key===a.userAnswer&&o.key!==a.correctAnswer?' ✗':''}</div>`;
+          }).join('')}
+        </div>
+        ${!a.isCorrect ? `<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--success);">Jawaban benar: <strong>${a.correctAnswer}</strong></div>` : ''}
+      </div>
+    </div>
+  `).join('');
+};
+
+function toggleReview() {
+  const el = document.getElementById('reviewSection');
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

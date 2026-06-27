@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Kerjakan Soal — StudyForge</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.user-modal { position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center; }
+.user-modal-box { background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:2.5rem;max-width:420px;width:90%;text-align:center; }
+.user-modal-box h2 { font-size:1.4rem;margin-bottom:0.5rem; }
+.user-modal-box p { color:var(--text2);margin-bottom:1.5rem;font-size:0.9rem; }
+.sidebar-dots { display:flex;flex-wrap:wrap;gap:0.4rem;max-height:200px;overflow-y:auto; }
+.sdot { width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:rgba(14,21,38,0.7);transition:all 0.15s; }
+.sdot.answered { background:rgba(79,142,247,0.2);border-color:var(--primary);color:var(--primary); }
+.sdot.current { background:var(--accent);border-color:var(--accent);color:#000; }
+.layout { display:grid;grid-template-columns:1fr 220px;gap:1.5rem;max-width:1050px;margin:0 auto;padding:1.5rem; }
+@media(max-width:768px){.layout{grid-template-columns:1fr;}.sidebar{display:none;}}
+.sidebar { position:sticky;top:80px;height:fit-content; }
+.sidebar-box { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;margin-bottom:1rem; }
+.sidebar-box h4 { font-size:0.85rem;color:var(--text2);margin-bottom:0.8rem;font-weight:600; }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/" class="nav-logo">⚡ StudyForge</a>
+  <div id="quizNavInfo" style="font-size:0.85rem;color:var(--text2);"></div>
+  <div class="timer-box" id="timer">--:--</div>
+</nav>
+
+<!-- USER NAME MODAL -->
+<div class="user-modal" id="userModal">
+  <div class="user-modal-box">
+    <div style="font-size:3rem;margin-bottom:1rem;">👋</div>
+    <h2>Selamat Datang!</h2>
+    <p>Masukkan namamu untuk memulai ujian. Hasilmu akan dicatat.</p>
+    <input class="form-input" id="userNameInput" placeholder="Nama lengkap kamu..." style="margin-bottom:1rem;text-align:center;"/>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="startQuiz()">🚀 Mulai Ujian</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- MAIN CONTENT -->
+  <div>
+    <!-- Progress -->
+    <div class="quiz-progress">
+      <div class="quiz-progress-info">
+        <span id="progressText">Soal 0 dari 0</span>
+        <span id="answeredText">0 dijawab</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+    </div>
+
+    <!-- Question -->
+    <div class="question-card" id="questionCard" style="display:none;">
+      <div class="question-num" id="questionNum"></div>
+      <div class="question-text" id="questionText"></div>
+      <div class="options-list" id="optionsList"></div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="quiz-nav" id="quizNav" style="display:none;">
+      <button class="btn btn-outline" id="prevBtn" onclick="navigate(-1)">← Sebelumnya</button>
+      <div class="quiz-nav-dots" id="navDots"></div>
+      <button class="btn btn-primary" id="nextBtn" onclick="navigate(1)">Selanjutnya →</button>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-box">
+      <h4>📋 Navigasi Soal</h4>
+      <div class="sidebar-dots" id="sidebarDots"></div>
+    </div>
+    <div class="sidebar-box">
+      <h4>📊 Status</h4>
+      <div style="font-size:0.85rem;display:flex;flex-direction:column;gap:0.5rem;">
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);">Dijawab</span><span id="sb-answered" style="color:var(--primary);font-weight:700;">0</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);">Belum</span><span id="sb-remaining" style="color:var(--accent);font-weight:700;">0</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);">Total</span><span id="sb-total" style="color:var(--text);font-weight:700;">0</span></div>
+      </div>
+    </div>
+    <button class="btn btn-success" style="width:100%;justify-content:center;" id="submitBtn" onclick="confirmSubmit()">
+      ✅ Kumpulkan Jawaban
+    </button>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="submitModal" style="display:none;">
+  <div class="modal">
+    <h3>⚠️ Kumpulkan Jawaban?</h3>
+    <p id="submitModalText">Kamu sudah menjawab <strong>0</strong> dari <strong>0</strong> soal. Yakin ingin mengumpulkan?</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('submitModal').style.display='none'">Batal</button>
+      <button class="btn btn-success" onclick="submitQuiz()">✅ Ya, Kumpulkan!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GH_RAW = 'https://raw.githubusercontent.com';
+let quiz = null, answers = {}, currentIdx = 0;
+let timerInterval = null, timeLeft = 0;
+let userName = '';
+
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('sf_config')||'null'); } catch{ return null; }
+}
+
+async function init() {
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  if (!id) { window.location.href='/'; return; }
+  const cfg = getConfig();
+  if (!cfg) { showToast('Konfigurasi GitHub belum diatur','error'); return; }
+  try {
+    const url = `${GH_RAW}/${cfg.owner}/${cfg.repo}/${cfg.branch}/quizzes/${id}.json?t=${Date.now()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Quiz tidak ditemukan');
+    quiz = await res.json();
+    document.title = quiz.title + ' — StudyForge';
+    document.getElementById('quizNavInfo').textContent = quiz.title;
+    document.getElementById('sb-total').textContent = quiz.questions.length;
+    document.getElementById('sb-remaining').textContent = quiz.questions.length;
+    timeLeft = (quiz.duration || 60) * 60;
+  } catch(e) {
+    alert('Gagal memuat quiz: ' + e.message);
+    window.location.href='/';
+  }
+}
+
+function startQuiz() {
+  const name = document.getElementById('userNameInput').value.trim();
+  if (!name) { document.getElementById('userNameInput').style.borderColor='var(--danger)'; return; }
+  userName = name;
+  document.getElementById('userModal').style.display = 'none';
+  document.getElementById('questionCard').style.display = 'block';
+  document.getElementById('quizNav').style.display = 'flex';
+  startTimer();
+  renderQuestion();
+  renderSidebar();
+}
+
+function startTimer() {
+  const el = document.getElementById('timer');
+  timerInterval = setInterval(() => {
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitQuiz(); return; }
+    timeLeft--;
+    const m = Math.floor(timeLeft/60), s = timeLeft%60;
+    el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if (timeLeft <= 300) el.classList.add('danger');
+  }, 1000);
+}
+
+function renderQuestion() {
+  if (!quiz) return;
+  const q = quiz.questions[currentIdx];
+  const total = quiz.questions.length;
+  document.getElementById('questionNum').textContent = `Soal ${currentIdx+1} dari ${total}`;
+  document.getElementById('questionText').textContent = q.text;
+  document.getElementById('progressText').textContent = `Soal ${currentIdx+1} dari ${total}`;
+  const answered = Object.keys(answers).length;
+  document.getElementById('answeredText').textContent = `${answered} dijawab`;
+  document.getElementById('progressBar').style.width = ((currentIdx+1)/total*100)+'%';
+
+  const opts = document.getElementById('optionsList');
+  opts.innerHTML = q.options.map(o => `
+    <button class="option-btn ${answers[currentIdx]===o.key?'selected':''}" onclick="selectAnswer('${o.key}')">
+      <span class="option-key">${o.key}</span>
+      <span>${o.text}</span>
+    </button>
+  `).join('');
+
+  // Nav buttons
+  document.getElementById('prevBtn').disabled = currentIdx === 0;
+  document.getElementById('nextBtn').textContent = currentIdx === total-1 ? 'Lihat Ringkasan' : 'Selanjutnya →';
+
+  // Dots
+  const dotsEl = document.getElementById('navDots');
+  dotsEl.innerHTML = quiz.questions.map((_,i)=>`
+    <div class="dot ${answers[i]?'answered':''} ${i===currentIdx?'current':''}" onclick="goTo(${i})" title="Soal ${i+1}"></div>
+  `).join('');
+
+  updateSidebar();
+}
+
+function renderSidebar() {
+  const el = document.getElementById('sidebarDots');
+  el.innerHTML = quiz.questions.map((_,i)=>`
+    <div class="sdot ${answers[i]?'answered':''} ${i===currentIdx?'current':''}" onclick="goTo(${i})">${i+1}</div>
+  `).join('');
+}
+
+function updateSidebar() {
+  const answered = Object.keys(answers).length;
+  document.getElementById('sb-answered').textContent = answered;
+  document.getElementById('sb-remaining').textContent = quiz.questions.length - answered;
+  renderSidebar();
+}
+
+function selectAnswer(key) {
+  answers[currentIdx] = key;
+  renderQuestion();
+}
+
+function navigate(dir) {
+  const next = currentIdx + dir;
+  if (next < 0 || next >= quiz.questions.length) {
+    if (dir > 0) confirmSubmit();
+    return;
+  }
+  goTo(next);
+}
+
+function goTo(idx) {
+  currentIdx = idx;
+  renderQuestion();
+}
+
+function confirmSubmit() {
+  const answered = Object.keys(answers).length;
+  const total = quiz.questions.length;
+  document.getElementById('submitModalText').innerHTML = `Kamu sudah menjawab <strong>${answered}</strong> dari <strong>${total}</strong> soal. Yakin ingin mengumpulkan?`;
+  document.getElementById('submitModal').style.display = 'flex';
+}
+
+async function submitQuiz() {
+  clearInterval(timerInterval);
+  document.getElementById('submitModal').style.display = 'none';
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = '⏳ Menyimpan...';
+
+  let correct = 0;
+  const review = quiz.questions.map((q, i) => {
+    const userAns = answers[i] || null;
+    const isCorrect = userAns === q.answer;
+    if (isCorrect) correct++;
+    return { question: q.text, options: q.options, correctAnswer: q.answer, userAnswer: userAns, isCorrect };
+  });
+
+  const score = Math.round((correct / quiz.questions.length) * 100);
+  const timeTaken = (quiz.duration * 60) - timeLeft;
+
+  const result = {
+    id: 'result-' + Date.now(),
+    quizId: quiz.id,
+    quizTitle: quiz.title,
+    userName,
+    score,
+    correct,
+    total: quiz.questions.length,
+    timeTaken,
+    submittedAt: new Date().toISOString(),
+    answers: review
+  };
+
+  // Save to GitHub
+  try {
+    const cfg = getConfig();
+    if (cfg) {
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/results/${result.id}.json`;
+      const body = { message:`Result: ${userName} - ${quiz.title}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(result,null,2)))), branch: cfg.branch };
+      await fetch(url,{method:'PUT',headers:{Authorization:`token ${cfg.token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    }
+  } catch(e) { console.warn('Failed to save result:', e); }
+
+  // Store locally for result page
+  sessionStorage.setItem('sf_result', JSON.stringify(result));
+  window.location.href = '/result';
+}
+
+function showToast(msg, type='') {
+  const t = document.createElement('div');
+  t.className='toast '+type; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+init();
+</script>
+</body>
+</html>

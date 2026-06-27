@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>StudyForge — Platform Latihan Soal Terbaik</title>
+<meta name="description" content="StudyForge membantu pelajar dan mahasiswa berlatih soal ujian secara interaktif. Upload PDF, langsung kerjakan online."/>
+<link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/" class="nav-logo">⚡ StudyForge</a>
+  <div class="nav-links">
+    <a href="/">Beranda</a>
+    <a href="/admin">Admin</a>
+  </div>
+  <a href="/admin" class="nav-btn">+ Upload Soal</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🎓 Platform Belajar #1 untuk Pelajar & Mahasiswa</div>
+  <h1>Belajar Lebih Cerdas,<br/><span>Raih Hasil Terbaik</span></h1>
+  <p>Upload PDF soal tryout dan langsung kerjakan secara interaktif. Timer, review jawaban, dan pantau perkembanganmu.</p>
+  <div class="hero-actions">
+    <a href="#quiz-list" class="btn btn-primary">🚀 Mulai Latihan</a>
+    <a href="/admin" class="btn btn-outline">📤 Upload Soal</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" id="totalQuiz">0</div><div class="stat-label">Paket Soal</div></div>
+  <div class="stat"><div class="stat-num" id="totalQ">0</div><div class="stat-label">Total Soal</div></div>
+  <div class="stat"><div class="stat-num" id="totalResult">0</div><div class="stat-label">Ujian Dikerjakan</div></div>
+</div>
+
+<!-- QUIZ LIST -->
+<main class="section" id="quiz-list">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <div class="section-title">📚 Paket Soal Tersedia</div>
+      <div class="section-sub">Pilih paket soal dan mulai berlatih sekarang</div>
+    </div>
+    <input class="form-input" id="searchInput" placeholder="🔍 Cari paket soal..." style="max-width:240px;width:100%;" oninput="filterQuizzes()"/>
+  </div>
+
+  <div id="quizGrid" class="cards-grid">
+    <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text3);">
+      <div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px;"></div>
+      <p>Memuat paket soal...</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>© 2024 <span>StudyForge</span> — Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
+</footer>
+
+<script>
+const GH_RAW = 'https://raw.githubusercontent.com';
+
+async function loadQuizzes() {
+  const cfg = getConfig();
+  if (!cfg) {
+    document.getElementById('quizGrid').innerHTML = `
+      <div style="grid-column:1/-1;" class="empty-state">
+        <div class="empty-icon">⚙️</div>
+        <p>Belum ada konfigurasi GitHub.<br/><a href="/admin" style="color:var(--primary)">Pergi ke Admin</a> untuk mengatur koneksi.</p>
+      </div>`;
+    return;
+  }
+  try {
+    const url = `${GH_RAW}/${cfg.owner}/${cfg.repo}/${cfg.branch}/quizzes/index.json`;
+    const res = await fetch(url + '?t=' + Date.now());
+    if (!res.ok) throw new Error('index.json not found');
+    const data = await res.json();
+    window._allQuizzes = data.quizzes || [];
+    renderQuizzes(window._allQuizzes);
+    updateStats(data);
+  } catch(e) {
+    document.getElementById('quizGrid').innerHTML = `
+      <div style="grid-column:1/-1;" class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>Belum ada paket soal. <a href="/admin" style="color:var(--primary)">Upload sekarang →</a></p>
+      </div>`;
+  }
+}
+
+function updateStats(data) {
+  document.getElementById('totalQuiz').textContent = data.quizzes?.length || 0;
+  document.getElementById('totalQ').textContent = data.quizzes?.reduce((a,q)=>a+(q.count||0),0) || 0;
+  document.getElementById('totalResult').textContent = data.totalResults || 0;
+}
+
+function renderQuizzes(list) {
+  const grid = document.getElementById('quizGrid');
+  if (!list.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><div class="empty-icon">📭</div><p>Belum ada paket soal. <a href="/admin" style="color:var(--primary)">Upload sekarang →</a></p></div>`;
+    return;
+  }
+  const tagColors = ['','purple','amber'];
+  grid.innerHTML = list.map((q,i) => `
+    <div class="card">
+      <div class="card-tag ${tagColors[i%3]}">${q.subject || 'Umum'}</div>
+      <h3>${q.title}</h3>
+      <p>${q.description || 'Paket soal latihan interaktif.'}</p>
+      <div class="card-meta">
+        <span>📝 ${q.count} Soal</span>
+        <span>⏱️ ${q.duration || 60} Menit</span>
+        <span>📅 ${new Date(q.createdAt).toLocaleDateString('id-ID')}</span>
+      </div>
+      <br/>
+      <a href="/quiz?id=${q.id}" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>
+    </div>
+  `).join('');
+}
+
+function filterQuizzes() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = (window._allQuizzes||[]).filter(x =>
+    x.title.toLowerCase().includes(q) || (x.subject||'').toLowerCase().includes(q)
+  );
+  renderQuizzes(filtered);
+}
+
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('sf_config')||'null'); } catch{ return null; }
+}
+
+loadQuizzes();
+</script>
+</body>
+</html>
