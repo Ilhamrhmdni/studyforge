@@ -1075,21 +1075,27 @@ async function saveQuizData(finalTitle, btn) {
   const originalText = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = '⏳ Menyimpan...';
 
-  const quizId = 'quiz-' + Date.now();
-  const quiz = {
-    id: quizId,
-    title: finalTitle,
-    subject: subject || 'Umum',
-    description: document.getElementById('quizDesc').value.trim(),
-    duration: parseInt(document.getElementById('quizDuration').value) || 60,
-    count: parsedQuestions.length,
-    created_at: new Date().toISOString(),
-    questions: parsedQuestions
-  };
-
   try {
-    const { error } = await initSupabase().from('quizzes').insert([quiz]);
-    if (error) throw error;
+    const sb = initSupabase();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('Sesi login admin tidak ditemukan.');
+
+    const response = await fetch('/api/admin/save-quiz', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        title: finalTitle,
+        subject: subject || 'Umum',
+        description: document.getElementById('quizDesc').value.trim(),
+        duration: parseInt(document.getElementById('quizDuration').value) || 60,
+        questions: parsedQuestions
+      })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Gagal menyimpan quiz.');
 
     showToast('✅ Berhasil disimpan ke Supabase!','success');
     btn.innerHTML = '✅ Tersimpan!';

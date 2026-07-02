@@ -92,14 +92,10 @@
 async function loadQuizzes() {
   try {
     const sb = initSupabase();
-    
-    // Fetch quizzes
-    const { data: quizzes, error } = await sb
-      .from('quizzes')
-      .select('id,title,subject,description,duration,count,created_at')
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
+    const quizRes = await fetch('/api/quizzes');
+    const quizPayload = await quizRes.json();
+    if (!quizRes.ok) throw new Error(quizPayload.error || 'Gagal memuat quiz.');
+    const quizzes = quizPayload.quizzes || [];
 
     // Fetch personal results count
     const user = await checkUserAuth();
@@ -112,10 +108,7 @@ async function loadQuizzes() {
       if (!countErr) totalResults = count;
     }
 
-    // Filter out drafts for regular users
-    const publishedQuizzes = (quizzes || []).filter(q => !q.title.startsWith('[DRAFT]'));
-    
-    window._allQuizzes = publishedQuizzes;
+    window._allQuizzes = quizzes;
     renderQuizzes(window._allQuizzes);
     updateStats({ quizzes: window._allQuizzes, totalResults });
   } catch(e) {

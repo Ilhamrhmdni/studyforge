@@ -116,14 +116,13 @@ async function init() {
     if (!id) { window.location.href='/'; return; }
 
     const sb = initSupabase();
-    const { data, error } = await sb
-      .from('quizzes')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error || !data) throw new Error('Quiz tidak ditemukan');
-    quiz = data;
+    const { data: { session } } = await sb.auth.getSession();
+    const response = await fetch(`/api/quiz?id=${encodeURIComponent(id)}`, {
+      headers: session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.quiz) throw new Error(payload.error || 'Quiz tidak ditemukan');
+    quiz = payload.quiz;
     
     // Shuffle logic
     shuffleArray(quiz.questions);
@@ -131,21 +130,9 @@ async function init() {
       if (q.options && q.options.length > 0) {
         shuffleArray(q.options);
         
-        // Remap keys to A, B, C, D, E so they match their new visual order.
-        // This prevents UX confusion where the first option might be labeled 'C' in the results.
-        const newKeys = ['A','B','C','D','E'];
-        let newAnswer = '';
-        
         q.options.forEach((opt, idx) => {
-          if (opt.key === q.answer) {
-             newAnswer = newKeys[idx];
-          }
-          opt.key = newKeys[idx];
+          opt.label = ['A','B','C','D','E'][idx] || String(idx + 1);
         });
-        
-        if (newAnswer) {
-          q.answer = newAnswer;
-        }
       }
     });
 
@@ -194,8 +181,8 @@ function renderQuestion() {
 
   const opts = document.getElementById('optionsList');
   opts.innerHTML = q.options.map(o => `
-    <button class="option-btn ${answers[currentIdx]===o.key?'selected':''}" onclick="selectAnswer('${escapeHTML(o.key)}')">
-      <span class="option-key">${escapeHTML(o.key)}</span>
+    <button class="option-btn ${answers[q.qid]===o.id?'selected':''}" onclick="selectAnswer('${escapeHTML(q.qid)}','${escapeHTML(o.id)}')">
+      <span class="option-key">${escapeHTML(o.label || o.id)}</span>
       <span>${escapeHTML(o.text)}</span>
     </button>
   `).join('');
@@ -216,7 +203,7 @@ function renderQuestion() {
   // Dots
   const dotsEl = document.getElementById('navDots');
   dotsEl.innerHTML = quiz.questions.map((_,i)=>`
-    <div class="dot ${answers[i]?'answered':''} ${i===currentIdx?'current':''}" onclick="goTo(${i})" title="Soal ${i+1}"></div>
+    <div class="dot ${answers[quiz.questions[i].qid]?'answered':''} ${i===currentIdx?'current':''}" onclick="goTo(${i})" title="Soal ${i+1}"></div>
   `).join('');
 
   updateSidebar();
@@ -225,7 +212,7 @@ function renderQuestion() {
 function renderSidebar() {
   const el = document.getElementById('sidebarDots');
   el.innerHTML = quiz.questions.map((_,i)=>`
-    <div class="sdot ${answers[i]?'answered':''} ${i===currentIdx?'current':''}" onclick="goTo(${i})">${i+1}</div>
+    <div class="sdot ${answers[quiz.questions[i].qid]?'answered':''} ${i===currentIdx?'current':''}" onclick="goTo(${i})">${i+1}</div>
   `).join('');
 }
 
@@ -236,8 +223,8 @@ function updateSidebar() {
   renderSidebar();
 }
 
-function selectAnswer(key) {
-  answers[currentIdx] = key;
+function selectAnswer(qid, optionId) {
+  answers[qid] = optionId;
   renderQuestion();
 }
 
@@ -268,67 +255,28 @@ async function submitQuiz() {
   document.getElementById('submitBtn').disabled = true;
   document.getElementById('submitBtn').textContent = '⏳ Menyimpan...';
 
-  let correct = 0;
-  const review = quiz.questions.map((q, i) => {
-    const userAns = answers[i] || null;
-    const isCorrect = userAns === q.answer;
-    if (isCorrect) correct++;
-    return { question: q.text, options: q.options, correctAnswer: q.answer, userAnswer: userAns, isCorrect };
-  });
-
-  const score = Math.round((correct / quiz.questions.length) * 100);
   const timeTaken = ((quiz.duration || 60) * 60) - timeLeft;
-
-  const result = {
-    id: 'result-' + Date.now(),
-    quiz_id: quiz.id,
-    quiz_title: quiz.title,
-    user_name: userName,
-    score,
-    correct,
-    total: quiz.questions.length,
-    time_taken: timeTaken,
-    submitted_at: new Date().toISOString(),
-    answers: review
-  };
-
-  // Save to Supabase Auth-backed tables
   try {
     const sb = initSupabase();
-    const { data: { user } } = await sb.auth.getUser();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('Sesi login tidak ditemukan.');
 
-    const attemptPayload = {
-      user_id: user.id,
-      quiz_id: quiz.id,
-      quiz_title: quiz.title,
-      score,
-      correct,
-      total: quiz.questions.length,
-      time_taken: timeTaken
-    };
+    const response = await fetch('/api/submit-quiz', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        quizId: quiz.id,
+        answers,
+        timeTaken
+      })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Gagal menyimpan hasil.');
 
-    const { data: attemptData, error: attemptError } = await sb.from('quiz_attempts').insert(attemptPayload).select().single();
-    
-    if (attemptError) throw attemptError;
-
-    if (attemptData) {
-      const answersData = review.map((r, i) => ({
-        attempt_id: attemptData.id,
-        user_id: user.id,
-        question_num: i + 1,
-        question_text: r.question,
-        options: r.options,
-        correct_answer: r.correctAnswer,
-        user_answer: r.userAnswer,
-        is_correct: r.isCorrect
-      }));
-      
-      const { error: ansError } = await sb.from('quiz_attempt_answers').insert(answersData);
-      if (ansError) throw ansError;
-
-      // Clean old localStorage history logic
-      window.location.href = `/result.html?id=${attemptData.id}`;
-    }
+    window.location.href = `/result.html?id=${payload.attemptId}`;
   } catch(e) { 
     console.error('Failed to save result:', e);
     alert('Gagal menyimpan hasil! ' + e.message);
