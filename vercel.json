@@ -3,21 +3,18 @@
   "public": false,
   "builds": [
     {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    },
-    {
       "src": "public/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/css/(.*)", "dest": "/public/css/$1" },
     { "src": "/js/(.*)", "dest": "/public/js/$1" },
     { "src": "/admin", "dest": "/public/admin.html" },
     { "src": "/quiz", "dest": "/public/quiz.html" },
     { "src": "/result", "dest": "/public/result.html" },
+    { "src": "/login", "dest": "/public/login.html" },
+    { "src": "/login.html", "dest": "/public/login.html" },
     { "src": "/", "dest": "/public/index.html" }
   ]
 }
