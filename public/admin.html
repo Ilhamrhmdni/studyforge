@@ -62,12 +62,7 @@
   <div class="login-box">
     <div class="logo">🛡️</div>
     <h2>Admin StudyForge</h2>
-    <p>Masukkan password untuk mengakses dashboard admin.</p>
-    <input class="form-input" id="adminPassInput" type="password"
-      placeholder="Password admin..."
-      style="margin-bottom:0.75rem;text-align:center;"
-      onkeydown="if(event.key==='Enter')checkAdminPass()"/>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="checkAdminPass()">Masuk →</button>
+    <p id="adminStatusText">Memeriksa otorisasi admin...</p>
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
