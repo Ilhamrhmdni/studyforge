@@ -106,13 +106,15 @@ function shuffleArray(array) {
 }
 
 async function init() {
-  const user = await requireAuth();
-  if (!user) return;
-  userName = user.user_metadata?.full_name || user.email;
+  try {
+    const user = await requireAuth();
+    if (!user) return;
+    userName = user.user_metadata?.full_name || user.email;
 
-  const params = new URLSearchParams(location.search);
-  const id = params.get('id');
-  if (!id) { window.location.href='/'; return; }
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    if (!id) { window.location.href='/'; return; }
+
     const sb = initSupabase();
     const { data, error } = await sb
       .from('quizzes')
@@ -275,7 +277,7 @@ async function submitQuiz() {
   });
 
   const score = Math.round((correct / quiz.questions.length) * 100);
-  const timeTaken = (quiz.duration * 60) - timeLeft;
+  const timeTaken = ((quiz.duration || 60) * 60) - timeLeft;
 
   const result = {
     id: 'result-' + Date.now(),
