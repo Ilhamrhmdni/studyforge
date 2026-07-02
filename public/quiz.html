@@ -113,17 +113,15 @@ async function init() {
   const params = new URLSearchParams(location.search);
   const id = params.get('id');
   if (!id) { window.location.href='/'; return; }
-  const { supabaseUrl, supabaseAnonKey } = SITE_CONFIG;
-  try {
-    const url = `${supabaseUrl}/rest/v1/quizzes?id=eq.${id}&select=*`;
-    const res = await fetch(url, {
-      cache: 'no-store',
-      headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
-    });
-    if (!res.ok) throw new Error('Quiz tidak ditemukan');
-    const data = await res.json();
-    if (!data.length) throw new Error('Quiz tidak ditemukan');
-    quiz = data[0];
+    const sb = initSupabase();
+    const { data, error } = await sb
+      .from('quizzes')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error || !data) throw new Error('Quiz tidak ditemukan');
+    quiz = data;
     
     // Shuffle logic
     shuffleArray(quiz.questions);

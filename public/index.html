@@ -91,33 +91,28 @@
 
 async function loadQuizzes() {
   try {
-    const { supabaseUrl, supabaseAnonKey } = SITE_CONFIG;
-    // Ambil daftar quiz (hanya metadata) tanpa memuat seluruh data soal (questions) untuk efisiensi
-    const url = `${supabaseUrl}/rest/v1/quizzes?select=id,title,subject,description,duration,count,created_at&order=created_at.desc`;
-    const res = await fetch(url, {
-      cache: 'no-store',
-      headers: {
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`
-      }
-    });
-    if (!res.ok) throw new Error('Belum ada soal');
-    const data = await res.json();
-    // Fetch results count
+    const sb = initSupabase();
+    
+    // Fetch quizzes
+    const { data: quizzes, error } = await sb
+      .from('quizzes')
+      .select('id,title,subject,description,duration,count,created_at')
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+
+    // Fetch personal results count
+    const user = await checkUserAuth();
     let totalResults = 0;
-    try {
-      const resCount = await fetch(`${supabaseUrl}/rest/v1/results?select=id`, {
-        cache: 'no-store',
-        headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
-      });
-      if (resCount.ok) {
-        const countData = await resCount.json();
-        totalResults = countData.length;
-      }
-    } catch (e) { console.warn('Failed to fetch results count', e); }
+    if (user) {
+      const { count, error: countErr } = await sb
+        .from('quiz_attempts')
+        .select('id', { count: 'exact', head: true });
+      if (!countErr) totalResults = count;
+    }
 
     // Filter out drafts for regular users
-    const publishedQuizzes = (data || []).filter(q => !q.title.startsWith('[DRAFT]'));
+    const publishedQuizzes = (quizzes || []).filter(q => !q.title.startsWith('[DRAFT]'));
     
     window._allQuizzes = publishedQuizzes;
     renderQuizzes(window._allQuizzes);
