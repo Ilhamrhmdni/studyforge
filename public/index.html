@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>StudyForge — Platform Latihan Soal Terbaik</title>
 <meta name="description" content="StudyForge membantu pelajar dan mahasiswa berlatih soal ujian secara interaktif. Upload PDF, langsung kerjakan online."/>
-<link rel="stylesheet" href="/css/style.css"/>
+<link rel="stylesheet" href="/css/style.css?v=2.1"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 </head>
 <body>
 
@@ -13,106 +16,146 @@
   <a href="/" class="nav-logo">⚡ StudyForge</a>
   <div class="nav-links">
     <a href="/">Beranda</a>
-    <a href="/admin">Admin</a>
   </div>
-  <a href="/admin" class="nav-btn">+ Upload Soal</a>
 </nav>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-badge">🎓 Platform Belajar #1 untuk Pelajar & Mahasiswa</div>
-  <h1>Belajar Lebih Cerdas,<br/><span>Raih Hasil Terbaik</span></h1>
-  <p>Upload PDF soal tryout dan langsung kerjakan secara interaktif. Timer, review jawaban, dan pantau perkembanganmu.</p>
-  <div class="hero-actions">
-    <a href="#quiz-list" class="btn btn-primary">🚀 Mulai Latihan</a>
-    <a href="/admin" class="btn btn-outline">📤 Upload Soal</a>
-  </div>
-</section>
+<!-- DASHBOARD LAYOUT -->
+<div class="dashboard-container" style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
+  
+  <!-- KIRI: Utama (Quizzes) -->
+  <div class="main-content">
+    <div class="welcome-banner" style="background: linear-gradient(135deg, var(--primary), var(--accent)); padding: 2.5rem 2rem; border-radius: 16px; margin-bottom: 2.5rem; position: relative; overflow: hidden;">
+      <div style="position: relative; z-index: 2;">
+        <h1 style="color: #fff; font-size: 2rem; margin-bottom: 0.5rem;">Halo, Pejuang Ujian! 👋</h1>
+        <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Siap menaklukkan tantangan hari ini? Pilih paket soal di bawah dan mulai berlatih.</p>
+      </div>
+      <!-- Dekorasi abstrak -->
+      <div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:rgba(255,255,255,0.1); border-radius:50%; blur(10px);"></div>
+      <div style="position:absolute; bottom:-80px; right:50px; width:150px; height:150px; background:rgba(255,255,255,0.15); border-radius:50%; blur(10px);"></div>
+    </div>
 
-<!-- STATS -->
-<div class="stats-bar">
-  <div class="stat"><div class="stat-num" id="totalQuiz">0</div><div class="stat-label">Paket Soal</div></div>
-  <div class="stat"><div class="stat-num" id="totalQ">0</div><div class="stat-label">Total Soal</div></div>
-  <div class="stat"><div class="stat-num" id="totalResult">0</div><div class="stat-label">Ujian Dikerjakan</div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+      <h2 style="font-size:1.3rem; font-weight:800;">📚 Paket Soal Tersedia</h2>
+      <input class="form-input" id="searchInput" placeholder="🔍 Cari paket soal..." style="max-width:240px;width:100%;" oninput="filterQuizzes()"/>
+    </div>
+
+    <div id="quizGrid" class="cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+      <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text3);">
+        <div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px;"></div>
+        <p>Memuat paket soal...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- KANAN: Sidebar Info -->
+  <aside class="side-content" style="display: flex; flex-direction: column; gap: 2rem;">
+    
+    <!-- Statistik Platform -->
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
+      <h3 style="font-size:1.1rem; margin-bottom:1.2rem; font-weight:700;">📊 Statistik Platform</h3>
+      <div style="display:flex; flex-direction:column; gap: 1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.8rem; border-bottom:1px dashed var(--border);">
+          <span style="color:var(--text2); font-size:0.9rem;">Total Paket Soal</span>
+          <strong id="totalQuiz" style="font-size:1.1rem; color:var(--primary);">0</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.8rem; border-bottom:1px dashed var(--border);">
+          <span style="color:var(--text2); font-size:0.9rem;">Total Pertanyaan</span>
+          <strong id="totalQ" style="font-size:1.1rem; color:var(--primary);">0</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:var(--text2); font-size:0.9rem;">Ujian Diselesaikan</span>
+          <strong id="totalResult" style="font-size:1.1rem; color:var(--primary);">0</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Riwayat Ujian -->
+    <div id="history-section" style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
+      <h3 style="font-size:1.1rem; margin-bottom:1.2rem; font-weight:700;">🕒 Riwayat Terakhir</h3>
+      <div id="historyGrid" style="display:flex; flex-direction:column; gap: 1rem;">
+        <p style="color:var(--text3); font-size:0.85rem; text-align:center; padding: 2rem 0;">Belum ada riwayat ujian.<br>Kerjakan soal untuk melihat evaluasi.</p>
+      </div>
+    </div>
+
+  </aside>
 </div>
 
-<!-- QUIZ LIST -->
-<main class="section" id="quiz-list">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
-    <div>
-      <div class="section-title">📚 Paket Soal Tersedia</div>
-      <div class="section-sub">Pilih paket soal dan mulai berlatih sekarang</div>
-    </div>
-    <input class="form-input" id="searchInput" placeholder="🔍 Cari paket soal..." style="max-width:240px;width:100%;" oninput="filterQuizzes()"/>
-  </div>
-
-  <div id="quizGrid" class="cards-grid">
-    <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text3);">
-      <div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px;"></div>
-      <p>Memuat paket soal...</p>
-    </div>
-  </div>
-</main>
-
 <footer>
-  <p>© 2024 <span>StudyForge</span> — Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
+  <p>© <script>document.write(new Date().getFullYear())</script> <span>StudyForge</span> — Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/site-config.js"></script>
+<script src="/js/auth.js"></script>
 <script>
-const GH_RAW = 'https://raw.githubusercontent.com';
 
 async function loadQuizzes() {
-  const cfg = getConfig();
-  if (!cfg) {
-    document.getElementById('quizGrid').innerHTML = `
-      <div style="grid-column:1/-1;" class="empty-state">
-        <div class="empty-icon">⚙️</div>
-        <p>Belum ada konfigurasi GitHub.<br/><a href="/admin" style="color:var(--primary)">Pergi ke Admin</a> untuk mengatur koneksi.</p>
-      </div>`;
-    return;
-  }
   try {
-    const url = `${GH_RAW}/${cfg.owner}/${cfg.repo}/${cfg.branch}/quizzes/index.json`;
-    const res = await fetch(url + '?t=' + Date.now());
-    if (!res.ok) throw new Error('index.json not found');
+    const { supabaseUrl, supabaseAnonKey } = SITE_CONFIG;
+    // Ambil daftar quiz (hanya metadata) tanpa memuat seluruh data soal (questions) untuk efisiensi
+    const url = `${supabaseUrl}/rest/v1/quizzes?select=id,title,subject,description,duration,count,created_at&order=created_at.desc`;
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      }
+    });
+    if (!res.ok) throw new Error('Belum ada soal');
     const data = await res.json();
-    window._allQuizzes = data.quizzes || [];
+    // Fetch results count
+    let totalResults = 0;
+    try {
+      const resCount = await fetch(`${supabaseUrl}/rest/v1/results?select=id`, {
+        cache: 'no-store',
+        headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
+      });
+      if (resCount.ok) {
+        const countData = await resCount.json();
+        totalResults = countData.length;
+      }
+    } catch (e) { console.warn('Failed to fetch results count', e); }
+
+    // Filter out drafts for regular users
+    const publishedQuizzes = (data || []).filter(q => !q.title.startsWith('[DRAFT]'));
+    
+    window._allQuizzes = publishedQuizzes;
     renderQuizzes(window._allQuizzes);
-    updateStats(data);
+    updateStats({ quizzes: window._allQuizzes, totalResults });
   } catch(e) {
     document.getElementById('quizGrid').innerHTML = `
       <div style="grid-column:1/-1;" class="empty-state">
         <div class="empty-icon">📭</div>
-        <p>Belum ada paket soal. <a href="/admin" style="color:var(--primary)">Upload sekarang →</a></p>
+        <p>Belum ada paket soal tersedia.</p>
       </div>`;
   }
 }
 
 function updateStats(data) {
-  document.getElementById('totalQuiz').textContent = data.quizzes?.length || 0;
-  document.getElementById('totalQ').textContent = data.quizzes?.reduce((a,q)=>a+(q.count||0),0) || 0;
+  document.getElementById('totalQuiz').textContent   = data.quizzes?.length || 0;
+  document.getElementById('totalQ').textContent      = data.quizzes?.reduce((a,q)=>a+(q.count||0),0) || 0;
   document.getElementById('totalResult').textContent = data.totalResults || 0;
 }
 
 function renderQuizzes(list) {
   const grid = document.getElementById('quizGrid');
   if (!list.length) {
-    grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><div class="empty-icon">📭</div><p>Belum ada paket soal. <a href="/admin" style="color:var(--primary)">Upload sekarang →</a></p></div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><div class="empty-icon">📭</div><p>Belum ada paket soal.</p></div>`;
     return;
   }
   const tagColors = ['','purple','amber'];
   grid.innerHTML = list.map((q,i) => `
     <div class="card">
-      <div class="card-tag ${tagColors[i%3]}">${q.subject || 'Umum'}</div>
-      <h3>${q.title}</h3>
-      <p>${q.description || 'Paket soal latihan interaktif.'}</p>
+      <div class="card-tag ${tagColors[i%3]}">${escapeHTML(q.subject || 'Umum')}</div>
+      <h3>${escapeHTML(q.title)}</h3>
+      <p>${escapeHTML(q.description || 'Paket soal latihan interaktif.')}</p>
       <div class="card-meta">
         <span>📝 ${q.count} Soal</span>
         <span>⏱️ ${q.duration || 60} Menit</span>
-        <span>📅 ${new Date(q.createdAt).toLocaleDateString('id-ID')}</span>
+        <span>📅 ${new Date(q.created_at).toLocaleDateString('id-ID')}</span>
       </div>
       <br/>
-      <a href="/quiz?id=${q.id}" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>
+      <a href="/quiz?id=${escapeHTML(q.id)}" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>
     </div>
   `).join('');
 }
@@ -120,15 +163,60 @@ function renderQuizzes(list) {
 function filterQuizzes() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   const filtered = (window._allQuizzes||[]).filter(x =>
-    x.title.toLowerCase().includes(q) || (x.subject||'').toLowerCase().includes(q)
+    (x.title||'').toLowerCase().includes(q) || (x.subject||'').toLowerCase().includes(q)
   );
   renderQuizzes(filtered);
 }
 
-function getConfig() {
-  try { return JSON.parse(localStorage.getItem('sf_config')||'null'); } catch{ return null; }
+async function loadHistory() {
+  const user = await checkUserAuth();
+  
+  if (!user) {
+    document.getElementById('history-section').style.display = 'block';
+    document.getElementById('historyGrid').innerHTML = `
+      <div style="text-align:center; padding: 2rem 1rem; border: 1px dashed var(--border); border-radius: 8px;">
+        <p style="color:var(--text2); margin-bottom:1rem;">Masuk untuk menyimpan dan melihat riwayat latihanmu.</p>
+        <a href="/login.html" class="btn btn-primary">Masuk ke Akun</a>
+      </div>
+    `;
+    return;
+  }
+
+  try {
+    const sb = initSupabase();
+    const { data, error } = await sb.from('quiz_attempts')
+      .select('id, quiz_title, score, correct, total, time_taken, submitted_at')
+      .order('submitted_at', { ascending: false })
+      .limit(4);
+      
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      document.getElementById('history-section').style.display = 'block';
+      document.getElementById('historyGrid').innerHTML = data.map(h => `
+        <div style="border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 8px; padding: 1rem; background: var(--bg);">
+          <h4 style="font-size:0.95rem; margin-bottom:0.3rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(h.quiz_title)}</h4>
+          <div style="color:var(--text2); font-size:0.75rem; margin-bottom:0.8rem;">
+            📅 ${new Date(h.submitted_at).toLocaleDateString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+            <div style="font-size:1.2rem; font-weight:800; color:${h.score >= 70 ? 'var(--success)' : 'var(--danger)'};">${h.score} <span style="font-size:0.7rem; color:var(--text3); font-weight:500;">Nilai</span></div>
+            <div style="font-size:0.75rem; color:var(--text2); text-align:right;">✅ ${h.correct} / ${h.total} Benar</div>
+          </div>
+          <a href="/result?id=${h.id}" class="btn btn-outline" style="width:100%; justify-content:center; padding:0.4rem; font-size:0.8rem;">📖 Review</a>
+        </div>
+      `).join('');
+    } else {
+      document.getElementById('history-section').style.display = 'block';
+      document.getElementById('historyGrid').innerHTML = '<p style="color:var(--text3); font-size:0.85rem; text-align:center; padding: 2rem 0;">Belum ada riwayat ujian.<br>Kerjakan soal untuk melihat evaluasi.</p>';
+    }
+  } catch(e) {
+    console.error('History load error:', e);
+  }
 }
 
+updateNavForUser();
+loadHistory();
 loadQuizzes();
 </script>
 </body>

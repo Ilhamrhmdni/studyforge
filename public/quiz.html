@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Kerjakan Soal — StudyForge</title>
 <link rel="stylesheet" href="/css/style.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/site-config.js"></script>
+<script src="/js/auth.js"></script>
 <style>
 .user-modal { position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center; }
 .user-modal-box { background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:2.5rem;max-width:420px;width:90%;text-align:center; }
@@ -29,16 +32,6 @@
   <div class="timer-box" id="timer">--:--</div>
 </nav>
 
-<!-- USER NAME MODAL -->
-<div class="user-modal" id="userModal">
-  <div class="user-modal-box">
-    <div style="font-size:3rem;margin-bottom:1rem;">👋</div>
-    <h2>Selamat Datang!</h2>
-    <p>Masukkan namamu untuk memulai ujian. Hasilmu akan dicatat.</p>
-    <input class="form-input" id="userNameInput" placeholder="Nama lengkap kamu..." style="margin-bottom:1rem;text-align:center;"/>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="startQuiz()">🚀 Mulai Ujian</button>
-  </div>
-</div>
 
 <div class="layout">
   <!-- MAIN CONTENT -->
@@ -100,31 +93,69 @@
 </div>
 
 <script>
-const GH_RAW = 'https://raw.githubusercontent.com';
+
 let quiz = null, answers = {}, currentIdx = 0;
 let timerInterval = null, timeLeft = 0;
 let userName = '';
 
-function getConfig() {
-  try { return JSON.parse(localStorage.getItem('sf_config')||'null'); } catch{ return null; }
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
 }
 
 async function init() {
+  const user = await requireAuth();
+  if (!user) return;
+  userName = user.user_metadata?.full_name || user.email;
+
   const params = new URLSearchParams(location.search);
   const id = params.get('id');
   if (!id) { window.location.href='/'; return; }
-  const cfg = getConfig();
-  if (!cfg) { showToast('Konfigurasi GitHub belum diatur','error'); return; }
+  const { supabaseUrl, supabaseAnonKey } = SITE_CONFIG;
   try {
-    const url = `${GH_RAW}/${cfg.owner}/${cfg.repo}/${cfg.branch}/quizzes/${id}.json?t=${Date.now()}`;
-    const res = await fetch(url);
+    const url = `${supabaseUrl}/rest/v1/quizzes?id=eq.${id}&select=*`;
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
+    });
     if (!res.ok) throw new Error('Quiz tidak ditemukan');
-    quiz = await res.json();
-    document.title = quiz.title + ' — StudyForge';
-    document.getElementById('quizNavInfo').textContent = quiz.title;
+    const data = await res.json();
+    if (!data.length) throw new Error('Quiz tidak ditemukan');
+    quiz = data[0];
+    
+    // Shuffle logic
+    shuffleArray(quiz.questions);
+    quiz.questions.forEach(q => {
+      if (q.options && q.options.length > 0) {
+        shuffleArray(q.options);
+        
+        // Remap keys to A, B, C, D, E so they match their new visual order.
+        // This prevents UX confusion where the first option might be labeled 'C' in the results.
+        const newKeys = ['A','B','C','D','E'];
+        let newAnswer = '';
+        
+        q.options.forEach((opt, idx) => {
+          if (opt.key === q.answer) {
+             newAnswer = newKeys[idx];
+          }
+          opt.key = newKeys[idx];
+        });
+        
+        if (newAnswer) {
+          q.answer = newAnswer;
+        }
+      }
+    });
+
+    document.title = escapeHTML(quiz.title) + ' — StudyForge';
+    document.getElementById('quizNavInfo').textContent = escapeHTML(quiz.title);
     document.getElementById('sb-total').textContent = quiz.questions.length;
     document.getElementById('sb-remaining').textContent = quiz.questions.length;
     timeLeft = (quiz.duration || 60) * 60;
+    
+    startQuiz(); // Automatically start since they are authenticated
   } catch(e) {
     alert('Gagal memuat quiz: ' + e.message);
     window.location.href='/';
@@ -132,10 +163,6 @@ async function init() {
 }
 
 function startQuiz() {
-  const name = document.getElementById('userNameInput').value.trim();
-  if (!name) { document.getElementById('userNameInput').style.borderColor='var(--danger)'; return; }
-  userName = name;
-  document.getElementById('userModal').style.display = 'none';
   document.getElementById('questionCard').style.display = 'block';
   document.getElementById('quizNav').style.display = 'flex';
   startTimer();
@@ -167,11 +194,20 @@ function renderQuestion() {
 
   const opts = document.getElementById('optionsList');
   opts.innerHTML = q.options.map(o => `
-    <button class="option-btn ${answers[currentIdx]===o.key?'selected':''}" onclick="selectAnswer('${o.key}')">
-      <span class="option-key">${o.key}</span>
-      <span>${o.text}</span>
+    <button class="option-btn ${answers[currentIdx]===o.key?'selected':''}" onclick="selectAnswer('${escapeHTML(o.key)}')">
+      <span class="option-key">${escapeHTML(o.key)}</span>
+      <span>${escapeHTML(o.text)}</span>
     </button>
   `).join('');
+
+  // Show image if question has one
+  let imgHtml = '';
+  if (q.image) {
+    imgHtml = `<div style="margin-bottom:1rem;text-align:center;">
+      <img src="${q.image}" style="max-width:100%;max-height:320px;object-fit:contain;border-radius:10px;border:1px solid var(--border);" alt="Gambar soal"/>
+    </div>`;
+  }
+  document.getElementById('questionText').innerHTML = imgHtml + `<span>${escapeHTML(q.text)}</span>`;
 
   // Nav buttons
   document.getElementById('prevBtn').disabled = currentIdx === 0;
@@ -245,30 +281,60 @@ async function submitQuiz() {
 
   const result = {
     id: 'result-' + Date.now(),
-    quizId: quiz.id,
-    quizTitle: quiz.title,
-    userName,
+    quiz_id: quiz.id,
+    quiz_title: quiz.title,
+    user_name: userName,
     score,
     correct,
     total: quiz.questions.length,
-    timeTaken,
-    submittedAt: new Date().toISOString(),
+    time_taken: timeTaken,
+    submitted_at: new Date().toISOString(),
     answers: review
   };
 
-  // Save to GitHub
+  // Save to Supabase Auth-backed tables
   try {
-    const cfg = getConfig();
-    if (cfg) {
-      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/results/${result.id}.json`;
-      const body = { message:`Result: ${userName} - ${quiz.title}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(result,null,2)))), branch: cfg.branch };
-      await fetch(url,{method:'PUT',headers:{Authorization:`token ${cfg.token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
-    }
-  } catch(e) { console.warn('Failed to save result:', e); }
+    const sb = initSupabase();
+    const { data: { user } } = await sb.auth.getUser();
 
-  // Store locally for result page
-  sessionStorage.setItem('sf_result', JSON.stringify(result));
-  window.location.href = '/result';
+    const attemptPayload = {
+      user_id: user.id,
+      quiz_id: quiz.id,
+      quiz_title: quiz.title,
+      score,
+      correct,
+      total: quiz.questions.length,
+      time_taken: timeTaken
+    };
+
+    const { data: attemptData, error: attemptError } = await sb.from('quiz_attempts').insert(attemptPayload).select().single();
+    
+    if (attemptError) throw attemptError;
+
+    if (attemptData) {
+      const answersData = review.map((r, i) => ({
+        attempt_id: attemptData.id,
+        user_id: user.id,
+        question_num: i + 1,
+        question_text: r.question,
+        options: r.options,
+        correct_answer: r.correctAnswer,
+        user_answer: r.userAnswer,
+        is_correct: r.isCorrect
+      }));
+      
+      const { error: ansError } = await sb.from('quiz_attempt_answers').insert(answersData);
+      if (ansError) throw ansError;
+
+      // Clean old localStorage history logic
+      window.location.href = `/result.html?id=${attemptData.id}`;
+    }
+  } catch(e) { 
+    console.error('Failed to save result:', e);
+    alert('Gagal menyimpan hasil! ' + e.message);
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('submitBtn').textContent = '✅ Kumpulkan Jawaban';
+  }
 }
 
 function showToast(msg, type='') {

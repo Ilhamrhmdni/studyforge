@@ -23,7 +23,7 @@
 
 <div class="result-wrap">
   <!-- No result -->
-  <div id="noResult" style="display:none;" class="empty-state" style="padding:5rem 2rem;">
+  <div id="noResult" style="display:none; padding:5rem 2rem;" class="empty-state">
     <div class="empty-icon">😕</div>
     <p>Tidak ada data hasil ujian.<br/><a href="/" style="color:var(--primary)">Kembali ke beranda →</a></p>
   </div>
@@ -64,9 +64,12 @@
 </div>
 
 <footer>
-  <p>© 2024 <span>StudyForge</span> — Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
+  <p>© <script>document.write(new Date().getFullYear())</script> <span>StudyForge</span> — Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/site-config.js"></script>
+<script src="/js/auth.js"></script>
 <script>
 function getGrade(score) {
   if (score >= 85) return { label:'A — Sangat Baik 🏆', cls:'grade-A' };
@@ -80,14 +83,46 @@ function formatTime(seconds) {
   return `${m}m ${s}s`;
 }
 
-window.onload = () => {
-  const raw = sessionStorage.getItem('sf_result');
-  if (!raw) {
+window.onload = async () => {
+  const user = await requireAuth();
+  if (!user) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  
+  if (!id) {
     document.getElementById('noResult').style.display = 'block';
     document.getElementById('resultContent').style.display = 'none';
     return;
   }
-  const r = JSON.parse(raw);
+
+  const sb = initSupabase();
+  const { data: attempt, error: attemptErr } = await sb.from('quiz_attempts').select('*').eq('id', id).single();
+  
+  if (attemptErr || !attempt) {
+    document.getElementById('noResult').style.display = 'block';
+    document.getElementById('resultContent').style.display = 'none';
+    return;
+  }
+  
+  const { data: answersData } = await sb.from('quiz_attempt_answers').select('*').eq('attempt_id', id).order('question_num');
+
+  const r = {
+    user_name: user.user_metadata?.full_name || user.email,
+    score: attempt.score,
+    quiz_title: attempt.quiz_title,
+    submitted_at: attempt.submitted_at,
+    correct: attempt.correct,
+    total: attempt.total,
+    time_taken: attempt.time_taken,
+    answers: (answersData || []).map(a => ({
+      isCorrect: a.is_correct,
+      question: a.question_text,
+      options: a.options,
+      correctAnswer: a.correct_answer,
+      userAnswer: a.user_answer
+    }))
+  };
   const grade = getGrade(r.score);
 
   // Score circle color
@@ -97,15 +132,15 @@ window.onload = () => {
   else if (r.score >= 55) circle.style.borderColor = 'var(--accent)';
   else circle.style.borderColor = 'var(--danger)';
 
-  document.getElementById('congrats').textContent = r.score >= 70 ? `🎉 Selamat, ${r.userName}!` : `💪 Tetap semangat, ${r.userName}!`;
+  document.getElementById('congrats').textContent = r.score >= 70 ? `🎉 Selamat, ${r.user_name}!` : `💪 Tetap semangat, ${r.user_name}!`;
   document.getElementById('scoreNum').textContent = r.score;
   document.getElementById('gradeBadge').textContent = grade.label;
   document.getElementById('gradeBadge').className = 'grade-badge ' + grade.cls;
-  document.getElementById('resultTitle').textContent = r.quizTitle;
-  document.getElementById('resultMeta').textContent = `Dikerjakan pada ${new Date(r.submittedAt).toLocaleString('id-ID')}`;
+  document.getElementById('resultTitle').textContent = r.quiz_title;
+  document.getElementById('resultMeta').textContent = `Dikerjakan pada ${new Date(r.submitted_at).toLocaleString('id-ID')}`;
   document.getElementById('correctNum').textContent = r.correct;
   document.getElementById('wrongNum').textContent = r.total - r.correct;
-  document.getElementById('timeNum').textContent = formatTime(r.timeTaken||0);
+  document.getElementById('timeNum').textContent = formatTime(r.time_taken||0);
 
   // Render review
   document.getElementById('reviewList').innerHTML = r.answers.map((a, i) => `
@@ -116,16 +151,16 @@ window.onload = () => {
         ${!a.userAnswer ? '<span style="color:var(--text3);font-size:0.8rem;">Tidak dijawab</span>' : ''}
       </div>
       <div class="review-body">
-        <p style="margin-bottom:0.8rem;font-weight:500;">${a.question}</p>
+        <p style="margin-bottom:0.8rem;font-weight:500;">${escapeHTML(a.question)}</p>
         <div style="display:flex;flex-direction:column;gap:0.4rem;">
           ${a.options.map(o => {
             let style = '';
             if (o.key === a.correctAnswer) style = 'color:var(--success);font-weight:600;';
             if (o.key === a.userAnswer && o.key !== a.correctAnswer) style = 'color:var(--danger);text-decoration:line-through;';
-            return `<div style="${style};font-size:0.85rem;"><strong>${o.key}.</strong> ${o.text} ${o.key===a.correctAnswer?' ✓':''}${o.key===a.userAnswer&&o.key!==a.correctAnswer?' ✗':''}</div>`;
+            return `<div style="${style};font-size:0.85rem;"><strong>${escapeHTML(o.key)}.</strong> ${escapeHTML(o.text)} ${o.key===a.correctAnswer?' ✓':''}${o.key===a.userAnswer&&o.key!==a.correctAnswer?' ✗':''}</div>`;
           }).join('')}
         </div>
-        ${!a.isCorrect ? `<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--success);">Jawaban benar: <strong>${a.correctAnswer}</strong></div>` : ''}
+        ${!a.isCorrect ? `<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--success);">Jawaban benar: <strong>${escapeHTML(a.correctAnswer)}</strong></div>` : ''}
       </div>
     </div>
   `).join('');
