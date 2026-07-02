@@ -1,20 +1,36 @@
 {
-  "version": 2,
-  "public": false,
-  "builds": [
+  "rewrites": [
     {
-      "src": "public/**",
-      "use": "@vercel/static"
+      "source": "/css/(.*)",
+      "destination": "/public/css/"
+    },
+    {
+      "source": "/js/(.*)",
+      "destination": "/public/js/"
+    },
+    {
+      "source": "/admin",
+      "destination": "/public/admin.html"
+    },
+    {
+      "source": "/quiz",
+      "destination": "/public/quiz.html"
+    },
+    {
+      "source": "/result",
+      "destination": "/public/result.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/public/login.html"
+    },
+    {
+      "source": "/login.html",
+      "destination": "/public/login.html"
+    },
+    {
+      "source": "/",
+      "destination": "/public/index.html"
     }
-  ],
-  "routes": [
-    { "src": "/css/(.*)", "dest": "/public/css/$1" },
-    { "src": "/js/(.*)", "dest": "/public/js/$1" },
-    { "src": "/admin", "dest": "/public/admin.html" },
-    { "src": "/quiz", "dest": "/public/quiz.html" },
-    { "src": "/result", "dest": "/public/result.html" },
-    { "src": "/login", "dest": "/public/login.html" },
-    { "src": "/login.html", "dest": "/public/login.html" },
-    { "src": "/", "dest": "/public/index.html" }
   ]
 }
