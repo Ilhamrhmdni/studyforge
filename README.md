@@ -1,82 +1,65 @@
-# ⚡ StudyForge
+# StudyForge
 
-Platform latihan soal interaktif untuk pelajar & mahasiswa Indonesia.
+Platform latihan soal interaktif dengan:
+- frontend statis di `public/`
+- Cloudflare Pages Functions di `functions/`
+- database/auth di Supabase
 
-## 🚀 Fitur
+## Struktur
 
-- 📤 **Upload PDF** — Admin upload PDF soal, sistem auto-parse jadi quiz interaktif
-- ✏️ **Editor Soal** — Edit/koreksi hasil parsing sebelum disimpan
-- ⏱️ **Timer Ujian** — Countdown timer saat mengerjakan soal
-- 📊 **Review Jawaban** — Review mana yang salah & benar setelah submit
-- 📁 **GitHub sebagai DB** — Semua data tersimpan di GitHub repo (gratis!)
-- 🏆 **Leaderboard Hasil** — Admin bisa lihat semua hasil ujian peserta
-
-## 📋 Cara Deploy (Vercel)
-
-### 1. Buat GitHub Repo untuk Database
-Buat repo baru di GitHub (contoh: `studyforge-db`), set ke **Public**.
-
-### 2. Buat GitHub Personal Access Token
-- Pergi ke: GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic)
-- Beri centang pada **repo** (full control)
-- Copy tokennya
-
-### 3. Deploy ke Vercel
-```bash
-npm install -g vercel
-vercel login
-vercel --prod
-```
-
-### 4. Konfigurasi di Web
-Setelah deploy, buka halaman `/admin` dan isi:
-- **GitHub Owner**: username GitHub kamu
-- **Repository**: nama repo database (contoh: `studyforge-db`)  
-- **Branch**: `main`
-- **Token**: Personal Access Token yang tadi dibuat
-
-## 🏗️ Struktur Project
-
-```
+```text
 studyforge/
-├── public/
-│   ├── index.html      ← Halaman utama (daftar quiz)
-│   ├── admin.html      ← Dashboard admin (upload PDF)
-│   ├── quiz.html       ← Halaman kerjakan soal
-│   ├── result.html     ← Halaman hasil ujian
-│   └── css/
-│       └── style.css   ← Styling premium
-├── vercel.json
-└── package.json
+├── functions/              # Cloudflare Pages Functions
+├── public/                 # Static assets / HTML
+├── wrangler.jsonc          # Konfigurasi Cloudflare Pages
+├── supabase_schema.sql     # Referensi schema / policy
+└── migrate_secure_quizzes.mjs
 ```
 
-## 📂 Struktur GitHub DB
+## Deploy Gratis ke Cloudflare Pages
 
-```
-studyforge-db/ (repo terpisah)
-├── quizzes/
-│   ├── index.json          ← Daftar semua quiz
-│   ├── quiz-xxx.json       ← Data soal individual
-│   └── ...
-└── results/
-    ├── result-xxx.json     ← Hasil ujian individual
-    └── ...
-```
+1. Push repo ini ke GitHub.
+2. Di Cloudflare Dashboard buka `Workers & Pages`.
+3. Klik `Create application` > `Pages` > `Connect to Git`.
+4. Pilih repo `studyforge`.
+5. Build settings:
+   - Build command: kosongkan
+   - Build output directory: `public`
+6. Deploy.
 
-## 🛠️ Format Soal yang Didukung
+Cloudflare Pages akan otomatis membaca:
+- static site dari `public/`
+- serverless endpoint dari `functions/`
 
-PDF dengan format:
-```
-1. Pertanyaan di sini
-A. Opsi A
-B. Opsi B
-C. Opsi C
-D. Opsi D
+## Environment Variables
 
-Kunci Jawaban:
-1. A
-2. B
+Set di Cloudflare Pages project:
+
+```text
+SUPABASE_URL=https://wsmclqrqfhrzysxgmfdj.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+QUIZ_ENCRYPTION_SECRET=...
 ```
 
-## 📄 Lisensi
-MIT License — Free to use and modify.
+`QUIZ_ENCRYPTION_SECRET` harus stabil. Jangan diganti sembarangan setelah quiz terenkripsi mulai dipakai.
+
+## Route Penting
+
+- `/` daftar quiz
+- `/admin` dashboard admin
+- `/quiz?id=...` halaman ujian
+- `/result?id=...` halaman hasil
+- `/api/quizzes`
+- `/api/quiz`
+- `/api/submit-quiz`
+- `/api/admin/save-quiz`
+
+## Migrasi Quiz Lama
+
+Setelah env siap, jalankan lokal:
+
+```bash
+node migrate_secure_quizzes.mjs
+```
+
+Script ini akan mengenkripsi jawaban quiz lama yang masih tersimpan plaintext.

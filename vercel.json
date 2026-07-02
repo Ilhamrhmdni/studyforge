@@ -1,1 +1,0 @@
-{"rewrites": [{"source": "/admin", "destination": "/admin.html"}, {"source": "/quiz", "destination": "/quiz.html"}, {"source": "/result", "destination": "/result.html"}, {"source": "/login", "destination": "/login.html"}]}
