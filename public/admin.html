@@ -1136,14 +1136,28 @@ async function deleteQuiz(id) {
 async function loadResults() {
   const el = document.getElementById('resultsList');
   try {
-    const { data: results, error } = await initSupabase()
+    const sb = initSupabase();
+    const { data: results, error } = await sb
       .from('quiz_attempts')
-      .select('*, profiles(full_name)')
+      .select('*')
       .order('submitted_at', { ascending: false })
       .limit(50);
       
     if (error) throw error;
     if (!results || !results.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada hasil ujian.</p></div>'; return; }
+
+    const userIds = [...new Set(results.map(r => r.user_id).filter(Boolean))];
+    const profileMap = {};
+    if (userIds.length) {
+      const { data: profiles, error: profilesError } = await sb
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+      if (profilesError) throw profilesError;
+      for (const profile of profiles || []) {
+        profileMap[profile.id] = profile;
+      }
+    }
 
     el.innerHTML = `
       <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
@@ -1157,7 +1171,7 @@ async function loadResults() {
         </tr></thead>
         <tbody>${results.map(r => `
           <tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:0.8rem;font-weight:600;">${escapeHTML(r.profiles?.full_name || 'Anonim')}</td>
+            <td style="padding:0.8rem;font-weight:600;">${escapeHTML(profileMap[r.user_id]?.full_name || profileMap[r.user_id]?.email || 'Anonim')}</td>
             <td style="padding:0.8rem;color:var(--text2);">${escapeHTML(r.quiz_title||'-')}</td>
             <td style="padding:0.8rem;text-align:center;"><span style="background:rgba(79,142,247,0.1);color:var(--primary);padding:0.2rem 0.6rem;border-radius:50px;font-weight:700;">${r.score}%</span></td>
             <td style="padding:0.8rem;text-align:center;">${r.correct}/${r.total}</td>
