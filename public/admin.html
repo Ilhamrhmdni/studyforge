@@ -215,8 +215,9 @@ async function initAdminAuth() {
   const user = await requireAuth(); // Redirects to login.html if not logged in
   if (!user) return;
   
+  const sb = initSupabase();
   // Periksa apakah user ini punya role admin
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -224,17 +225,15 @@ async function initAdminAuth() {
     
   if (data && data.role === 'admin') {
     document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('logoutBtn').style.display = '';
     initAdmin();
   } else {
-    document.getElementById('adminPassInput').style.display = 'none';
-    document.querySelector('.login-box button').style.display = 'none';
+    document.getElementById('adminStatusText').innerHTML = '❌ Akses Ditolak';
     document.getElementById('loginError').innerHTML = 'Akun Anda ('+user.email+') tidak memiliki akses admin.<br><br><button class="btn btn-outline" onclick="location.href=\'/\'">Kembali ke Beranda</button>';
   }
 }
 
 function adminLogout() {
-  supabase.auth.signOut().then(() => {
+  initSupabase().auth.signOut().then(() => {
     location.href = '/login.html';
   });
 }
@@ -1066,7 +1065,7 @@ async function saveQuizData(finalTitle, btn) {
   };
 
   try {
-    const { error } = await supabase.from('quizzes').insert([quiz]);
+    const { error } = await initSupabase().from('quizzes').insert([quiz]);
     if (error) throw error;
 
     showToast('✅ Berhasil disimpan ke Supabase!','success');
@@ -1082,7 +1081,7 @@ async function saveQuizData(finalTitle, btn) {
 async function loadManage() {
   const el = document.getElementById('manageList');
   try {
-    const { data, error } = await supabase
+    const { data, error } = await initSupabase()
       .from('quizzes')
       .select('id,title,subject,count,created_at')
       .order('created_at', { ascending: false });
@@ -1104,7 +1103,7 @@ async function deleteQuiz(id) {
   if (!confirm('Hapus paket soal ini? Tindakan ini tidak bisa dibatalkan.')) return;
 
   try {
-    const { error } = await supabase.from('quizzes').delete().eq('id', id);
+    const { error } = await initSupabase().from('quizzes').delete().eq('id', id);
     if (error) throw error;
 
     showToast('Paket soal dihapus','success');
@@ -1119,7 +1118,7 @@ async function deleteQuiz(id) {
 async function loadResults() {
   const el = document.getElementById('resultsList');
   try {
-    const { data: results, error } = await supabase
+    const { data: results, error } = await initSupabase()
       .from('quiz_attempts')
       .select('*, profiles(full_name)')
       .order('submitted_at', { ascending: false })
@@ -1158,7 +1157,7 @@ async function deleteResult(id) {
   if (!confirm('Hapus hasil ujian ini?')) return;
   
   try {
-    const { error } = await supabase.from('quiz_attempts').delete().eq('id', id);
+    const { error } = await initSupabase().from('quiz_attempts').delete().eq('id', id);
     if (error) throw error;
     
     showToast('Hasil ujian dihapus','success');
