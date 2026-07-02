@@ -736,8 +736,13 @@ function parseStandardFormat(text) {
     const line = workLines[i];
     const qMatch = line.match(/^(\d+)[.)]\s+(.+)/);
     if (qMatch) {
+      const nextNum = parseInt(qMatch[1], 10);
+      if (current && nextNum <= current.num) {
+        current.text += ' ' + line;
+        continue;
+      }
       if (current) questions.push(current);
-      current = { num: parseInt(qMatch[1]), text: qMatch[2], options: [], answer: answerKeys[parseInt(qMatch[1])] || '' };
+      current = { num: nextNum, text: qMatch[2], options: [], answer: answerKeys[nextNum] || '' };
       continue;
     }
     if (!current) continue;
