@@ -70,3 +70,22 @@ CREATE TABLE IF NOT EXISTS public.quiz_attempt_answers (
 ALTER TABLE public.quiz_attempt_answers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own answers" ON public.quiz_attempt_answers FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own answers" ON public.quiz_attempt_answers FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- 5. ADMIN POLICIES
+CREATE POLICY "Admins can view all profiles" ON public.profiles FOR SELECT USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admins can update all profiles" ON public.profiles FOR UPDATE USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+
+CREATE POLICY "Admins can insert quizzes" ON public.quizzes FOR INSERT WITH CHECK ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admins can update quizzes" ON public.quizzes FOR UPDATE USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admins can delete quizzes" ON public.quizzes FOR DELETE USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+
+CREATE POLICY "Admins can view all attempts" ON public.quiz_attempts FOR SELECT USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admins can delete attempts" ON public.quiz_attempts FOR DELETE USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+
+-- Sync existing auth.users to profiles
+INSERT INTO public.profiles (id, email, role)
+SELECT id, email, 'student' FROM auth.users
+ON CONFLICT (id) DO NOTHING;
+
+-- Make ilhamrahmaddani550@gmail.com an admin
+UPDATE public.profiles SET role = 'admin' WHERE email = 'ilhamrahmaddani550@gmail.com';

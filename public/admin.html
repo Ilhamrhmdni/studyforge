@@ -203,7 +203,9 @@
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/site-config.js"></script>
+<script src="/js/auth.js"></script>
 <script src="/js/normalize.js"></script>
 <script src="/js/parser.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
@@ -214,39 +216,35 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 let parsedQuestions = [];
 
 // ── ADMIN AUTH ──
-async function checkAdminPass() {
-  const input = document.getElementById('adminPassInput').value;
-  if (!input) return;
-  const hash = await sha256(input);
-  if (hash === SITE_CONFIG.adminPassHash) {
-    sessionStorage.setItem('sf_admin_auth', '1');
+async function initAdminAuth() {
+  const user = await requireAuth(); // Redirects to login.html if not logged in
+  if (!user) return;
+  
+  // Periksa apakah user ini punya role admin
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+    
+  if (data && data.role === 'admin') {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('logoutBtn').style.display = '';
     initAdmin();
   } else {
-    document.getElementById('loginError').textContent = '❌ Password salah. Coba lagi.';
-    document.getElementById('adminPassInput').value = '';
-    setTimeout(() => document.getElementById('loginError').textContent = '', 3000);
+    document.getElementById('adminPassInput').style.display = 'none';
+    document.querySelector('.login-box button').style.display = 'none';
+    document.getElementById('loginError').innerHTML = 'Akun Anda ('+user.email+') tidak memiliki akses admin.<br><br><button class="btn btn-outline" onclick="location.href=\'/\'">Kembali ke Beranda</button>';
   }
 }
 
 function adminLogout() {
-  sessionStorage.removeItem('sf_admin_auth');
-  location.reload();
+  supabase.auth.signOut().then(() => {
+    location.href = '/login.html';
+  });
 }
 
-async function sha256(msg) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-// Check if already authenticated this session
-// Direct call is safe here because script is at bottom of <body> — DOM is ready
-if (sessionStorage.getItem('sf_admin_auth') === '1') {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('logoutBtn').style.display = '';
-  initAdmin();
-}
+initAdminAuth();
 
 // ── CONFIG ──
 function saveConfig() {
@@ -1073,23 +1071,8 @@ async function saveQuizData(finalTitle, btn) {
   };
 
   try {
-    const { supabaseUrl, supabaseServiceKey } = SITE_CONFIG;
-    const url = `${supabaseUrl}/rest/v1/quizzes`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'apikey': supabaseServiceKey,
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(quiz)
-    });
-
-    if (!res.ok) {
-      const e = await res.json();
-      throw new Error(e.message || 'Gagal menyimpan');
-    }
+    const { error } = await supabase.from('quizzes').insert([quiz]);
+    if (error) throw error;
 
     showToast('✅ Berhasil disimpan ke Supabase!','success');
     btn.innerHTML = '✅ Tersimpan!';
@@ -1104,13 +1087,12 @@ async function saveQuizData(finalTitle, btn) {
 async function loadManage() {
   const el = document.getElementById('manageList');
   try {
-    const { supabaseUrl, supabaseAnonKey } = SITE_CONFIG;
-    const url = `${supabaseUrl}/rest/v1/quizzes?select=id,title,subject,count,created_at&order=created_at.desc`;
-    const res = await fetch(url, {
-      cache: 'no-store',
-      headers: { 'apikey': supabaseAnonKey, 'Authorization': `Bearer ${supabaseAnonKey}` }
-    });
-    const data = await res.json();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('id,title,subject,count,created_at')
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
     if (!data?.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">💭</div><p>Belum ada paket soal.</p></div>'; return; }
     el.innerHTML = data.map(q => `
       <div class="quiz-list-row">
@@ -1127,20 +1109,8 @@ async function deleteQuiz(id) {
   if (!confirm('Hapus paket soal ini? Tindakan ini tidak bisa dibatalkan.')) return;
 
   try {
-    const { supabaseUrl, supabaseServiceKey } = SITE_CONFIG;
-    const url = `${supabaseUrl}/rest/v1/quizzes?id=eq.${id}`;
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'apikey': supabaseServiceKey,
-        'Authorization': `Bearer ${supabaseServiceKey}`
-      }
-    });
-
-    if (!res.ok) {
-      const e = await res.json();
-      throw new Error(e.message || 'Gagal menghapus');
-    }
+    const { error } = await supabase.from('quizzes').delete().eq('id', id);
+    if (error) throw error;
 
     showToast('Paket soal dihapus','success');
     loadManage();
@@ -1154,18 +1124,14 @@ async function deleteQuiz(id) {
 async function loadResults() {
   const el = document.getElementById('resultsList');
   try {
-    const { supabaseUrl, supabaseServiceKey } = SITE_CONFIG;
-    const url = `${supabaseUrl}/rest/v1/results?select=*&order=submitted_at.desc&limit=50`;
-    const res = await fetch(url, {
-      cache: 'no-store',
-      headers: {
-        'apikey': supabaseServiceKey,
-        'Authorization': `Bearer ${supabaseServiceKey}`
-      }
-    });
-    if (!res.ok) throw new Error('Gagal memuat hasil');
-    const results = await res.json();
-    if (!results.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada hasil ujian.</p></div>'; return; }
+    const { data: results, error } = await supabase
+      .from('quiz_attempts')
+      .select('*, profiles(full_name)')
+      .order('submitted_at', { ascending: false })
+      .limit(50);
+      
+    if (error) throw error;
+    if (!results || !results.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><p>Belum ada hasil ujian.</p></div>'; return; }
 
     el.innerHTML = `
       <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
@@ -1179,7 +1145,7 @@ async function loadResults() {
         </tr></thead>
         <tbody>${results.map(r => `
           <tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:0.8rem;font-weight:600;">${escapeHTML(r.user_name||'Anonim')}</td>
+            <td style="padding:0.8rem;font-weight:600;">${escapeHTML(r.profiles?.full_name || 'Anonim')}</td>
             <td style="padding:0.8rem;color:var(--text2);">${escapeHTML(r.quiz_title||'-')}</td>
             <td style="padding:0.8rem;text-align:center;"><span style="background:rgba(79,142,247,0.1);color:var(--primary);padding:0.2rem 0.6rem;border-radius:50px;font-weight:700;">${r.score}%</span></td>
             <td style="padding:0.8rem;text-align:center;">${r.correct}/${r.total}</td>
@@ -1197,23 +1163,11 @@ async function deleteResult(id) {
   if (!confirm('Hapus hasil ujian ini?')) return;
   
   try {
-    const { supabaseUrl, supabaseServiceKey } = SITE_CONFIG;
-    const url = `${supabaseUrl}/rest/v1/results?id=eq.${id}`;
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'apikey': supabaseServiceKey,
-        'Authorization': `Bearer ${supabaseServiceKey}`
-      }
-    });
+    const { error } = await supabase.from('quiz_attempts').delete().eq('id', id);
+    if (error) throw error;
     
-    if (res.ok) {
-      showToast('Hasil ujian dihapus','success');
-      loadResults();
-    } else {
-      const err = await res.json();
-      alert('Gagal hapus: ' + err.message);
-    }
+    showToast('Hasil ujian dihapus','success');
+    loadResults();
   } catch(e) {
     console.error('deleteResult error:', e);
     alert('Error: ' + e.message);
