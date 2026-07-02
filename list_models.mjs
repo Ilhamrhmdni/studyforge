@@ -1,4 +1,10 @@
-const key = 'AIzaSyDGpZtG_UoYwF63JVlkOM0cibVqOiYBwyw';
+const key = process.env.GEMINI_API_KEY;
+
+if (!key) {
+  console.error('Set GEMINI_API_KEY terlebih dahulu.');
+  process.exit(1);
+}
+
 const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
 const d = await r.json();
 if (d.models) {

@@ -286,6 +286,20 @@ function compressForGemini(dataUrl, maxWidth = 600) {
   });
 }
 
+function formatGeminiError(errMsg) {
+  const low = String(errMsg || '').toLowerCase();
+  if (low.includes('reported as leaked')) {
+    return 'Gemini API key terdeteksi bocor oleh Google. Buat key baru di AI Studio, simpan hanya di Konfigurasi admin, lalu hapus key lama.';
+  }
+  if (low.includes('api key not valid') || low.includes('invalid api key')) {
+    return 'Gemini API key tidak valid. Pastikan key benar dan masih aktif.';
+  }
+  if (low.includes('permission denied') || low.includes('permission_denied')) {
+    return 'Gemini API key tidak punya izin untuk model ini. Coba key atau project lain di Google AI Studio.';
+  }
+  return String(errMsg || 'Terjadi kesalahan saat memanggil Gemini.');
+}
+
 // ── GEMINI VISION PARSER (BATCH MODE) ──
 async function parseWithGemini(pageImagesMap, geminiKey) {
   const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-flash'];
@@ -368,6 +382,10 @@ Aturan penting:
 
           if (!res.ok) {
             const errMsg = data.error?.message || String(res.status);
+            const friendlyErr = formatGeminiError(errMsg);
+            if (friendlyErr !== errMsg) {
+              throw new Error(friendlyErr);
+            }
             // Rate limit → wait and retry
             const retryMatch = errMsg.match(/retry in ([\d.]+)s/i);
             if (retryMatch) {
