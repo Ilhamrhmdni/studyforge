@@ -135,21 +135,44 @@ Aturan:
 - Jangan membuat informasi di luar data soal yang diberikan.
 - Jika data soal tidak cukup untuk memberi pembahasan mendalam, katakan bahwa pembahasan terbatas pada data yang ada.`;
 
-    // 9. Panggil Workers AI
-    const aiResponse = await context.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-      messages: [
-        {
-          role: 'system',
-          content: 'Kamu adalah tutor ujian yang membantu mahasiswa Indonesia belajar. Selalu jawab dalam Bahasa Indonesia yang jelas dan edukatif.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      max_tokens: 512,
-      temperature: 0.3
-    });
+    // 9. Panggil Workers AI dengan fallback model jika ada yang deprecated
+    const modelsToTry = [
+      '@cf/meta/llama-3.1-8b-instruct-fp8',
+      '@cf/meta/llama-3.1-8b-instruct-awq',
+      '@cf/meta/llama-3-8b-instruct',
+      '@cf/meta/llama-2-7b-chat-int8'
+    ];
+
+    let aiResponse = null;
+    let lastError = null;
+
+    for (const model of modelsToTry) {
+      try {
+        aiResponse = await context.env.AI.run(model, {
+          messages: [
+            {
+              role: 'system',
+              content: 'Kamu adalah tutor ujian yang membantu mahasiswa Indonesia belajar. Selalu jawab dalam Bahasa Indonesia yang jelas dan edukatif.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 512,
+          temperature: 0.3
+        });
+        if (aiResponse) break; // Berhasil
+      } catch (err) {
+        console.warn(`Model ${model} gagal:`, err.message);
+        lastError = err;
+        // Lanjut coba model berikutnya
+      }
+    }
+
+    if (!aiResponse) {
+      throw lastError || new Error('Semua model AI fallback gagal.');
+    }
 
     const explanation = aiResponse?.response || aiResponse?.result?.response || '';
     if (!explanation) {
