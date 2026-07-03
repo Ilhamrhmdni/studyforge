@@ -1,4 +1,6 @@
-import { sendJson, supabaseFetch, requireUser } from '../../_shared.js';
+import { requireUser } from '../../_shared/auth.js';
+import { sendJson } from '../../_shared/response.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
 
 export async function onRequestGet(context) {
   try {
