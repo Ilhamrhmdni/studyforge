@@ -171,6 +171,6 @@ Aturan:
 
   } catch (error) {
     console.error('AI explain error:', error);
-    return sendJson({ error: 'Terjadi kesalahan server. Silakan coba lagi.' }, 500);
+    return sendJson({ error: `Terjadi kesalahan server: ${error.message || error}` }, 500);
   }
 }
