@@ -20,7 +20,7 @@ export async function onRequestGet(context) {
       return sendJson({ error: 'Quiz tidak ditemukan.' }, 404);
     }
 
-    if (isDraftTitle(quiz.title)) {
+    if (isDraftTitle(quiz.title) || quiz.is_hidden) {
       const token = extractBearerToken(context.request);
       const user = await getUserFromToken(context.env, token);
       const profile = user ? await getProfile(context.env, user.id) : null;

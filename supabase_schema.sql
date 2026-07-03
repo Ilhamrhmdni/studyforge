@@ -30,7 +30,9 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 -- 2. QUIZZES / QUIZ_PACKAGES (Existing table for Admin)
--- Assumes you already have a `quizzes` table. We just ensure RLS allows read-only for students.
+-- Tambahkan kolom is_hidden buat fitur Sembunyikan Soal (Jalankan manual di Supabase SQL Editor!)
+-- ALTER TABLE public.quizzes ADD COLUMN IF NOT EXISTS is_hidden boolean DEFAULT false;
+
 ALTER TABLE IF EXISTS public.quizzes ENABLE ROW LEVEL SECURITY;
 
 -- Allow anyone (or just authenticated users) to read published quizzes
