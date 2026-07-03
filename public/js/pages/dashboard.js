@@ -100,7 +100,7 @@ async function loadPrivateQuizzes() {
   try {
     const user = await requireAuth();
     
-    const token = localStorage.getItem('sf_token');
+    const token = await getAccessToken();
     const res = await fetch('/api/user/quizzes', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -126,9 +126,9 @@ function filterQuizzes() {
   renderQuizzes(filtered, window._currentTab === 'private');
 }
 
-function submitReview(quizId) {
+async function submitReview(quizId) {
   if (!confirm('Ajukan kuis ini ke Admin agar bisa diakses semua orang?')) return;
-  const token = localStorage.getItem('sf_token');
+  const token = await getAccessToken();
   fetch('/api/user/submit-review', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

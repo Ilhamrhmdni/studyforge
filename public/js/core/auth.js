@@ -21,6 +21,13 @@ async function checkUserAuth() {
   return session ? session.user : null;
 }
 
+async function getAccessToken() {
+  const sb = initSupabase();
+  if (!sb) return '';
+  const { data: { session } } = await sb.auth.getSession();
+  return session?.access_token || '';
+}
+
 async function requireAuth() {
   const user = await checkUserAuth();
   if (!user) {
@@ -102,3 +109,4 @@ window.updateNavForUser = updateNavForUser;
 window.logoutUser = logoutUser;
 window.checkUserAuth = checkUserAuth;
 window.requireAuth = requireAuth;
+window.getAccessToken = getAccessToken;

@@ -38,7 +38,7 @@ pdfInput.addEventListener('change', (e) => {
 });
 
 async function apiCall(endpoint, data = {}) {
-  const token = localStorage.getItem('sf_token');
+  const token = await getAccessToken();
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
