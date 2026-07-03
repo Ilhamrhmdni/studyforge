@@ -1,76 +1,66 @@
-// ── NORMALIZE.JS ──────────────────────────────────────────────────────────────
-// Standardizes PDF text symbols to consistent UTF-8 markers before parsing.
-// All "correct" indicators → ✔  |  All "wrong" indicators → ✗
+// Normalizes PDF text symbols to consistent UTF-8 markers before parsing.
+
+const CHECK_MARK = '\u2714';
+const X_MARK = '\u2718';
 
 const SF_CORRECT_GLYPHS = [
-  '\uF058', // Wingdings filled circle checkmark
-  '\uF0FE', // Wingdings ballot check
-  '\uF0FC', // Wingdings checked box
-  '\u2713', // ✓ Check mark
-  '\u2714', // ✔ Heavy check mark
-  '\u2705', // ✅ White heavy check mark emoji
-  '\u2611', // ☑ Ballot box with check
-  '\u2612', // ☒ Ballot box with X (sometimes used as "correct" in some PDFs)
+  '\uF058',
+  '\uF0FE',
+  '\uF0FC',
+  '\u2713',
+  '\u2714',
+  '\u2705',
+  '\u2611',
+  '\u2612'
 ];
 
 const SF_WRONG_GLYPHS = [
-  '\u2715', // ✕ Multiplication X
-  '\u2716', // ✖ Heavy multiplication X
-  '\u2717', // ✗ Ballot X
-  '\u2718', // ✘ Heavy ballot X
-  '\uF0FB', // Wingdings X
+  '\u2715',
+  '\u2716',
+  '\u2717',
+  '\u2718',
+  '\uF0FB'
 ];
 
-function normalizeText(s) {
-  if (!s) return '';
-  let t = s;
+function normalizeText(value) {
+  if (!value) return '';
+  let text = value;
 
-  // Replace all correct glyphs with canonical ✔
-  SF_CORRECT_GLYPHS.forEach(c => { t = t.split(c).join(' ✔ '); });
+  SF_CORRECT_GLYPHS.forEach((glyph) => {
+    text = text.split(glyph).join(` ${CHECK_MARK} `);
+  });
 
-  // Replace all wrong glyphs with canonical ✗
-  SF_WRONG_GLYPHS.forEach(c => { t = t.split(c).join(' ✗ '); });
+  SF_WRONG_GLYPHS.forEach((glyph) => {
+    text = text.split(glyph).join(` ${X_MARK} `);
+  });
 
-  // (V) variants → ✔  (handles (V), **(V)**, **( V )**, etc.)
-  t = t.replace(/\*{0,2}\(\s*V\s*\)\*{0,2}/gi, ' ✔ ');
+  text = text.replace(/\*{0,2}\(\s*V\s*\)\*{0,2}/gi, ` ${CHECK_MARK} `);
+  text = text.replace(/[\uE000-\uF8FF]/g, '');
+  text = text.replace(/\uFFFD/g, '');
+  text = text.replace(/\ufb01/g, 'fi').replace(/\ufb02/g, 'fl');
+  text = text.replace(/[ \t]{2,}/g, ' ').trim();
 
-  // Remaining PDF private-use area chars (Wingdings etc.)
-  t = t.replace(/[\uE000-\uF8FF]/g, '');
-
-  // Unicode replacement char
-  t = t.replace(/\uFFFD/g, '');
-
-  // Common PDF ligatures / special chars
-  t = t.replace(/\ufb01/g, 'fi').replace(/\ufb02/g, 'fl');
-
-  // Collapse whitespace
-  t = t.replace(/[ \t]{2,}/g, ' ').trim();
-
-  return t;
+  return text;
 }
 
-// Returns true if normalized text contains a ✔ marker
-function hasCorrectMarker(s) {
-  return normalizeText(s).includes('✔');
+function hasCorrectMarker(value) {
+  return normalizeText(value).includes(CHECK_MARK);
 }
 
-// Returns true if normalized text contains a ✗ marker
-function hasWrongMarker(s) {
-  return normalizeText(s).includes('✗');
+function hasWrongMarker(value) {
+  return normalizeText(value).includes(X_MARK);
 }
 
-// Remove ✔ and ✗ markers from text
-function stripMarkers(s) {
-  return normalizeText(s)
-    .replace(/\s*✔\s*/g, ' ')
-    .replace(/\s*✗\s*/g, ' ')
+function stripMarkers(value) {
+  return normalizeText(value)
+    .replace(new RegExp(`\\s*${CHECK_MARK}\\s*`, 'g'), ' ')
+    .replace(new RegExp(`\\s*${X_MARK}\\s*`, 'g'), ' ')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
-// Normalize text for comparison (lowercase, no punctuation, collapsed spaces)
-function normalizeForCompare(s) {
-  return (s || '')
+function normalizeForCompare(value) {
+  return String(value || '')
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')

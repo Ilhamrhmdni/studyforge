@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Hasil Ujian — StudyForge</title>
+<title>Hasil Ujian - StudyForge</title>
 <link rel="stylesheet" href="/css/style.css"/>
 <style>
 .grade-badge { display:inline-block;padding:0.4rem 1.2rem;border-radius:50px;font-weight:700;font-size:1rem;margin-bottom:1rem; }
@@ -22,13 +22,11 @@
 </nav>
 
 <div class="result-wrap">
-  <!-- No result -->
   <div id="noResult" style="display:none; padding:5rem 2rem;" class="empty-state">
     <div class="empty-icon">😕</div>
     <p>Tidak ada data hasil ujian.<br/><a href="/" style="color:var(--primary)">Kembali ke beranda →</a></p>
   </div>
 
-  <!-- Result content -->
   <div id="resultContent">
     <div style="text-align:center;margin-bottom:2rem;">
       <div style="font-size:1rem;color:var(--text2);margin-bottom:1rem;" id="congrats"></div>
@@ -41,21 +39,18 @@
       <p id="resultMeta" style="color:var(--text2);font-size:0.875rem;"></p>
     </div>
 
-    <!-- Stats -->
     <div class="result-stats">
       <div class="r-stat green"><div class="r-stat-num" id="correctNum">0</div><div class="r-stat-label">✅ Benar</div></div>
       <div class="r-stat red"><div class="r-stat-num" id="wrongNum">0</div><div class="r-stat-label">❌ Salah</div></div>
       <div class="r-stat blue"><div class="r-stat-num" id="timeNum">--</div><div class="r-stat-label">⏱️ Waktu</div></div>
     </div>
 
-    <!-- Actions -->
     <div class="share-row">
       <a href="/" class="btn btn-outline">🏠 Beranda</a>
       <button class="btn btn-secondary" onclick="toggleReview()">📖 Review Jawaban</button>
       <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak Hasil</button>
     </div>
 
-    <!-- Review section -->
     <div id="reviewSection" style="display:none;">
       <div style="font-size:1.1rem;font-weight:700;margin-bottom:1rem;">📖 Review Jawaban</div>
       <div id="reviewList"></div>
@@ -64,7 +59,7 @@
 </div>
 
 <footer>
-  <p>© <script>document.write(new Date().getFullYear())</script> <span>StudyForge</span> — Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
+  <p>&copy; <script>document.write(new Date().getFullYear())</script> <span>StudyForge</span> - Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -72,14 +67,15 @@
 <script src="/js/auth.js"></script>
 <script>
 function getGrade(score) {
-  if (score >= 85) return { label:'A — Sangat Baik 🏆', cls:'grade-A' };
-  if (score >= 70) return { label:'B — Baik 👍', cls:'grade-B' };
-  if (score >= 55) return { label:'C — Cukup 📚', cls:'grade-C' };
-  return { label:'D — Perlu Belajar Lebih Giat 💪', cls:'grade-D' };
+  if (score >= 85) return { label: 'A - Sangat Baik 🏆', cls: 'grade-A' };
+  if (score >= 70) return { label: 'B - Baik 👍', cls: 'grade-B' };
+  if (score >= 55) return { label: 'C - Cukup 📚', cls: 'grade-C' };
+  return { label: 'D - Perlu Belajar Lebih Giat 💪', cls: 'grade-D' };
 }
 
 function formatTime(seconds) {
-  const m = Math.floor(seconds/60), s = seconds%60;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
   return `${m}m ${s}s`;
 }
 
@@ -89,7 +85,7 @@ window.onload = async () => {
 
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
-  
+
   if (!id) {
     document.getElementById('noResult').style.display = 'block';
     document.getElementById('resultContent').style.display = 'none';
@@ -97,15 +93,25 @@ window.onload = async () => {
   }
 
   const sb = initSupabase();
-  const { data: attempt, error: attemptErr } = await sb.from('quiz_attempts').select('*').eq('id', id).single();
-  
+  const { data: attempt, error: attemptErr } = await sb
+    .from('quiz_attempts')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+
   if (attemptErr || !attempt) {
     document.getElementById('noResult').style.display = 'block';
     document.getElementById('resultContent').style.display = 'none';
     return;
   }
-  
-  const { data: answersData } = await sb.from('quiz_attempt_answers').select('*').eq('attempt_id', id).order('question_num');
+
+  const { data: answersData } = await sb
+    .from('quiz_attempt_answers')
+    .select('*')
+    .eq('attempt_id', id)
+    .eq('user_id', user.id)
+    .order('question_num');
 
   const r = {
     user_name: user.user_metadata?.full_name || user.email,
@@ -115,17 +121,16 @@ window.onload = async () => {
     correct: attempt.correct,
     total: attempt.total,
     time_taken: attempt.time_taken,
-    answers: (answersData || []).map(a => ({
+    answers: (answersData || []).map((a) => ({
       isCorrect: a.is_correct,
       question: a.question_text,
-      options: a.options,
+      options: Array.isArray(a.options) ? a.options : [],
       correctAnswer: a.correct_answer,
       userAnswer: a.user_answer
     }))
   };
   const grade = getGrade(r.score);
 
-  // Score circle color
   const circle = document.getElementById('scoreCircle');
   if (r.score >= 85) circle.style.borderColor = 'var(--success)';
   else if (r.score >= 70) circle.style.borderColor = 'var(--primary)';
@@ -135,29 +140,28 @@ window.onload = async () => {
   document.getElementById('congrats').textContent = r.score >= 70 ? `🎉 Selamat, ${r.user_name}!` : `💪 Tetap semangat, ${r.user_name}!`;
   document.getElementById('scoreNum').textContent = r.score;
   document.getElementById('gradeBadge').textContent = grade.label;
-  document.getElementById('gradeBadge').className = 'grade-badge ' + grade.cls;
+  document.getElementById('gradeBadge').className = `grade-badge ${grade.cls}`;
   document.getElementById('resultTitle').textContent = r.quiz_title;
   document.getElementById('resultMeta').textContent = `Dikerjakan pada ${new Date(r.submitted_at).toLocaleString('id-ID')}`;
   document.getElementById('correctNum').textContent = r.correct;
   document.getElementById('wrongNum').textContent = r.total - r.correct;
-  document.getElementById('timeNum').textContent = formatTime(r.time_taken||0);
+  document.getElementById('timeNum').textContent = formatTime(r.time_taken || 0);
 
-  // Render review
   document.getElementById('reviewList').innerHTML = r.answers.map((a, i) => `
     <div class="review-item">
       <div class="review-header">
-        <strong style="font-size:0.85rem;">Soal ${i+1}</strong>
-        <span class="review-badge ${a.isCorrect?'correct':'wrong'}">${a.isCorrect?'✅ Benar':'❌ Salah'}</span>
+        <strong style="font-size:0.85rem;">Soal ${i + 1}</strong>
+        <span class="review-badge ${a.isCorrect ? 'correct' : 'wrong'}">${a.isCorrect ? '✅ Benar' : '❌ Salah'}</span>
         ${!a.userAnswer ? '<span style="color:var(--text3);font-size:0.8rem;">Tidak dijawab</span>' : ''}
       </div>
       <div class="review-body">
         <p style="margin-bottom:0.8rem;font-weight:500;">${escapeHTML(a.question)}</p>
         <div style="display:flex;flex-direction:column;gap:0.4rem;">
-          ${a.options.map(o => {
+          ${a.options.map((o) => {
             let style = '';
             if (o.key === a.correctAnswer) style = 'color:var(--success);font-weight:600;';
             if (o.key === a.userAnswer && o.key !== a.correctAnswer) style = 'color:var(--danger);text-decoration:line-through;';
-            return `<div style="${style};font-size:0.85rem;"><strong>${escapeHTML(o.key)}.</strong> ${escapeHTML(o.text)} ${o.key===a.correctAnswer?' ✓':''}${o.key===a.userAnswer&&o.key!==a.correctAnswer?' ✗':''}</div>`;
+            return `<div style="${style};font-size:0.85rem;"><strong>${escapeHTML(o.key)}.</strong> ${escapeHTML(o.text)} ${o.key === a.correctAnswer ? ' ✓' : ''}${o.key === a.userAnswer && o.key !== a.correctAnswer ? ' ✗' : ''}</div>`;
           }).join('')}
         </div>
         ${!a.isCorrect ? `<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--success);">Jawaban benar: <strong>${escapeHTML(a.correctAnswer)}</strong></div>` : ''}
@@ -168,7 +172,7 @@ window.onload = async () => {
 
 function toggleReview() {
   const el = document.getElementById('reviewSection');
-  el.style.display = el.style.display==='none' ? 'block' : 'none';
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 </script>
 </body>

@@ -71,7 +71,26 @@ ALTER TABLE public.quiz_attempt_answers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own answers" ON public.quiz_attempt_answers FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own answers" ON public.quiz_attempt_answers FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- 5. ADMIN POLICIES
+-- 5. BUG REPORTS
+CREATE TABLE IF NOT EXISTS public.bug_reports (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  reporter_email TEXT NOT NULL,
+  reporter_name TEXT,
+  quiz_id TEXT,
+  quiz_title TEXT,
+  question_num INTEGER,
+  page_url TEXT,
+  message TEXT NOT NULL,
+  screenshot_data_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.bug_reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own bug reports" ON public.bug_reports FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own bug reports" ON public.bug_reports FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- 6. ADMIN POLICIES
 CREATE POLICY "Admins can view all profiles" ON public.profiles FOR SELECT USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
 CREATE POLICY "Admins can update all profiles" ON public.profiles FOR UPDATE USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
 
@@ -81,6 +100,8 @@ CREATE POLICY "Admins can delete quizzes" ON public.quizzes FOR DELETE USING ( (
 
 CREATE POLICY "Admins can view all attempts" ON public.quiz_attempts FOR SELECT USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
 CREATE POLICY "Admins can delete attempts" ON public.quiz_attempts FOR DELETE USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admins can view all bug reports" ON public.bug_reports FOR SELECT USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
+CREATE POLICY "Admins can delete bug reports" ON public.bug_reports FOR DELETE USING ( (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin' );
 
 -- Sync existing auth.users to profiles
 INSERT INTO public.profiles (id, email, role)

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Kerjakan Soal — StudyForge</title>
+<title>Kerjakan Soal - StudyForge</title>
 <link rel="stylesheet" href="/css/style.css"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/site-config.js"></script>
@@ -22,6 +22,10 @@
 .sidebar { position:sticky;top:80px;height:fit-content; }
 .sidebar-box { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;margin-bottom:1rem; }
 .sidebar-box h4 { font-size:0.85rem;color:var(--text2);margin-bottom:0.8rem;font-weight:600; }
+.report-trigger { width:100%;justify-content:center;margin-top:0.8rem; }
+.report-preview { margin-top:0.8rem;border:1px dashed var(--border);border-radius:10px;padding:0.75rem; }
+.report-preview img { max-width:100%;max-height:220px;border-radius:8px;border:1px solid var(--border);display:block;margin-top:0.6rem; }
+.report-note { font-size:0.8rem;color:var(--text2);margin-top:0.6rem;line-height:1.5; }
 </style>
 </head>
 <body>
@@ -32,11 +36,8 @@
   <div class="timer-box" id="timer">--:--</div>
 </nav>
 
-
 <div class="layout">
-  <!-- MAIN CONTENT -->
   <div>
-    <!-- Progress -->
     <div class="quiz-progress">
       <div class="quiz-progress-info">
         <span id="progressText">Soal 0 dari 0</span>
@@ -45,14 +46,12 @@
       <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
     </div>
 
-    <!-- Question -->
     <div class="question-card" id="questionCard" style="display:none;">
       <div class="question-num" id="questionNum"></div>
       <div class="question-text" id="questionText"></div>
       <div class="options-list" id="optionsList"></div>
     </div>
 
-    <!-- Navigation -->
     <div class="quiz-nav" id="quizNav" style="display:none;">
       <button class="btn btn-outline" id="prevBtn" onclick="navigate(-1)">← Sebelumnya</button>
       <div class="quiz-nav-dots" id="navDots"></div>
@@ -60,7 +59,6 @@
     </div>
   </div>
 
-  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-box">
       <h4>📋 Navigasi Soal</h4>
@@ -77,10 +75,12 @@
     <button class="btn btn-success" style="width:100%;justify-content:center;" id="submitBtn" onclick="confirmSubmit()">
       ✅ Kumpulkan Jawaban
     </button>
+    <button class="btn btn-outline report-trigger" id="reportBugBtn" onclick="openBugReportModal()">
+      🐞 Laporkan Bug
+    </button>
   </div>
 </div>
 
-<!-- CONFIRM MODAL -->
 <div class="modal-overlay" id="submitModal" style="display:none;">
   <div class="modal">
     <h3>⚠️ Kumpulkan Jawaban?</h3>
@@ -92,11 +92,121 @@
   </div>
 </div>
 
-<script>
+<div class="modal-overlay" id="bugReportModal" style="display:none;">
+  <div class="modal" style="max-width:620px;width:92%;">
+    <h3>🐞 Laporkan Bug</h3>
+    <p style="color:var(--text2);margin-bottom:1rem;">Laporan akan dikirim memakai identitas akun yang sedang login. Setelah kirim, kamu bisa lanjut mengerjakan quiz.</p>
+    <div class="form-group">
+      <label class="form-label">Deskripsi Bug</label>
+      <textarea class="form-input" id="bugReportMessage" rows="5" placeholder="Jelaskan bug yang kamu temukan. Contoh: opsi tidak bisa dipilih, timer berhenti, gambar soal tidak muncul."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Screenshot Pendukung (opsional)</label>
+      <input class="form-input" id="bugReportImageInput" type="file" accept="image/*" onchange="handleBugReportImage(this.files[0])"/>
+      <div class="report-preview" id="bugReportPreview" style="display:none;">
+        <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;">
+          <strong style="font-size:0.85rem;">Preview gambar</strong>
+          <button class="btn btn-outline" type="button" style="padding:0.35rem 0.8rem;font-size:0.8rem;" onclick="clearBugReportImage()">Hapus</button>
+        </div>
+        <img id="bugReportPreviewImage" alt="Preview bug report"/>
+      </div>
+    </div>
+    <div class="report-note" id="bugReportMeta"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" type="button" onclick="closeBugReportModal()">Tutup</button>
+      <button class="btn btn-primary" type="button" id="sendBugReportBtn" onclick="submitBugReport()">Kirim Laporan</button>
+    </div>
+  </div>
+</div>
 
+<script>
 let quiz = null, answers = {}, currentIdx = 0;
 let timerInterval = null, timeLeft = 0;
 let userName = '';
+let currentQuizId = '';
+let currentUser = null;
+let bugReportImageDataUrl = '';
+
+function getQuizStateKey() {
+  return currentQuizId ? `sf_quiz_state:${currentQuizId}` : '';
+}
+
+function saveQuizState() {
+  const key = getQuizStateKey();
+  if (!key || !quiz) return;
+
+  const state = {
+    currentIdx,
+    answers,
+    timeLeft,
+    questionOrder: quiz.questions.map((question) => question.qid),
+    optionOrder: Object.fromEntries(
+      quiz.questions.map((question) => [
+        question.qid,
+        (question.options || []).map((option) => option.id)
+      ])
+    )
+  };
+
+  sessionStorage.setItem(key, JSON.stringify(state));
+}
+
+function loadQuizState(quizId) {
+  try {
+    const raw = sessionStorage.getItem(`sf_quiz_state:${quizId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearQuizState() {
+  const key = getQuizStateKey();
+  if (key) sessionStorage.removeItem(key);
+}
+
+function reorderById(items, orderedIds, pickId) {
+  if (!Array.isArray(items) || !Array.isArray(orderedIds) || !orderedIds.length) return items;
+
+  const itemMap = new Map(items.map((item) => [pickId(item), item]));
+  const ordered = [];
+  orderedIds.forEach((id) => {
+    const item = itemMap.get(id);
+    if (item) {
+      ordered.push(item);
+      itemMap.delete(id);
+    }
+  });
+  itemMap.forEach((item) => ordered.push(item));
+  return ordered;
+}
+
+function applyQuizState(savedState) {
+  if (!quiz) return false;
+
+  if (savedState?.questionOrder?.length) {
+    quiz.questions = reorderById(quiz.questions, savedState.questionOrder, (question) => question.qid);
+  } else {
+    shuffleArray(quiz.questions);
+  }
+
+  quiz.questions.forEach((question) => {
+    if (savedState?.optionOrder?.[question.qid]?.length) {
+      question.options = reorderById(question.options || [], savedState.optionOrder[question.qid], (option) => option.id);
+    } else if (question.options && question.options.length > 0) {
+      shuffleArray(question.options);
+    }
+
+    (question.options || []).forEach((option, index) => {
+      option.label = ['A', 'B', 'C', 'D', 'E'][index] || String(index + 1);
+    });
+  });
+
+  answers = savedState?.answers && typeof savedState.answers === 'object' ? savedState.answers : {};
+  currentIdx = Math.min(Math.max(parseInt(savedState?.currentIdx, 10) || 0, 0), Math.max(quiz.questions.length - 1, 0));
+  timeLeft = Math.max(0, parseInt(savedState?.timeLeft, 10) || ((quiz.duration || 60) * 60));
+  return true;
+}
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -106,66 +216,55 @@ function shuffleArray(array) {
 }
 
 async function init() {
-  const user = await requireAuth();
-  if (!user) return;
-  userName = user.user_metadata?.full_name || user.email;
+  try {
+    const user = await requireAuth();
+    if (!user) return;
+    currentUser = user;
+    userName = user.user_metadata?.full_name || user.email;
 
-  const params = new URLSearchParams(location.search);
-  const id = params.get('id');
-  if (!id) { window.location.href='/'; return; }
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    if (!id) { window.location.href = '/'; return; }
+    currentQuizId = id;
+
     const sb = initSupabase();
-    const { data, error } = await sb
-      .from('quizzes')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    if (error || !data) throw new Error('Quiz tidak ditemukan');
-    quiz = data;
-    
-    // Shuffle logic
-    shuffleArray(quiz.questions);
-    quiz.questions.forEach(q => {
-      if (q.options && q.options.length > 0) {
-        shuffleArray(q.options);
-        
-        // Remap keys to A, B, C, D, E so they match their new visual order.
-        // This prevents UX confusion where the first option might be labeled 'C' in the results.
-        const newKeys = ['A','B','C','D','E'];
-        let newAnswer = '';
-        
-        q.options.forEach((opt, idx) => {
-          if (opt.key === q.answer) {
-             newAnswer = newKeys[idx];
-          }
-          opt.key = newKeys[idx];
-        });
-        
-        if (newAnswer) {
-          q.answer = newAnswer;
-        }
-      }
+    const { data: { session } } = await sb.auth.getSession();
+    const response = await fetch(`/api/quiz?id=${encodeURIComponent(id)}`, {
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
     });
+    const payload = await response.json();
+    if (!response.ok || !payload.quiz) throw new Error(payload.error || 'Quiz tidak ditemukan');
+    quiz = payload.quiz;
+    applyQuizState(loadQuizState(id));
 
-    document.title = escapeHTML(quiz.title) + ' — StudyForge';
+    document.title = `${escapeHTML(quiz.title)} - StudyForge`;
     document.getElementById('quizNavInfo').textContent = escapeHTML(quiz.title);
     document.getElementById('sb-total').textContent = quiz.questions.length;
     document.getElementById('sb-remaining').textContent = quiz.questions.length;
-    timeLeft = (quiz.duration || 60) * 60;
-    
-    startQuiz(); // Automatically start since they are authenticated
-  } catch(e) {
-    alert('Gagal memuat quiz: ' + e.message);
-    window.location.href='/';
+    if (!timeLeft) {
+      timeLeft = (quiz.duration || 60) * 60;
+    }
+
+    startQuiz();
+    updateBugReportMeta();
+  } catch (e) {
+    alert(`Gagal memuat quiz: ${e.message}`);
+    window.location.href = '/';
   }
 }
 
 function startQuiz() {
   document.getElementById('questionCard').style.display = 'block';
   document.getElementById('quizNav').style.display = 'flex';
+  const timerEl = document.getElementById('timer');
+  const startMinutes = Math.floor(timeLeft / 60);
+  const startSeconds = timeLeft % 60;
+  timerEl.textContent = `${String(startMinutes).padStart(2, '0')}:${String(startSeconds).padStart(2, '0')}`;
+  if (timeLeft <= 300) timerEl.classList.add('danger');
   startTimer();
   renderQuestion();
   renderSidebar();
+  saveQuizState();
 }
 
 function startTimer() {
@@ -173,9 +272,11 @@ function startTimer() {
   timerInterval = setInterval(() => {
     if (timeLeft <= 0) { clearInterval(timerInterval); submitQuiz(); return; }
     timeLeft--;
-    const m = Math.floor(timeLeft/60), s = timeLeft%60;
-    el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     if (timeLeft <= 300) el.classList.add('danger');
+    saveQuizState();
   }, 1000);
 }
 
@@ -183,38 +284,35 @@ function renderQuestion() {
   if (!quiz) return;
   const q = quiz.questions[currentIdx];
   const total = quiz.questions.length;
-  document.getElementById('questionNum').textContent = `Soal ${currentIdx+1} dari ${total}`;
+  document.getElementById('questionNum').textContent = `Soal ${currentIdx + 1} dari ${total}`;
   document.getElementById('questionText').textContent = q.text;
-  document.getElementById('progressText').textContent = `Soal ${currentIdx+1} dari ${total}`;
+  document.getElementById('progressText').textContent = `Soal ${currentIdx + 1} dari ${total}`;
   const answered = Object.keys(answers).length;
   document.getElementById('answeredText').textContent = `${answered} dijawab`;
-  document.getElementById('progressBar').style.width = ((currentIdx+1)/total*100)+'%';
+  document.getElementById('progressBar').style.width = `${(currentIdx + 1) / total * 100}%`;
 
   const opts = document.getElementById('optionsList');
-  opts.innerHTML = q.options.map(o => `
-    <button class="option-btn ${answers[currentIdx]===o.key?'selected':''}" onclick="selectAnswer('${escapeHTML(o.key)}')">
-      <span class="option-key">${escapeHTML(o.key)}</span>
+  opts.innerHTML = q.options.map((o) => `
+    <button class="option-btn ${answers[q.qid] === o.id ? 'selected' : ''}" onclick="selectAnswer('${escapeHTML(q.qid)}','${escapeHTML(o.id)}')">
+      <span class="option-key">${escapeHTML(o.label || o.id)}</span>
       <span>${escapeHTML(o.text)}</span>
     </button>
   `).join('');
 
-  // Show image if question has one
   let imgHtml = '';
   if (q.image) {
     imgHtml = `<div style="margin-bottom:1rem;text-align:center;">
       <img src="${q.image}" style="max-width:100%;max-height:320px;object-fit:contain;border-radius:10px;border:1px solid var(--border);" alt="Gambar soal"/>
     </div>`;
   }
-  document.getElementById('questionText').innerHTML = imgHtml + `<span>${escapeHTML(q.text)}</span>`;
+  document.getElementById('questionText').innerHTML = `${imgHtml}<span>${escapeHTML(q.text)}</span>`;
 
-  // Nav buttons
   document.getElementById('prevBtn').disabled = currentIdx === 0;
-  document.getElementById('nextBtn').textContent = currentIdx === total-1 ? 'Lihat Ringkasan' : 'Selanjutnya →';
+  document.getElementById('nextBtn').textContent = currentIdx === total - 1 ? 'Lihat Ringkasan' : 'Selanjutnya →';
 
-  // Dots
   const dotsEl = document.getElementById('navDots');
-  dotsEl.innerHTML = quiz.questions.map((_,i)=>`
-    <div class="dot ${answers[i]?'answered':''} ${i===currentIdx?'current':''}" onclick="goTo(${i})" title="Soal ${i+1}"></div>
+  dotsEl.innerHTML = quiz.questions.map((_, i) => `
+    <div class="dot ${answers[quiz.questions[i].qid] ? 'answered' : ''} ${i === currentIdx ? 'current' : ''}" onclick="goTo(${i})" title="Soal ${i + 1}"></div>
   `).join('');
 
   updateSidebar();
@@ -222,8 +320,8 @@ function renderQuestion() {
 
 function renderSidebar() {
   const el = document.getElementById('sidebarDots');
-  el.innerHTML = quiz.questions.map((_,i)=>`
-    <div class="sdot ${answers[i]?'answered':''} ${i===currentIdx?'current':''}" onclick="goTo(${i})">${i+1}</div>
+  el.innerHTML = quiz.questions.map((_, i) => `
+    <div class="sdot ${answers[quiz.questions[i].qid] ? 'answered' : ''} ${i === currentIdx ? 'current' : ''}" onclick="goTo(${i})">${i + 1}</div>
   `).join('');
 }
 
@@ -234,8 +332,9 @@ function updateSidebar() {
   renderSidebar();
 }
 
-function selectAnswer(key) {
-  answers[currentIdx] = key;
+function selectAnswer(qid, optionId) {
+  answers[qid] = optionId;
+  saveQuizState();
   renderQuestion();
 }
 
@@ -250,6 +349,7 @@ function navigate(dir) {
 
 function goTo(idx) {
   currentIdx = idx;
+  saveQuizState();
   renderQuestion();
 }
 
@@ -266,81 +366,138 @@ async function submitQuiz() {
   document.getElementById('submitBtn').disabled = true;
   document.getElementById('submitBtn').textContent = '⏳ Menyimpan...';
 
-  let correct = 0;
-  const review = quiz.questions.map((q, i) => {
-    const userAns = answers[i] || null;
-    const isCorrect = userAns === q.answer;
-    if (isCorrect) correct++;
-    return { question: q.text, options: q.options, correctAnswer: q.answer, userAnswer: userAns, isCorrect };
-  });
-
-  const score = Math.round((correct / quiz.questions.length) * 100);
-  const timeTaken = (quiz.duration * 60) - timeLeft;
-
-  const result = {
-    id: 'result-' + Date.now(),
-    quiz_id: quiz.id,
-    quiz_title: quiz.title,
-    user_name: userName,
-    score,
-    correct,
-    total: quiz.questions.length,
-    time_taken: timeTaken,
-    submitted_at: new Date().toISOString(),
-    answers: review
-  };
-
-  // Save to Supabase Auth-backed tables
+  const timeTaken = ((quiz.duration || 60) * 60) - timeLeft;
   try {
     const sb = initSupabase();
-    const { data: { user } } = await sb.auth.getUser();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('Sesi login tidak ditemukan.');
 
-    const attemptPayload = {
-      user_id: user.id,
-      quiz_id: quiz.id,
-      quiz_title: quiz.title,
-      score,
-      correct,
-      total: quiz.questions.length,
-      time_taken: timeTaken
-    };
-
-    const { data: attemptData, error: attemptError } = await sb.from('quiz_attempts').insert(attemptPayload).select().single();
-    
-    if (attemptError) throw attemptError;
-
-    if (attemptData) {
-      const answersData = review.map((r, i) => ({
-        attempt_id: attemptData.id,
-        user_id: user.id,
-        question_num: i + 1,
-        question_text: r.question,
-        options: r.options,
-        correct_answer: r.correctAnswer,
-        user_answer: r.userAnswer,
-        is_correct: r.isCorrect
-      }));
-      
-      const { error: ansError } = await sb.from('quiz_attempt_answers').insert(answersData);
-      if (ansError) throw ansError;
-
-      // Clean old localStorage history logic
-      window.location.href = `/result.html?id=${attemptData.id}`;
-    }
-  } catch(e) { 
+    const response = await fetch('/api/submit-quiz', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        quizId: quiz.id,
+        answers,
+        questionOrder: quiz.questions.map((question) => question.qid),
+        timeTaken
+      })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Gagal menyimpan hasil.');
+    clearQuizState();
+    window.location.href = `/result.html?id=${payload.attemptId}`;
+  } catch (e) {
     console.error('Failed to save result:', e);
-    alert('Gagal menyimpan hasil! ' + e.message);
+    alert(`Gagal menyimpan hasil! ${e.message}`);
     document.getElementById('submitBtn').disabled = false;
     document.getElementById('submitBtn').textContent = '✅ Kumpulkan Jawaban';
   }
 }
 
-function showToast(msg, type='') {
+function showToast(msg, type = '') {
   const t = document.createElement('div');
-  t.className='toast '+type; t.textContent=msg;
+  t.className = `toast ${type}`;
+  t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(()=>t.remove(),3000);
+  setTimeout(() => t.remove(), 3000);
 }
+
+function updateBugReportMeta() {
+  const meta = document.getElementById('bugReportMeta');
+  if (!meta || !quiz) return;
+  const question = quiz.questions?.[currentIdx];
+  meta.innerHTML = `
+    <div><strong>Pelapor:</strong> ${escapeHTML(currentUser?.email || '-')}</div>
+    <div><strong>Quiz:</strong> ${escapeHTML(quiz.title || '-')}</div>
+    <div><strong>Posisi saat ini:</strong> Soal ${question?.num || currentIdx + 1}</div>
+  `;
+}
+
+function openBugReportModal() {
+  updateBugReportMeta();
+  document.getElementById('bugReportModal').style.display = 'flex';
+}
+
+function closeBugReportModal() {
+  document.getElementById('bugReportModal').style.display = 'none';
+}
+
+function handleBugReportImage(file) {
+  if (!file) {
+    clearBugReportImage();
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    bugReportImageDataUrl = String(event.target?.result || '');
+    document.getElementById('bugReportPreviewImage').src = bugReportImageDataUrl;
+    document.getElementById('bugReportPreview').style.display = bugReportImageDataUrl ? 'block' : 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearBugReportImage() {
+  bugReportImageDataUrl = '';
+  document.getElementById('bugReportImageInput').value = '';
+  document.getElementById('bugReportPreviewImage').src = '';
+  document.getElementById('bugReportPreview').style.display = 'none';
+}
+
+async function submitBugReport() {
+  const message = document.getElementById('bugReportMessage').value.trim();
+  if (!message) {
+    alert('Tulis dulu deskripsi bug yang ditemukan.');
+    return;
+  }
+
+  const button = document.getElementById('sendBugReportBtn');
+  button.disabled = true;
+  button.textContent = 'Mengirim...';
+
+  try {
+    const sb = initSupabase();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) throw new Error('Sesi login tidak ditemukan.');
+
+    const question = quiz?.questions?.[currentIdx];
+    const response = await fetch('/api/report-bug', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        quizId: quiz?.id || currentQuizId,
+        quizTitle: quiz?.title || '',
+        questionNum: question?.num || currentIdx + 1,
+        pageUrl: window.location.href,
+        message,
+        screenshotDataUrl: bugReportImageDataUrl || null
+      })
+    });
+
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Gagal mengirim laporan bug.');
+
+    showToast('Laporan bug berhasil dikirim ke admin panel.', 'success');
+    document.getElementById('bugReportMessage').value = '';
+    clearBugReportImage();
+    closeBugReportModal();
+  } catch (error) {
+    alert(`Gagal mengirim report bug: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Kirim Laporan';
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  saveQuizState();
+});
 
 init();
 </script>

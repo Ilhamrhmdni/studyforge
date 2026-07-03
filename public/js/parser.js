@@ -1,266 +1,292 @@
-// ── PARSER ENGINE ──────────────────────────────────────────────────────────────
-// Modular PDF Parsing Engine for StudyForge
-// Handles extracting text, standardizing formats, and robust validation.
+// Parser helpers for StudyForge admin PDF import flow.
 
-/**
- * Extract text from PDF file
- */
 async function extractPdfText(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = async function() {
+    reader.onload = async function onLoad() {
       try {
-        const typedarray = new Uint8Array(this.result);
-        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+        const typedArray = new Uint8Array(this.result);
+        const pdf = await pdfjsLib.getDocument(typedArray).promise;
         let fullText = '';
         const pageImagesMap = {};
-        
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+          const page = await pdf.getPage(pageNumber);
           const textContent = await page.getTextContent();
-          
-          // Check for images
           const ops = await page.getOperatorList();
+
           let hasImage = false;
-          for (let j = 0; j < ops.fnArray.length; j++) {
-            if (ops.fnArray[j] === pdfjsLib.OPS.paintImageXObject) {
+          for (let index = 0; index < ops.fnArray.length; index++) {
+            if (ops.fnArray[index] === pdfjsLib.OPS.paintImageXObject) {
               hasImage = true;
               break;
             }
           }
 
           if (hasImage) {
-            // Render to canvas to save as image
             const viewport = page.getViewport({ scale: 1.5 });
             const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+            const context = canvas.getContext('2d');
             canvas.height = viewport.height;
             canvas.width = viewport.width;
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-            pageImagesMap[i] = canvas.toDataURL('image/jpeg', 0.8);
+            await page.render({ canvasContext: context, viewport }).promise;
+            pageImagesMap[pageNumber] = canvas.toDataURL('image/jpeg', 0.8);
           } else {
-            const pageText = textContent.items.map(s => s.str).join(' ');
-            fullText += `\n\n--- PAGE ${i} ---\n\n` + pageText;
+            const pageText = textContent.items.map((item) => item.str).join(' ');
+            fullText += `\n\n--- PAGE ${pageNumber} ---\n\n${pageText}`;
           }
         }
+
         resolve({ fullText, pageImagesMap, numPages: pdf.numPages });
-      } catch (err) {
-        reject(err);
+      } catch (error) {
+        reject(error);
       }
     };
     reader.readAsArrayBuffer(file);
   });
 }
 
-/**
- * Normalizes PDF text by removing weird characters, fixing spaces.
- */
 function normalizePdfText(text) {
-  // Use existing normalizeText from normalize.js if available
   if (typeof normalizeText === 'function') {
     return normalizeText(text);
   }
-  return text.replace(/[ \t]{2,}/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
+  return String(text || '').replace(/[ \t]{2,}/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
 }
 
-/**
- * Parse answer key text file
- * Supports formats: "1. A", "1 A", "No 1: A", "1. Jawaban: A"
- */
 function parseAnswerKey(text) {
   const answerMap = {};
-  const lines = text.split('\n');
+  const lines = String(text || '').split('\n');
   const regex = /^(?:no\s*)?(\d+)[\.\s:]*(?:jawaban\s*:\s*)?([A-E])/i;
-  
+
   for (const line of lines) {
-    const m = line.trim().match(regex);
-    if (m) {
-      answerMap[parseInt(m[1], 10)] = m[2].toUpperCase();
+    const match = line.trim().match(regex);
+    if (match) {
+      answerMap[parseInt(match[1], 10)] = match[2].toUpperCase();
     }
   }
+
   return answerMap;
 }
 
-/**
- * Parse raw text into structured questions
- */
 function parseQuestions(text, answerMap = {}) {
-  // Try to find if it's LMS/Moodle format (Question 1) or Standard (1.)
-  const isLMS = /Question\s+\d+/i.test(text);
-  let questions = [];
+  const isLMSFormat = /Question\s+\d+/i.test(text) || /Correct\s+Mark\s+[\d.]+\s+out\s+of/i.test(text);
+  const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  return isLMSFormat
+    ? parseQuestionsLMS(lines, answerMap)
+    : parseQuestionsStandard(lines, answerMap);
+}
 
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+function finalizeParsedQuestions(questions) {
+  for (const question of questions) {
+    if (typeof stripMarkers === 'function') {
+      question.text = stripMarkers(question.text);
+    }
+
+    for (const option of question.options) {
+      if (typeof hasCorrectMarker === 'function' && hasCorrectMarker(option.text) && !question.answer) {
+        question.answer = option.key;
+      }
+      if (typeof stripMarkers === 'function') {
+        option.text = stripMarkers(option.text);
+      }
+    }
+
+    if (question._correctText && typeof normalizeForCompare === 'function') {
+      const normalizedCorrectText = normalizeForCompare(question._correctText);
+      for (const option of question.options) {
+        const normalizedOptionText = normalizeForCompare(option.text);
+        if (
+          normalizedOptionText.includes(normalizedCorrectText) ||
+          normalizedCorrectText.includes(normalizedOptionText)
+        ) {
+          question.answer = option.key;
+          break;
+        }
+      }
+    }
+
+    delete question._correctText;
+  }
+
+  return questions.filter((question) => question.text.length > 5 && question.options.length >= 2);
+}
+
+function parseQuestionsStandard(lines, answerMap = {}) {
+  let answerKeyStart = -1;
+  for (let index = 0; index < lines.length; index++) {
+    if (/kunci\s*jawaban|answer\s*key|pembahasan|kunci\s*soal/i.test(lines[index])) {
+      answerKeyStart = index;
+      break;
+    }
+  }
+
+  const mergedAnswerMap = { ...answerMap };
+  if (answerKeyStart > -1) {
+    for (let index = answerKeyStart; index < lines.length; index++) {
+      const match = lines[index].match(/^(\d+)[.)]\s*([A-Ea-e])\b/) ||
+        lines[index].match(/no\.?\s*(\d+)\s*[=:]\s*([A-Ea-e])\b/i);
+      if (match) {
+        mergedAnswerMap[parseInt(match[1], 10)] = match[2].toUpperCase();
+      }
+    }
+  }
+
+  const workLines = answerKeyStart > 0 ? lines.slice(0, answerKeyStart) : lines;
+  const questions = [];
   let current = null;
 
-  const isQuestionHeaderLMS = l => /^Question\s+(\d+)/i.test(l);
-  const isQuestionHeaderStd = l => /^(\d+)[\.\)]\s+(.+)/.test(l);
-  
-  // Regex to detect options A-E with formats like A., a., (A), A)
-  const isOption = l => /^[\(]?([a-e])[\.\)]\s+(.+)/i.test(l);
-  const getOptionMatch = l => l.match(/^[\(]?([a-e])[\.\)]\s+(.+)/i);
-
-  let skipMeta = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    // Meta skipping for LMS
-    if (isLMS && skipMeta && /^(Correct|Incorrect|Mark|Not answered|Flag)/i.test(line)) {
-      continue;
-    }
-    skipMeta = false;
-
-    // Detect new question header
-    let newQMatch = isLMS ? line.match(/^Question\s+(\d+)/i) : line.match(/^(\d+)[\.\)]\s+(.+)/);
-    
-    if (newQMatch) {
-      if (current && current.options.length >= 2) {
-        questions.push(current);
+  for (const line of workLines) {
+    const questionMatch = line.match(/^(\d+)[.)]\s+(.+)/);
+    if (questionMatch) {
+      const nextNum = parseInt(questionMatch[1], 10);
+      if (current && nextNum <= current.num) {
+        current.text += ` ${line}`;
+        continue;
       }
-      
-      const num = parseInt(newQMatch[1], 10);
+      if (current) questions.push(current);
       current = {
-        num: num,
-        text: isLMS ? '' : newQMatch[2] || '',
+        num: nextNum,
+        text: questionMatch[2],
         options: [],
-        answer: answerMap[num] || '',
-        _correctText: ''
+        answer: mergedAnswerMap[nextNum] || ''
       };
-      
-      if (isLMS) skipMeta = true;
       continue;
     }
 
     if (!current) continue;
 
-    // Detect LMS inline correct answer
-    if (isLMS && /^(The\s+correct\s+answer\s+is|Jawaban\s+yang\s+benar)[:\s]/i.test(line)) {
-      const ansText = line.replace(/^(The\s+correct\s+answer\s+is[:\s]|Jawaban\s+yang\s+benar[:\s])/i, '').trim();
-      current._correctText = ansText.toLowerCase();
+    const optionMatch = line.match(/^[\(]?([A-Ea-e])[.)]\s+(.+)/);
+    if (optionMatch) {
+      current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2] });
       continue;
     }
 
-    // Detect option
-    const optMatch = getOptionMatch(line);
-    if (optMatch) {
-      current.options.push({ key: optMatch[1].toUpperCase(), text: optMatch[2] });
-      continue;
-    }
-
-    // Append to last option if we are in options
     if (current.options.length > 0) {
-      current.options[current.options.length - 1].text += ' ' + line;
+      current.options[current.options.length - 1].text += ` ${line}`;
     } else {
-      // Append to question text
-      if (!isLMS || line.length > 3) {
-         current.text += (current.text ? ' ' : '') + line;
-      }
+      current.text += ` ${line}`;
     }
   }
 
-  if (current && current.options.length >= 2) {
-    questions.push(current);
-  }
-
-  // Resolve LMS correct text to option key
-  for (const q of questions) {
-    if (typeof stripMarkers === 'function') {
-      q.text = stripMarkers(q.text);
-      for (const opt of q.options) opt.text = stripMarkers(opt.text);
-    }
-    
-    // Resolve answer by text matching (from LMS)
-    if (q._correctText && typeof normalizeForCompare === 'function') {
-      for (const opt of q.options) {
-        const normOpt = normalizeForCompare(opt.text);
-        const normCorr = normalizeForCompare(q._correctText);
-        if (normOpt.includes(normCorr) || normCorr.includes(normOpt)) {
-          q.answer = opt.key;
-          break;
-        }
-      }
-    }
-    // Resolve answer by markers (✓)
-    for (const opt of q.options) {
-      if (typeof hasCorrectMarker === 'function' && hasCorrectMarker(opt.text) && !q.answer) {
-        q.answer = opt.key;
-      }
-    }
-    delete q._correctText;
-  }
-
-  return questions;
+  if (current) questions.push(current);
+  return finalizeParsedQuestions(questions);
 }
 
-/**
- * Validate parsed quiz data and flag warnings/errors
- */
+function parseQuestionsLMS(lines, answerMap = {}) {
+  const questions = [];
+  let current = null;
+  let skipMeta = false;
+
+  const isMetaLine = (line) =>
+    /^(Correct|Incorrect|Partially\s+correct|Mark\s+[\d.]+|Flag|Question\s+\d+\s*$|Not\s+answered|Score\s+[\d.]+|Finish\s+review|Started\s+on|State:|Completed\s+on|Time\s+taken|Grade|Maximum|Question\s+text)/i.test(line) ||
+    /^(out\s+of\s+[\d.]+|[\d.]+\s+out\s+of)/i.test(line);
+
+  for (const line of lines) {
+    const questionMatch = line.match(/^Question\s+(\d+)\s*$/i);
+    if (questionMatch) {
+      if (current && current.options.length >= 2) questions.push(current);
+      const num = parseInt(questionMatch[1], 10);
+      current = {
+        num,
+        text: '',
+        options: [],
+        answer: answerMap[num] || '',
+        _correctText: ''
+      };
+      skipMeta = true;
+      continue;
+    }
+
+    if (!current) continue;
+    if (isMetaLine(line)) {
+      skipMeta = false;
+      continue;
+    }
+
+    if (/^(The\s+correct\s+answer\s+is|Correct\s+answer|Jawaban\s+yang\s+benar)[:\s]/i.test(line)) {
+      current._correctText = line.replace(/^(The\s+correct\s+answer\s+is[:\s]|Correct\s+answer[:\s]|Jawaban\s+yang\s+benar[:\s])/i, '').trim().toLowerCase();
+      continue;
+    }
+
+    const optionMatch = line.match(/^([A-Ea-e])[.)]\s+(.+)/);
+    if (optionMatch) {
+      current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2] });
+      continue;
+    }
+
+    if (current.options.length > 0) {
+      current.options[current.options.length - 1].text += ` ${line}`;
+      continue;
+    }
+
+    if (!skipMeta && line.length > 3) {
+      current.text += `${current.text ? ' ' : ''}${line}`;
+    }
+  }
+
+  if (current && current.options.length >= 2) questions.push(current);
+  return finalizeParsedQuestions(questions);
+}
+
 function validateParsedQuiz(questions) {
   let validCount = 0;
   let warningCount = 0;
   let errorCount = 0;
   const seenNums = new Set();
   const duplicates = [];
-  
-  // First pass: sort and check duplicates
+
   questions.sort((a, b) => a.num - b.num);
-  questions.forEach(q => {
-    if (seenNums.has(q.num)) duplicates.push(q.num);
-    seenNums.add(q.num);
+  questions.forEach((question) => {
+    if (seenNums.has(question.num)) duplicates.push(question.num);
+    seenNums.add(question.num);
   });
 
   const missingNums = [];
   if (questions.length > 0) {
     const min = questions[0].num;
     const max = questions[questions.length - 1].num;
-    for (let i = min; i <= max; i++) {
-      if (!seenNums.has(i)) missingNums.push(i);
+    for (let num = min; num <= max; num++) {
+      if (!seenNums.has(num)) missingNums.push(num);
     }
   }
 
-  // Second pass: validate individual questions
-  questions.forEach(q => {
-    q.errors = [];
-    q.warnings = [];
+  questions.forEach((question) => {
+    question.errors = [];
+    question.warnings = [];
 
-    // Errors
-    if (!q.text || q.text.length < 5) q.errors.push('Teks soal terlalu pendek atau kosong.');
-    if (q.options.length === 0) q.errors.push('Soal tidak memiliki opsi jawaban.');
-    
-    // Warnings
-    if (q.options.length > 0 && q.options.length < 4) q.warnings.push('Opsi jawaban kurang dari 4.');
-    if (!q.answer) q.warnings.push('Jawaban benar belum diatur.');
-    else if (!q.options.find(o => o.key === q.answer)) q.warnings.push(`Kunci jawaban (${q.answer}) tidak ada di opsi.`);
-    
-    if (duplicates.includes(q.num)) q.warnings.push('Nomor soal duplikat.');
+    if (!question.text || question.text.length < 5) question.errors.push('Teks soal terlalu pendek atau kosong.');
+    if (question.options.length === 0) question.errors.push('Soal tidak memiliki opsi jawaban.');
 
-    // NLP heuristics
-    const lowText = q.text.toLowerCase();
-    if (lowText.includes('gambar di bawah') || lowText.includes('perhatikan gambar')) {
-      if (!q.image) q.warnings.push('Soal mungkin membutuhkan gambar yang hilang.');
+    if (question.options.length > 0 && question.options.length < 4) question.warnings.push('Opsi jawaban kurang dari 4.');
+    if (!question.answer) question.warnings.push('Jawaban benar belum diatur.');
+    else if (!question.options.find((option) => option.key === question.answer)) question.warnings.push(`Kunci jawaban (${question.answer}) tidak ada di opsi.`);
+
+    if (duplicates.includes(question.num)) question.errors.push('Nomor soal duplikat. Perbaiki sebelum publish agar jawaban tidak tertukar.');
+
+    const lowText = question.text.toLowerCase();
+    if ((lowText.includes('gambar di bawah') || lowText.includes('perhatikan gambar')) && !question.image) {
+      question.warnings.push('Soal mungkin membutuhkan gambar yang hilang.');
     }
     if (lowText.includes('tabel berikut')) {
-      q.warnings.push('Soal mungkin mengandung tabel yang gagal terekstrak.');
+      question.warnings.push('Soal mungkin mengandung tabel yang gagal terekstrak.');
     }
 
-    if (q.errors.length > 0) {
-      q.status = 'error';
+    if (question.errors.length > 0) {
+      question.status = 'error';
       errorCount++;
-    } else if (q.warnings.length > 0) {
-      q.status = 'warning';
+    } else if (question.warnings.length > 0) {
+      question.status = 'warning';
       warningCount++;
     } else {
-      q.status = 'valid';
+      question.status = 'valid';
       validCount++;
     }
   });
 
-  // Calculate score
   const total = questions.length;
-  let score = 0;
-  if (total > 0) {
-    score = Math.round(((validCount * 1) + (warningCount * 0.5)) / total * 100);
-  }
+  const qualityScore = total > 0
+    ? Math.round(((validCount * 1) + (warningCount * 0.5)) / total * 100)
+    : 0;
 
   return {
     questions,
@@ -271,7 +297,7 @@ function validateParsedQuiz(questions) {
       error: errorCount,
       missingNums,
       duplicateNums: [...new Set(duplicates)],
-      qualityScore: score
+      qualityScore
     }
   };
 }
