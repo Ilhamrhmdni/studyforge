@@ -46,6 +46,29 @@ async function extractPdfText(file) {
   });
 }
 
+async function generateQuizDescription(questionsText, geminiKey) {
+  const model = 'gemini-2.0-flash'; // using stable model for text
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+  
+  const prompt = `Buatkan deskripsi singkat (maksimal 2 kalimat) yang menarik untuk paket soal berikut. Fokus pada topik utama. JANGAN beri awalan seperti "Deskripsi:" atau tanda kutip, langsung tuliskan kalimatnya.\n\nContoh cuplikan soal:\n${questionsText.substring(0, 1500)}`;
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 100 }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) return '';
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  } catch (e) {
+    return '';
+  }
+}
+
 function normalizePdfText(text) {
   if (typeof normalizeText === 'function') {
     return normalizeText(text);

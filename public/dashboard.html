@@ -5,106 +5,62 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Dashboard - StudyForge</title>
 <meta name="description" content="Dashboard belajar interaktif StudyForge."/>
-<link rel="stylesheet" href="/css/style.css?v=2.2"/>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
+<link rel="stylesheet" href="/css/style.css?v=2.3"/>
 </head>
-<body>
+<body class="dashboard-page">
 
-<nav class="navbar">
-  <a href="/" class="nav-logo">⚡ StudyForge</a>
-  <div class="nav-links">
-    <a href="/dashboard.html" class="active">Dashboard</a>
+<div class="app-layout">
+  <!-- MOBILE HEADER -->
+  <div class="mobile-app-header">
+    <a href="/" class="mobile-app-logo">⚡ StudyForge</a>
+    <button class="mobile-hamburger" id="mobileMenuBtn">☰</button>
   </div>
-</nav>
 
-<div class="dashboard-container" style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
-  <div class="main-content">
-    <div class="welcome-banner" style="background: linear-gradient(135deg, var(--primary), var(--accent)); padding: 2.5rem 2rem; border-radius: 16px; margin-bottom: 2.5rem; position: relative; overflow: hidden;">
-      <div style="position: relative; z-index: 2;">
-        <h1 style="color: #fff; font-size: 2rem; margin-bottom: 0.5rem;">Halo, Pejuang Ujian! 👋</h1>
-        <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Siap menaklukkan tantangan hari ini? Pilih paket soal di bawah dan mulai berlatih.</p>
-      </div>
-      <div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:rgba(255,255,255,0.1); border-radius:50%; blur(10px);"></div>
-      <div style="position:absolute; bottom:-80px; right:50px; width:150px; height:150px; background:rgba(255,255,255,0.15); border-radius:50%; blur(10px);"></div>
+  <!-- SIDEBAR -->
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-header">
+      <h2>⚡ StudyForge</h2>
+      <p>Platform Try Out Cerdas</p>
     </div>
-
-    <!-- ── STUDYFORGE USER INSIGHTS ── -->
-    <div id="insightSection" style="display:none; margin-bottom:2.5rem; display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem;">
-        <h3 style="font-size:1.1rem; margin-bottom:0.5rem; font-weight:700;">📉 Area Kelemahanmu</h3>
-        <p style="color:var(--text2); font-size:0.85rem; margin-bottom:1rem;">Mata pelajaran yang perlu kamu perdalam.</p>
-        <div id="weaknessList">
-          <div style="text-align:center;padding:1rem;color:var(--text3);font-size:0.85rem;">Memuat analisis...</div>
-        </div>
-      </div>
-      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem;">
-        <h3 style="font-size:1.1rem; margin-bottom:0.5rem; font-weight:700;">🎯 Rekomendasi Latihan</h3>
-        <p style="color:var(--text2); font-size:0.85rem; margin-bottom:1rem;">Paket soal khusus untuk meningkatkan skormu.</p>
-        <div id="recommendationList">
-          <div style="text-align:center;padding:1rem;color:var(--text3);font-size:0.85rem;">Mencari rekomendasi...</div>
-        </div>
-      </div>
+    <div class="sidebar-nav">
+      <a href="/dashboard.html" class="sidebar-btn active">📚 Paket Soal</a>
+      <a href="/dashboard.html#private" class="sidebar-btn" id="navPrivate">🔒 Koleksi Pribadi</a>
+      <a href="/insight.html" class="sidebar-btn">🧠 Insight Belajar</a>
+      <a href="/history.html" class="sidebar-btn">🕒 Riwayat Ujian</a>
+      <a href="/creator.html" class="sidebar-btn">✨ Creator Studio</a>
+      <a href="/admin.html" class="sidebar-btn" id="navAdmin" style="display:none; color:var(--accent);">⚙️ Admin Panel</a>
+      
+      <div style="flex:1;"></div>
+      <a href="/" class="sidebar-btn" style="color:var(--text3); border-top:1px solid var(--border); border-radius:0; padding-top:1rem; margin-top:1rem;">🚪 Keluar</a>
     </div>
+  </aside>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h2 style="font-size:1.5rem; font-weight:700; margin-bottom:0.2rem;">Paket Soal</h2>
-        <p style="color:var(--text2); font-size:0.9rem;">Pilih paket soal yang ingin kamu kerjakan.</p>
+        <h1 id="pageTitle" style="font-size:1.8rem; font-weight:800; margin-bottom:0.2rem;">Paket Soal Tersedia</h1>
+        <p id="pageDesc" style="color:var(--text2); font-size:0.95rem;">Telusuri koleksi try out dan latihan yang siap dikerjakan.</p>
       </div>
-      <a href="/creator.html" class="btn btn-primary" style="background: linear-gradient(135deg, var(--primary), var(--accent));">✨ Bikin Soal Sendiri</a>
+      <a href="/creator.html" class="btn btn-primary" id="btnCreateQuiz" style="display:none; background: linear-gradient(135deg, var(--primary), var(--accent));">✨ Bikin Soal Sendiri</a>
     </div>
 
-    <div style="display:flex; gap:1rem; border-bottom: 2px solid var(--border); width: 100%; margin-bottom: 1.5rem;">
-      <button id="tabPublic" onclick="switchDashboardTab('public')" style="background:transparent; border:none; padding:0.5rem 1rem; font-weight:700; cursor:pointer; color:var(--primary); border-bottom: 2px solid var(--primary); margin-bottom:-2px;">📚 Soal Tersedia</button>
-      <button id="tabPrivate" onclick="switchDashboardTab('private')" style="background:transparent; border:none; padding:0.5rem 1rem; font-weight:700; cursor:pointer; color:var(--text2);">🔒 Koleksi Pribadi</button>
-    </div>
-    
-    <div style="margin-bottom:1.5rem;">
-      <input class="form-input" id="searchInput" placeholder="🔍 Cari paket soal..." style="width:100%;" oninput="filterQuizzes()"/>
+    <!-- SEARCH & FILTER -->
+    <div style="margin-bottom:2rem; max-width:500px;">
+      <input class="form-input" id="searchInput" placeholder="🔍 Cari judul atau kategori soal..." style="width:100%;" oninput="filterQuizzes()"/>
     </div>
 
+    <!-- GRID CARDS -->
     <div id="quizGrid" class="cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
-      <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text3);">
+      <div style="grid-column:1/-1;text-align:center;padding:4rem;color:var(--text3);">
         <div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px;"></div>
         <p>Memuat paket soal...</p>
       </div>
     </div>
-  </div>
-
-  <aside class="side-content" style="display: flex; flex-direction: column; gap: 2rem;">
-    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
-      <h3 style="font-size:1.1rem; margin-bottom:1.2rem; font-weight:700;">📊 Statistik Platform</h3>
-      <div style="display:flex; flex-direction:column; gap: 1rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.8rem; border-bottom:1px dashed var(--border);">
-          <span style="color:var(--text2); font-size:0.9rem;">Total Paket Soal</span>
-          <strong id="totalQuiz" style="font-size:1.1rem; color:var(--primary);">0</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.8rem; border-bottom:1px dashed var(--border);">
-          <span style="color:var(--text2); font-size:0.9rem;">Total Pertanyaan</span>
-          <strong id="totalQ" style="font-size:1.1rem; color:var(--primary);">0</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="color:var(--text2); font-size:0.9rem;">Ujian Diselesaikan</span>
-          <strong id="totalResult" style="font-size:1.1rem; color:var(--primary);">0</strong>
-        </div>
-      </div>
-    </div>
-
-    <div id="history-section" style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
-      <h3 style="font-size:1.1rem; margin-bottom:1.2rem; font-weight:700;">🕒 Riwayat Terakhir</h3>
-      <div id="historyGrid" style="display:flex; flex-direction:column; gap: 1rem;">
-        <p style="color:var(--text3); font-size:0.85rem; text-align:center; padding: 2rem 0;">Belum ada riwayat ujian.<br>Kerjakan soal untuk melihat evaluasi.</p>
-      </div>
-    </div>
-  </aside>
+  </main>
 </div>
 
-<footer>
-  <p>&copy; <script>document.write(new Date().getFullYear())</script> <span>StudyForge</span> - Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
-</footer>
-
+<!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/core/site-config.js"></script>
 <script src="/js/core/auth.js"></script>

@@ -477,6 +477,43 @@ async function handleFile(file) {
 
   document.getElementById('quizTitle').value = file.name.replace('.pdf','');
   updatePreview();
+
+  // Generate description with Gemini (client) or Cloudflare AI (server)
+  const cfg = getConfig();
+  if (parsedQuestions.length > 0) {
+    const descInput = document.getElementById('quizDesc');
+    descInput.placeholder = '✨ AI sedang membuat deskripsi...';
+    const contextText = parsedQuestions.slice(0, 5).map(q => q.text).join('\n');
+    
+    if (cfg?.geminiKey) {
+      // Prioritaskan Gemini jika key ada
+      generateQuizDescription(contextText, cfg.geminiKey).then(desc => {
+        if (desc && !descInput.value) descInput.value = desc;
+        descInput.placeholder = 'Deskripsi singkat paket soal';
+      }).catch(e => {
+        descInput.placeholder = 'Deskripsi singkat paket soal';
+      });
+    } else {
+      // Gunakan Cloudflare AI lewat backend
+      adminApiFetch('/api/admin/generate-description', {
+        method: 'POST',
+        body: { text: contextText }
+      }).then(res => {
+        if (res.description && !descInput.value) {
+          // Bersihkan sisa tanda kutip dari Llama
+          descInput.value = res.description.replace(/^["']|["']$/g, '').trim();
+          if (typeof showToast === 'function') showToast('Deskripsi berhasil di-generate dengan Cloudflare AI', 'success');
+        }
+        descInput.placeholder = 'Deskripsi singkat paket soal';
+      }).catch(e => {
+        console.error('Gagal generate deskripsi dari CF AI:', e);
+        if (typeof showToast === 'function') {
+          showToast('Gagal memuat deskripsi AI (Mungkin binding AI mati di lokal)', 'error');
+        }
+        descInput.placeholder = 'Deskripsi singkat paket soal';
+      });
+    }
+  }
 }
 
 // ── Crop image area between question text and options ──

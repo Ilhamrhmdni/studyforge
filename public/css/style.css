@@ -411,6 +411,49 @@ body {
 }
 .admin-box h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.2rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.8rem; }
 
+/* ── APP LAYOUT (SIDEBAR) ── */
+.app-layout {
+  display: flex; min-height: 100vh; background: var(--bg); width: 100%;
+}
+.app-sidebar {
+  width: 260px; background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+  transition: transform 0.3s ease;
+}
+.app-main {
+  flex: 1; padding: 2.5rem 3rem; overflow-y: auto; margin-left: 260px; max-width: calc(100% - 260px);
+}
+.mobile-app-header {
+  display: none; align-items: center; justify-content: space-between;
+  padding: 1rem 1.5rem; background: var(--bg2); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 90;
+}
+.mobile-app-logo {
+  font-size: 1.2rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  text-decoration: none;
+}
+.mobile-hamburger {
+  background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+  }
+  .app-sidebar.open {
+    transform: translateX(0);
+  }
+  .app-main {
+    margin-left: 0; max-width: 100%; padding: 1.5rem;
+  }
+  .mobile-app-header {
+    display: flex;
+  }
+}
+
 /* ── FOOTER ── */
 footer {
   border-top: 1px solid var(--border); text-align: center;
@@ -727,4 +770,162 @@ footer span { color: var(--primary); }
   .landing-page .insight-showcase { grid-template-columns: 1fr; gap: 2rem; }
   .landing-page .stepper-container { flex-direction: column; align-items: center; }
   .landing-page .step-line { width: 2px; height: 30px; min-height: 30px; margin: 0 auto; background: var(--border); }
+}
+
+/* ── QUIZ PAGE (PROFESSIONAL EXAM MODE) ── */
+.quiz-page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.quiz-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  height: 64px;
+  background: rgba(14,21,38,0.95);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 100;
+}
+.quiz-topbar-left { display: flex; align-items: center; gap: 1.5rem; }
+.quiz-logo {
+  font-size: 1.2rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  text-decoration: none;
+}
+.quiz-title { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.quiz-topbar-center { display: flex; flex-direction: column; align-items: center; }
+.quiz-progress-text { font-size: 0.9rem; font-weight: 700; color: var(--primary); }
+.quiz-autosave { font-size: 0.75rem; color: var(--text2); margin-top: 0.2rem; }
+.quiz-topbar-right { display: flex; align-items: center; gap: 1rem; }
+.mobile-nav-btn { display: none; }
+
+.quiz-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.quiz-main {
+  flex: 1;
+  padding: 2rem 3rem;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 6rem;
+}
+
+.quiz-sidebar-wrapper {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+  z-index: 90;
+}
+.quiz-sidebar-overlay { display: none; }
+.quiz-sidebar {
+  padding: 1.5rem;
+  overflow-y: auto;
+  height: 100%;
+}
+.quiz-sidebar-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+}
+.quiz-sidebar-box h4 {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.mobile-close-btn { display: none; }
+
+/* Status List */
+.quiz-status-list { display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.85rem; }
+.status-item { display: flex; justify-content: space-between; align-items: center; }
+.status-label { color: var(--text2); }
+.status-val { font-weight: 700; }
+.status-val.answered { color: var(--success); }
+.status-val.doubtful { color: #a855f7; }
+.status-val.remaining { color: var(--accent); }
+.status-item.total { border-top: 1px solid var(--border); padding-top: 0.6rem; margin-top: 0.2rem; }
+
+/* Bottom Action Bar */
+.quiz-bottom-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Sidebar Dots Override */
+.sdot.doubtful {
+  background: rgba(168,85,247,0.15);
+  border-color: #a855f7;
+  color: #a855f7;
+}
+
+/* Options Enhancements */
+.option-btn {
+  padding: 1rem 1.2rem;
+  font-size: 0.95rem;
+}
+.option-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .quiz-topbar { padding: 0 1rem; }
+  .quiz-topbar-center { display: none; }
+  .mobile-nav-btn { display: block; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+  .quiz-main { padding: 1.5rem 1rem; padding-bottom: 7rem; }
+  
+  .quiz-sidebar-wrapper {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    transform: translateX(100%);
+    box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+  }
+  .quiz-sidebar-wrapper.open { transform: translateX(0); }
+  .quiz-sidebar-overlay {
+    display: block;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .quiz-sidebar-wrapper.open .quiz-sidebar-overlay {
+    opacity: 1; pointer-events: auto; right: 320px;
+  }
+  .mobile-close-btn {
+    display: block;
+    background: none; border: none; color: var(--text);
+    font-size: 1.2rem; cursor: pointer;
+  }
+  
+  .quiz-bottom-actions {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(6,9,18,0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    padding: 1rem;
+    margin: 0; z-index: 80;
+    justify-content: center;
+  }
 }

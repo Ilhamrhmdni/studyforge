@@ -1,44 +1,117 @@
+// public/js/pages/dashboard.js
+
+let _allQuizzes = [];
+let _currentTab = 'public';
+
+async function setupDashboard() {
+  const user = await requireAuth();
+  if (!user) return;
+
+  // Cek admin role
+  const sb = initSupabase();
+  const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
+  if (profile && profile.role === 'admin') {
+    const adminLink = document.getElementById('navAdmin');
+    if (adminLink) adminLink.style.display = 'flex';
+  }
+
+  // Setup mobile menu
+  const menuBtn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.getElementById('appSidebar');
+  if (menuBtn && sidebar) {
+    menuBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+  }
+
+  // Cek hash untuk navigasi tab
+  window.addEventListener('hashchange', handleHashNav);
+  handleHashNav();
+}
+
+async function handleHashNav() {
+  const hash = window.location.hash;
+  
+  // Reset active classes
+  document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
+  
+  if (hash === '#private') {
+    _currentTab = 'private';
+    const navItem = document.getElementById('navPrivate');
+    if (navItem) navItem.classList.add('active');
+    
+    document.getElementById('pageTitle').textContent = 'Koleksi Pribadi';
+    document.getElementById('pageDesc').textContent = 'Daftar paket soal yang kamu buat sendiri.';
+    const btnCreate = document.getElementById('btnCreateQuiz');
+    if (btnCreate) btnCreate.style.display = 'inline-flex';
+    
+    await loadPrivateQuizzes();
+  } else {
+    _currentTab = 'public';
+    // Default to Paket Soal
+    const navItem = document.querySelector('.sidebar-btn[href="/dashboard.html"]');
+    if (navItem) navItem.classList.add('active');
+    
+    document.getElementById('pageTitle').textContent = 'Paket Soal Tersedia';
+    document.getElementById('pageDesc').textContent = 'Telusuri koleksi try out dan latihan yang siap dikerjakan.';
+    const btnCreate = document.getElementById('btnCreateQuiz');
+    if (btnCreate) btnCreate.style.display = 'none';
+
+    await loadQuizzes();
+  }
+}
+
 async function loadQuizzes() {
+  const grid = document.getElementById('quizGrid');
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:4rem;"><div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;"></div><p>Memuat paket soal...</p></div>`;
+  
   try {
-    const sb = initSupabase();
-    const quizRes = await fetch('/api/quizzes');
-    const quizPayload = await quizRes.json();
-    if (!quizRes.ok) throw new Error(quizPayload.error || 'Gagal memuat quiz.');
-    const quizzes = quizPayload.quizzes || [];
-
-    const user = await requireAuth();
-    if (!user) return;
-    let totalResults = 0;
-    const { count, error: countErr } = await sb
-        .from('quiz_attempts')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-      if (!countErr) totalResults = count;
-
-    window._allQuizzes = quizzes;
-    renderQuizzes(window._allQuizzes);
-    updateStats({ quizzes: window._allQuizzes, totalResults });
+    const res = await fetch('/api/quizzes');
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.error || 'Gagal memuat quiz.');
+    
+    _allQuizzes = payload.quizzes || [];
+    renderQuizzes(_allQuizzes, false);
   } catch (e) {
-    document.getElementById('quizGrid').innerHTML = `
+    grid.innerHTML = `
       <div style="grid-column:1/-1;" class="empty-state">
         <div class="empty-icon">📭</div>
-        <p>Belum ada paket soal tersedia.</p>
+        <p>Tersedia segera. Admin belum menambahkan paket soal.</p>
       </div>`;
   }
 }
 
-function updateStats(data) {
-  document.getElementById('totalQuiz').textContent = data.quizzes?.length || 0;
-  document.getElementById('totalQ').textContent = data.quizzes?.reduce((a, q) => a + (q.count || 0), 0) || 0;
-  document.getElementById('totalResult').textContent = data.totalResults || 0;
+async function loadPrivateQuizzes() {
+  const grid = document.getElementById('quizGrid');
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:4rem;"><div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;"></div><p>Memuat koleksi...</p></div>`;
+  
+  try {
+    const token = await getAccessToken();
+    const res = await fetch('/api/user/quizzes', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.error);
+    
+    _allQuizzes = payload.quizzes || [];
+    renderQuizzes(_allQuizzes, true);
+  } catch (e) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;" class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>Belum ada paket soal buatanmu sendiri.</p>
+      </div>`;
+  }
 }
 
 function renderQuizzes(list, isPrivate = false) {
   const grid = document.getElementById('quizGrid');
   if (!list.length) {
-    grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><div class="empty-icon">📭</div><p>Belum ada paket soal.</p></div>`;
+    const emptyMsg = isPrivate ? 'Belum ada paket soal buatanmu sendiri.' : 'Tersedia segera. Admin belum menambahkan paket soal.';
+    grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><div class="empty-icon">📭</div><p>${emptyMsg}</p></div>`;
     return;
   }
+  
   const tagColors = ['', 'purple', 'amber'];
   
   grid.innerHTML = list.map((q, i) => {
@@ -70,7 +143,6 @@ function renderQuizzes(list, isPrivate = false) {
       <div class="card-meta">
         <span>📝 ${q.count} Soal</span>
         <span>⏱️ ${q.duration || 60} Menit</span>
-        <span>📅 ${new Date(q.created_at).toLocaleDateString('id-ID')}</span>
       </div>
       <br/>
       ${actionBtnHtml}
@@ -78,52 +150,12 @@ function renderQuizzes(list, isPrivate = false) {
   `}).join('');
 }
 
-window._currentTab = 'public';
-
-async function switchDashboardTab(tab) {
-  window._currentTab = tab;
-  document.getElementById('tabPublic').style.color = tab === 'public' ? 'var(--primary)' : 'var(--text2)';
-  document.getElementById('tabPublic').style.borderBottom = tab === 'public' ? '2px solid var(--primary)' : 'none';
-  document.getElementById('tabPrivate').style.color = tab === 'private' ? 'var(--primary)' : 'var(--text2)';
-  document.getElementById('tabPrivate').style.borderBottom = tab === 'private' ? '2px solid var(--primary)' : 'none';
-  
-  document.getElementById('quizGrid').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;"><div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;"></div>Memuat...</div>`;
-  
-  if (tab === 'public') {
-    await loadQuizzes();
-  } else {
-    await loadPrivateQuizzes();
-  }
-}
-
-async function loadPrivateQuizzes() {
-  try {
-    const user = await requireAuth();
-    
-    const token = await getAccessToken();
-    const res = await fetch('/api/user/quizzes', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const payload = await res.json();
-    if (!res.ok) throw new Error(payload.error);
-    
-    window._allQuizzes = payload.quizzes || [];
-    renderQuizzes(window._allQuizzes, true);
-  } catch (e) {
-    document.getElementById('quizGrid').innerHTML = `
-      <div style="grid-column:1/-1;" class="empty-state">
-        <div class="empty-icon">📭</div>
-        <p>Belum ada paket soal buatanmu sendiri.</p>
-      </div>`;
-  }
-}
-
 function filterQuizzes() {
   const q = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = (window._allQuizzes || []).filter((x) =>
+  const filtered = _allQuizzes.filter((x) =>
     (x.title || '').toLowerCase().includes(q) || (x.subject || '').toLowerCase().includes(q)
   );
-  renderQuizzes(filtered, window._currentTab === 'private');
+  renderQuizzes(filtered, _currentTab === 'private');
 }
 
 async function submitReview(quizId) {
@@ -140,121 +172,14 @@ async function submitReview(quizId) {
   });
 }
 
-async function loadHistory() {
-  const user = await requireAuth();
-  if (!user) return; // requireAuth will redirect
-
-
-  try {
-    const sb = initSupabase();
-    const { data, error } = await sb.from('quiz_attempts')
-      .select('id, quiz_title, score, correct, total, time_taken, submitted_at')
-      .eq('user_id', user.id)
-      .order('submitted_at', { ascending: false })
-      .limit(4);
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      document.getElementById('history-section').style.display = 'block';
-      document.getElementById('historyGrid').innerHTML = data.map((h) => `
-        <div style="border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 8px; padding: 1rem; background: var(--bg);">
-          <h4 style="font-size:0.95rem; margin-bottom:0.3rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(h.quiz_title)}</h4>
-          <div style="color:var(--text2); font-size:0.75rem; margin-bottom:0.8rem;">
-            📅 ${new Date(h.submitted_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
-            <div style="font-size:1.2rem; font-weight:800; color:${h.score >= 70 ? 'var(--success)' : 'var(--danger)'};">${h.score} <span style="font-size:0.7rem; color:var(--text3); font-weight:500;">Nilai</span></div>
-            <div style="font-size:0.75rem; color:var(--text2); text-align:right;">✅ ${h.correct} / ${h.total} Benar</div>
-          </div>
-          <a href="/result?id=${h.id}" class="btn btn-outline" style="width:100%; justify-content:center; padding:0.4rem; font-size:0.8rem;">📖 Review</a>
-        </div>
-      `).join('');
-    } else {
-      document.getElementById('history-section').style.display = 'block';
-      document.getElementById('historyGrid').innerHTML = '<p style="color:var(--text3); font-size:0.85rem; text-align:center; padding: 2rem 0;">Belum ada riwayat ujian.<br>Kerjakan soal untuk melihat evaluasi.</p>';
-    }
-  } catch (e) {
-    console.error('History load error:', e);
-  }
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag]));
 }
 
-// ── USER INSIGHTS ──
-async function loadUserInsights() {
-  try {
-    const token = await getAccessToken();
-    if (!token) return;
+setupDashboard();
 
-    // Fetch weaknesses
-    const weakRes = await fetch('/api/user/insight-weaknesses', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const weakData = await weakRes.json();
-
-    // Fetch recommendations
-    const recRes = await fetch('/api/user/insight-recommendations', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const recData = await recRes.json();
-
-    if (weakData.error || recData.error) throw new Error(weakData.error || recData.error);
-
-    document.getElementById('insightSection').style.display = 'grid';
-
-    // 1. Render Weaknesses
-    const wList = document.getElementById('weaknessList');
-    if (weakData.empty) {
-      wList.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text3);font-size:0.85rem;">${escapeHTML(weakData.message)}</div>`;
-    } else {
-      wList.innerHTML = weakData.items.map(w => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05);">
-          <div>
-            <div style="font-weight:600; font-size:0.95rem;">${escapeHTML(w.subject)}</div>
-            <div style="font-size:0.75rem; color:var(--text2);">Total dijawab: ${w.total_answered} soal</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:1.1rem; font-weight:700; color:var(--danger);">${Math.round(w.accuracy_rate * 100)}%</div>
-            <div style="font-size:0.7rem; color:var(--text3);">Akurasi</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // 2. Render Recommendations
-    const rList = document.getElementById('recommendationList');
-    if (!recData.items || recData.items.length === 0) {
-      rList.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text3);font-size:0.85rem;">Belum ada rekomendasi soal saat ini.</div>`;
-    } else {
-      let subjectLabel = recData.weakest_subject ? `<span style="background:var(--primary); color:#fff; padding:0.1rem 0.4rem; border-radius:4px; font-size:0.7rem;">Fokus: ${escapeHTML(recData.weakest_subject)}</span>` : '';
-      
-      rList.innerHTML = recData.items.map(r => `
-        <div style="padding:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:0.5rem;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div style="font-weight:600; font-size:0.95rem;">${escapeHTML(r.title)}</div>
-            ${subjectLabel}
-          </div>
-          <a href="/quiz?id=${escapeHTML(r.id)}" class="btn btn-outline" style="padding:0.3rem 0.6rem; font-size:0.8rem; width:fit-content;">Kerjakan Sekarang →</a>
-        </div>
-      `).join('');
-    }
-
-  } catch (err) {
-    console.error('Failed to load insights:', err);
-    // Silent fail if error, just don't show the insight section or show error text.
-  }
-}
-
-updateNavForUser();
-loadHistory();
-loadUserInsights();
-loadQuizzes();
-
-// --- Auto-exports to window ---
-window.loadHistory = loadHistory;
-window.submitReview = submitReview;
-window.switchDashboardTab = switchDashboardTab;
-window.renderQuizzes = renderQuizzes;
-window.loadPrivateQuizzes = loadPrivateQuizzes;
-window.loadQuizzes = loadQuizzes;
-window.updateStats = updateStats;
 window.filterQuizzes = filterQuizzes;
+window.submitReview = submitReview;

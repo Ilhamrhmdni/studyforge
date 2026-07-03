@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Riwayat Ujian - StudyForge</title>
+<link rel="stylesheet" href="/css/style.css?v=2.3"/>
+</head>
+<body class="dashboard-page">
+
+<div class="app-layout">
+  <!-- MOBILE HEADER -->
+  <div class="mobile-app-header">
+    <a href="/" class="mobile-app-logo">⚡ StudyForge</a>
+    <button class="mobile-hamburger" id="mobileMenuBtn">☰</button>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-header">
+      <h2>⚡ StudyForge</h2>
+      <p>Platform Try Out Cerdas</p>
+    </div>
+    <div class="sidebar-nav">
+      <a href="/dashboard.html" class="sidebar-btn">📚 Paket Soal</a>
+      <a href="/dashboard.html#private" class="sidebar-btn" id="navPrivate">🔒 Koleksi Pribadi</a>
+      <a href="/insight.html" class="sidebar-btn">🧠 Insight Belajar</a>
+      <a href="/history.html" class="sidebar-btn active">🕒 Riwayat Ujian</a>
+      <a href="/creator.html" class="sidebar-btn">✨ Creator Studio</a>
+      <a href="/admin.html" class="sidebar-btn" id="navAdmin" style="display:none; color:var(--accent);">⚙️ Admin Panel</a>
+      
+      <div style="flex:1;"></div>
+      <a href="/" class="sidebar-btn" style="color:var(--text3); border-top:1px solid var(--border); border-radius:0; padding-top:1rem; margin-top:1rem;">🚪 Keluar</a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+    <div style="margin-bottom: 2.5rem;">
+      <h1 style="font-size:1.8rem; font-weight:800; margin-bottom:0.2rem;">Riwayat Ujian</h1>
+      <p style="color:var(--text2); font-size:0.95rem;">Evaluasi hasil dari semua paket soal yang pernah kamu kerjakan.</p>
+    </div>
+
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:2rem; max-width: 800px;">
+      <div id="historyGrid" style="display:flex; flex-direction:column; gap: 1.5rem;">
+        <div style="text-align:center;padding:3rem;color:var(--text3);">
+          <div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px;"></div>
+          <p>Memuat riwayat...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/core/site-config.js"></script>
+<script src="/js/core/auth.js"></script>
+<script type="module" src="/js/pages/history.js"></script>
+</body>
+</html>

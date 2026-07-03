@@ -25,16 +25,25 @@ async function handleLogin(e) {
   btn.textContent = 'Memproses...';
 
   const sb = initSupabase();
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
   if (error) {
     showMsg(error.message, true);
     btn.disabled = false;
     btn.textContent = 'Masuk';
   } else {
-    showMsg('Berhasil masuk! Mengalihkan...');
-    const redirect = sessionStorage.getItem('sf_redirect') || '/dashboard.html';
+    let redirect = sessionStorage.getItem('sf_redirect') || '/dashboard.html';
+    
+    // Redirect admin ke admin panel jika tujuan awalnya dashboard
+    if (data.user && redirect === '/dashboard.html') {
+      const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
+      if (profile && profile.role === 'admin') {
+        redirect = '/admin.html';
+      }
+    }
+
     sessionStorage.removeItem('sf_redirect');
+    showMsg('Berhasil masuk! Mengalihkan...');
     setTimeout(() => { window.location.href = redirect; }, 1000);
   }
 }
