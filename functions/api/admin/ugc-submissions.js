@@ -1,4 +1,6 @@
-import { sendJson, supabaseFetch, requireAdmin } from '../../_shared.js';
+import { sendJson } from '../../_shared/response.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
+import { requireAdmin } from '../../_shared/auth.js';
 
 export async function onRequestGet(context) {
   try {
@@ -12,10 +14,8 @@ export async function onRequestGet(context) {
       order: 'created_at.desc'
     });
 
-    const rows = await supabaseFetch(context.env, `/rest/v1/quizzes?${params.toString()}`);
-    if (!rows.ok) throw new Error('Gagal mengambil data submissions.');
+    const quizzes = await supabaseFetch(context.env, `/rest/v1/quizzes?${params.toString()}`);
     
-    const quizzes = await rows.json();
     return sendJson({ quizzes });
   } catch (error) {
     return sendJson({ error: error.message }, 500);

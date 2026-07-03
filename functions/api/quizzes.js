@@ -1,4 +1,6 @@
-import { isDraftTitle, sendJson, supabaseFetch } from '../_shared.js';
+import { supabaseFetch } from '../_shared/supabase.js';
+import { sendJson } from '../_shared/response.js';
+import { isDraftTitle } from '../_shared/quiz.js';
 
 export async function onRequestGet(context) {
   try {

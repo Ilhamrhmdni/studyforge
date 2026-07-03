@@ -1,12 +1,7 @@
-import {
-  extractBearerToken,
-  getProfile,
-  getQuizById,
-  getUserFromToken,
-  isDraftTitle,
-  sanitizeQuestion,
-  sendJson
-} from '../_shared.js';
+import { extractBearerToken, getUserFromToken } from '../_shared/auth.js';
+import { getProfile } from '../_shared/supabase.js';
+import { sendJson } from '../_shared/response.js';
+import { getQuizById, isDraftTitle, sanitizeQuestion } from '../_shared/quiz.js';
 
 export async function onRequestGet(context) {
   const id = new URL(context.request.url).searchParams.get('id');

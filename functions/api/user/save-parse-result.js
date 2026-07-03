@@ -1,4 +1,6 @@
-import { readJson, sendJson, supabaseFetch, requireUser } from '../../_shared.js';
+import { requireUser } from '../../_shared/auth.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
+import { readJson, sendJson } from '../../_shared/response.js';
 
 export async function onRequestPost(context) {
   try {
@@ -11,8 +13,7 @@ export async function onRequestPost(context) {
     if (!parse_job_id) return sendJson({ error: 'parse_job_id diperlukan.' }, 400);
 
     // Verify ownership of the job
-    const jobRes = await supabaseFetch(context.env, `/rest/v1/parse_jobs?id=eq.${parse_job_id}&user_id=eq.${auth.user.id}`);
-    const jobs = await jobRes.json();
+    const jobs = await supabaseFetch(context.env, `/rest/v1/parse_jobs?id=eq.${parse_job_id}&user_id=eq.${auth.user.id}`);
     if (!jobs || jobs.length === 0) {
       return sendJson({ error: 'Parse job tidak ditemukan atau bukan milik Anda.' }, 404);
     }
@@ -31,8 +32,7 @@ export async function onRequestPost(context) {
     }
 
     // Step 2: Check if result exists
-    const resCheck = await supabaseFetch(context.env, `/rest/v1/parse_results?parse_job_id=eq.${parse_job_id}&select=id`);
-    const existing = await resCheck.json();
+    const existing = await supabaseFetch(context.env, `/rest/v1/parse_results?parse_job_id=eq.${parse_job_id}&select=id`);
 
     if (existing && existing.length > 0) {
       // Update existing result

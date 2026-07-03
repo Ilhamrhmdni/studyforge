@@ -1,4 +1,6 @@
-import { requireAdmin, sendJson, supabaseFetch } from '../../_shared.js';
+import { requireAdmin } from '../../_shared/auth.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
+import { sendJson } from '../../_shared/response.js';
 
 function escapeValue(value) {
   return String(value || '').replace(/,/g, '\\,');

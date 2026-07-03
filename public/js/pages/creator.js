@@ -326,3 +326,17 @@ document.getElementById('btnSaveQuiz').addEventListener('click', async () => {
     document.getElementById('btnSaveQuiz').textContent = '💾 Simpan ke Koleksi Pribadi';
   }
 });
+
+window.onload = async () => {
+  const user = await requireAuth();
+  if (!user) return;
+  if (typeof updateNavForUser === 'function') updateNavForUser();
+};
+
+// --- Auto-exports to window ---
+window.log = log;
+window.renderEditor = renderEditor;
+window.compressForGemini = compressForGemini;
+window.parseWithGemini = parseWithGemini;
+window.handleFileUpload = handleFileUpload;
+window.apiCall = apiCall;

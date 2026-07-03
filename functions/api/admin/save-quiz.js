@@ -1,11 +1,7 @@
-import {
-  getServiceConfigError,
-  prepareQuestionsForStorage,
-  readJson,
-  requireAdmin,
-  sendJson,
-  supabaseFetch
-} from '../../_shared.js';
+import { requireAdmin } from '../../_shared/auth.js';
+import { getServiceConfigError, supabaseFetch } from '../../_shared/supabase.js';
+import { readJson, sendJson } from '../../_shared/response.js';
+import { prepareQuestionsForStorage } from '../../_shared/quiz.js';
 
 export async function onRequestPost(context) {
   try {

@@ -1,4 +1,7 @@
-import { isDraftTitle, requireAdmin, sendJson, supabaseFetch } from '../../_shared.js';
+import { requireAdmin } from '../../_shared/auth.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
+import { sendJson } from '../../_shared/response.js';
+import { isDraftTitle } from '../../_shared/quiz.js';
 
 export async function onRequestGet(context) {
   try {

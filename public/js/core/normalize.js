@@ -66,3 +66,10 @@ function normalizeForCompare(value) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+// --- Auto-exports to window ---
+window.normalizeText = normalizeText;
+window.normalizeForCompare = normalizeForCompare;
+window.hasWrongMarker = hasWrongMarker;
+window.hasCorrectMarker = hasCorrectMarker;
+window.stripMarkers = stripMarkers;

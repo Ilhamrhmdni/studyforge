@@ -23,3 +23,6 @@ function escapeHTML(str) {
     '"': '&quot;'
   }[tag] || tag));
 }
+
+// --- Auto-exports to window ---
+window.escapeHTML = escapeHTML;

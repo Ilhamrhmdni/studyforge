@@ -1,13 +1,7 @@
-import {
-  extractBearerToken,
-  getProfile,
-  getQuizById,
-  getSupabaseConfigError,
-  getUserFromToken,
-  readJson,
-  sendJson,
-  supabaseFetch
-} from '../_shared.js';
+import { extractBearerToken, getUserFromToken } from '../_shared/auth.js';
+import { getProfile, getSupabaseConfigError, supabaseFetch } from '../_shared/supabase.js';
+import { readJson, sendJson } from '../_shared/response.js';
+import { getQuizById } from '../_shared/quiz.js';
 
 function trimText(value, maxLength) {
   return String(value || '').trim().slice(0, maxLength);

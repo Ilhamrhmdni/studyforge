@@ -1,14 +1,7 @@
-import {
-  extractBearerToken,
-  getQuizById,
-  getServiceConfigError,
-  getUserFromToken,
-  isDraftTitle,
-  readJson,
-  resolveStoredAnswer,
-  sendJson,
-  supabaseFetch
-} from '../_shared.js';
+import { extractBearerToken, getUserFromToken } from '../_shared/auth.js';
+import { getServiceConfigError, supabaseFetch } from '../_shared/supabase.js';
+import { readJson, sendJson } from '../_shared/response.js';
+import { getQuizById, isDraftTitle, resolveStoredAnswer } from '../_shared/quiz.js';
 
 export async function onRequestPost(context) {
   try {

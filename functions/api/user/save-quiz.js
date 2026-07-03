@@ -1,4 +1,6 @@
-import { readJson, sendJson, supabaseFetch, requireUser } from '../../_shared.js';
+import { readJson, sendJson } from '../../_shared/response.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
+import { requireUser } from '../../_shared/auth.js';
 
 export async function onRequestPost(context) {
   try {
@@ -38,8 +40,7 @@ export async function onRequestPost(context) {
 
     // Verify ownership of the job
     if (parse_job_id) {
-      const jobRes = await supabaseFetch(context.env, `/rest/v1/parse_jobs?id=eq.${parse_job_id}&user_id=eq.${auth.user.id}`);
-      const jobs = await jobRes.json();
+      const jobs = await supabaseFetch(context.env, `/rest/v1/parse_jobs?id=eq.${parse_job_id}&user_id=eq.${auth.user.id}`);
       if (!jobs || jobs.length === 0) {
         return sendJson({ error: 'Parse job tidak valid.' }, 400);
       }
@@ -52,7 +53,7 @@ export async function onRequestPost(context) {
       description: description || '',
       duration: duration || 0,
       count: questions.length,
-      questions, // using standard structure
+      questions,
       creator_id: auth.user.id,
       source_type: 'user_generated',
       visibility: 'private',
@@ -61,23 +62,16 @@ export async function onRequestPost(context) {
       is_hidden: true
     };
 
-    const qRes = await supabaseFetch(context.env, '/rest/v1/quizzes', {
+    const savedQuiz = await supabaseFetch(context.env, '/rest/v1/quizzes', {
       method: 'POST',
       headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify(quizData)
+      body: quizData
     });
-
-    if (!qRes.ok) {
-      const errText = await qRes.text();
-      throw new Error(`Gagal menyimpan kuis ke database: ${errText}`);
-    }
-
-    const savedQuiz = await qRes.json();
 
     if (parse_job_id) {
       await supabaseFetch(context.env, `/rest/v1/parse_jobs?id=eq.${parse_job_id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'saved', completed_at: new Date().toISOString() })
+        body: { status: 'saved', completed_at: new Date().toISOString() }
       });
     }
 

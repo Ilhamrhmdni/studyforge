@@ -1,4 +1,6 @@
-import { sendJson, supabaseFetch, requireAdmin } from '../../_shared.js';
+import { sendJson } from '../../_shared/response.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
+import { requireAdmin } from '../../_shared/auth.js';
 
 export async function onRequestGet(context) {
   try {
@@ -6,12 +8,10 @@ export async function onRequestGet(context) {
     if (!auth.ok) return sendJson({ error: auth.message }, auth.status);
 
     // Get Jobs
-    const jobsRes = await supabaseFetch(context.env, '/rest/v1/parse_jobs?select=*&order=created_at.desc');
-    const jobs = await jobsRes.json();
+    const jobs = await supabaseFetch(context.env, '/rest/v1/parse_jobs?select=*&order=created_at.desc');
 
     // Get Feedback
-    const fbRes = await supabaseFetch(context.env, '/rest/v1/parse_feedback?select=*&order=created_at.desc');
-    const feedback = await fbRes.json();
+    const feedback = await supabaseFetch(context.env, '/rest/v1/parse_feedback?select=*&order=created_at.desc');
     
     // Calculate metrics
     const total_processed = jobs.length;

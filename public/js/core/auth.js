@@ -95,3 +95,10 @@ async function updateNavForUser() {
     `;
   }
 }
+
+// --- Auto-exports to window ---
+window.initSupabase = initSupabase;
+window.updateNavForUser = updateNavForUser;
+window.logoutUser = logoutUser;
+window.checkUserAuth = checkUserAuth;
+window.requireAuth = requireAuth;

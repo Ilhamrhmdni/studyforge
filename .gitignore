@@ -1,7 +1,26 @@
+# Dependencies
 node_modules/
-.env
-.vercel
-*.log
 
-.vercel
+# Environment / secrets
+.env
+.env.*
 .env*
+.dev.vars
+
+# Allow safe env template
+!.env.example
+
+# Deployment / local platform cache
+.vercel/
+.wrangler/
+
+# Logs & temporary debug files
+*.log
+diff.txt
+server_log.txt
+server_log*.txt
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/

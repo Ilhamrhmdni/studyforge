@@ -1,4 +1,6 @@
-import { readJson, sendJson, supabaseFetch, requireUser } from '../../_shared.js';
+import { requireUser } from '../../_shared/auth.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
+import { readJson, sendJson } from '../../_shared/response.js';
 
 export async function onRequestPost(context) {
   try {
@@ -11,8 +13,7 @@ export async function onRequestPost(context) {
     if (!quiz_id) return sendJson({ error: 'quiz_id diperlukan.' }, 400);
 
     // Verify ownership and status
-    const getRes = await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}&creator_id=eq.${auth.user.id}&select=review_status,visibility`);
-    const existing = await getRes.json();
+    const existing = await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}&creator_id=eq.${auth.user.id}&select=review_status,visibility`);
     if (!existing || existing.length === 0) {
       return sendJson({ error: 'Kuis tidak ditemukan atau bukan milik Anda.' }, 404);
     }

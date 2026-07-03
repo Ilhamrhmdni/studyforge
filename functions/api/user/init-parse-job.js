@@ -1,4 +1,6 @@
-import { readJson, sendJson, supabaseFetch, requireUser } from '../../_shared.js';
+import { requireUser } from '../../_shared/auth.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
+import { readJson, sendJson } from '../../_shared/response.js';
 
 export async function onRequestPost(context) {
   try {

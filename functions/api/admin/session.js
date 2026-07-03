@@ -1,4 +1,5 @@
-import { requireAdmin, sendJson } from '../../_shared.js';
+import { requireAdmin } from '../../_shared/auth.js';
+import { sendJson } from '../../_shared/response.js';
 
 export async function onRequestGet(context) {
   try {
