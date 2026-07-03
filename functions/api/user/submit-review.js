@@ -1,0 +1,37 @@
+import { readJson, sendJson, supabaseFetch, requireUser } from '../../_shared.js';
+
+export async function onRequestPost(context) {
+  try {
+    const auth = await requireUser(context);
+    if (!auth.ok) return sendJson({ error: auth.message }, auth.status);
+
+    const body = await readJson(context.request);
+    const { quiz_id } = body;
+
+    if (!quiz_id) return sendJson({ error: 'quiz_id diperlukan.' }, 400);
+
+    // Verify ownership and status
+    const getRes = await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}&creator_id=eq.${auth.user.id}&select=review_status,visibility`);
+    const existing = await getRes.json();
+    if (!existing || existing.length === 0) {
+      return sendJson({ error: 'Kuis tidak ditemukan atau bukan milik Anda.' }, 404);
+    }
+
+    const quiz = existing[0];
+    if (quiz.review_status !== 'draft' && quiz.review_status !== 'rejected') {
+      return sendJson({ error: `Kuis berstatus ${quiz.review_status} tidak dapat diajukan ulang.` }, 400);
+    }
+
+    // Update status to pending
+    const patchRes = await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ review_status: 'pending', visibility: 'private' })
+    });
+
+    if (!patchRes.ok) throw new Error('Gagal mengajukan kuis.');
+
+    return sendJson({ success: true });
+  } catch (error) {
+    return sendJson({ error: error.message }, 500);
+  }
+}

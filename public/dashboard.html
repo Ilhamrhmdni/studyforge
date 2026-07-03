@@ -30,9 +30,14 @@
       <div style="position:absolute; bottom:-80px; right:50px; width:150px; height:150px; background:rgba(255,255,255,0.15); border-radius:50%; blur(10px);"></div>
     </div>
 
+    <div style="display:flex; gap:1rem; border-bottom: 2px solid var(--border); width: 100%; margin-bottom: 1.5rem;">
+      <button id="tabPublic" onclick="switchDashboardTab('public')" style="background:transparent; border:none; padding:0.5rem 1rem; font-weight:700; cursor:pointer; color:var(--primary); border-bottom: 2px solid var(--primary); margin-bottom:-2px;">📚 Soal Tersedia</button>
+      <button id="tabPrivate" onclick="switchDashboardTab('private')" style="background:transparent; border:none; padding:0.5rem 1rem; font-weight:700; cursor:pointer; color:var(--text2);">🔒 Koleksi Pribadi</button>
+    </div>
+    
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
-      <h2 style="font-size:1.3rem; font-weight:800;">📚 Paket Soal Tersedia</h2>
       <input class="form-input" id="searchInput" placeholder="🔍 Cari paket soal..." style="max-width:240px;width:100%;" oninput="filterQuizzes()"/>
+      <a href="/creator.html" class="btn btn-primary" style="background: linear-gradient(135deg, var(--primary), var(--accent));">✨ Bikin Soal Sendiri</a>
     </div>
 
     <div id="quizGrid" class="cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
@@ -116,17 +121,39 @@ function updateStats(data) {
   document.getElementById('totalResult').textContent = data.totalResults || 0;
 }
 
-function renderQuizzes(list) {
+function renderQuizzes(list, isPrivate = false) {
   const grid = document.getElementById('quizGrid');
   if (!list.length) {
     grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><div class="empty-icon">📭</div><p>Belum ada paket soal.</p></div>`;
     return;
   }
   const tagColors = ['', 'purple', 'amber'];
-  grid.innerHTML = list.map((q, i) => `
+  
+  grid.innerHTML = list.map((q, i) => {
+    let badgeHtml = '';
+    let actionBtnHtml = `<a href="/quiz?id=${escapeHTML(q.id)}" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>`;
+    
+    if (isPrivate) {
+      if (q.review_status === 'draft') badgeHtml = `<span style="background:var(--card); color:var(--text2); border:1px solid var(--border); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem;">🔒 Draft</span>`;
+      else if (q.review_status === 'pending') badgeHtml = `<span style="background:rgba(234, 179, 8, 0.1); color:#eab308; border:1px solid rgba(234, 179, 8, 0.2); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem;">⏳ Menunggu Review</span>`;
+      else if (q.review_status === 'approved') badgeHtml = `<span style="background:rgba(34, 197, 94, 0.1); color:#22c55e; border:1px solid rgba(34, 197, 94, 0.2); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem;">✅ Disetujui (Publik)</span>`;
+      else if (q.review_status === 'rejected') badgeHtml = `<span style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem;">❌ Ditolak</span>`;
+      
+      if (q.review_status === 'draft' || q.review_status === 'rejected') {
+        actionBtnHtml += `<button onclick="submitReview('${q.id}')" class="btn btn-outline" style="width:100%; justify-content:center; margin-top:0.5rem;">Ajukan Review Publik</button>`;
+        if (q.rejection_reason) {
+          actionBtnHtml += `<p style="font-size:0.8rem; color:var(--danger); margin-top:0.5rem;">Alasan ditolak: ${escapeHTML(q.rejection_reason)}</p>`;
+        }
+      }
+    }
+
+    return `
     <div class="card">
-      <div class="card-tag ${tagColors[i % 3]}">${escapeHTML(q.subject || 'Umum')}</div>
-      <h3>${escapeHTML(q.title)}</h3>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div class="card-tag ${tagColors[i % 3]}">${escapeHTML(q.subject || 'Umum')}</div>
+        ${badgeHtml}
+      </div>
+      <h3 style="margin-top:1rem;">${escapeHTML(q.title)}</h3>
       <p>${escapeHTML(q.description || 'Paket soal latihan interaktif.')}</p>
       <div class="card-meta">
         <span>📝 ${q.count} Soal</span>
@@ -134,9 +161,53 @@ function renderQuizzes(list) {
         <span>📅 ${new Date(q.created_at).toLocaleDateString('id-ID')}</span>
       </div>
       <br/>
-      <a href="/quiz?id=${escapeHTML(q.id)}" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>
+      ${actionBtnHtml}
     </div>
-  `).join('');
+  `}).join('');
+}
+
+window._currentTab = 'public';
+
+async function switchDashboardTab(tab) {
+  window._currentTab = tab;
+  document.getElementById('tabPublic').style.color = tab === 'public' ? 'var(--primary)' : 'var(--text2)';
+  document.getElementById('tabPublic').style.borderBottom = tab === 'public' ? '2px solid var(--primary)' : 'none';
+  document.getElementById('tabPrivate').style.color = tab === 'private' ? 'var(--primary)' : 'var(--text2)';
+  document.getElementById('tabPrivate').style.borderBottom = tab === 'private' ? '2px solid var(--primary)' : 'none';
+  
+  document.getElementById('quizGrid').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;"><div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;"></div>Memuat...</div>`;
+  
+  if (tab === 'public') {
+    await loadQuizzes();
+  } else {
+    await loadPrivateQuizzes();
+  }
+}
+
+async function loadPrivateQuizzes() {
+  try {
+    const user = await checkUserAuth();
+    if (!user) {
+      document.getElementById('quizGrid').innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><p>Silakan login untuk melihat Koleksi Pribadi.</p></div>`;
+      return;
+    }
+    
+    const token = localStorage.getItem('sf_token');
+    const res = await fetch('/api/user/quizzes', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.error);
+    
+    window._allQuizzes = payload.quizzes || [];
+    renderQuizzes(window._allQuizzes, true);
+  } catch (e) {
+    document.getElementById('quizGrid').innerHTML = `
+      <div style="grid-column:1/-1;" class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>Belum ada paket soal buatanmu sendiri.</p>
+      </div>`;
+  }
 }
 
 function filterQuizzes() {
@@ -144,7 +215,21 @@ function filterQuizzes() {
   const filtered = (window._allQuizzes || []).filter((x) =>
     (x.title || '').toLowerCase().includes(q) || (x.subject || '').toLowerCase().includes(q)
   );
-  renderQuizzes(filtered);
+  renderQuizzes(filtered, window._currentTab === 'private');
+}
+
+function submitReview(quizId) {
+  if (!confirm('Ajukan kuis ini ke Admin agar bisa diakses semua orang?')) return;
+  const token = localStorage.getItem('sf_token');
+  fetch('/api/user/submit-review', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ quiz_id: quizId })
+  }).then(r => r.json()).then(res => {
+    if (res.error) return alert(res.error);
+    alert('Berhasil diajukan!');
+    loadPrivateQuizzes();
+  });
 }
 
 async function loadHistory() {

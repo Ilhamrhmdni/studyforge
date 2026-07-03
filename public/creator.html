@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Creator Studio - StudyForge</title>
+<link rel="stylesheet" href="/css/style.css?v=2.2"/>
+<!-- Use PDF.js from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="/dashboard.html" class="nav-logo">⚡ StudyForge</a>
+  <div class="nav-links" id="navLinks">
+    <!-- Populated by auth.js -->
+  </div>
+</nav>
+
+<div class="dashboard-container">
+  <div class="quiz-header">
+    <div>
+      <h1 class="quiz-title">Creator Studio (Beta)</h1>
+      <p class="quiz-meta">Ubah PDF soal kamu menjadi latihan interaktif. Fitur ini gratis dan khusus untuk kamu.</p>
+    </div>
+  </div>
+
+  <div class="admin-layout" style="margin-top: 1rem;">
+    <!-- SIDEBAR: Config & Upload -->
+    <div class="admin-sidebar" style="width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 2rem;">
+      
+      <div class="alert alert-warning" style="margin-bottom: 1.5rem; text-align: left;">
+        <strong>Perhatian:</strong> Untuk versi beta gratis ini, proses AI memakai Gemini API Key milik kamu sendiri agar StudyForge tetap gratis. 
+        StudyForge <strong>TIDAK MENYIMPAN</strong> API Key kamu di database kami. Key hanya dipakai di browser kamu untuk dikirim ke server Google.
+      </div>
+
+      <div class="config-section" style="max-width: 600px; margin: 0 auto; margin-bottom: 2rem; background: var(--card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border);">
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">1. Konfigurasi AI (BYOK)</h3>
+        <div class="form-group">
+          <label class="form-label">🤖 Gemini API Key Kamu</label>
+          <input class="form-input" id="creatorGeminiKey" type="password" placeholder="AIzaSy..."/>
+          <p style="font-size: 0.8rem; color: var(--text2); margin-top: 0.5rem;">
+            Belum punya? Dapatkan gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--primary);">Google AI Studio</a>.
+          </p>
+        </div>
+      </div>
+
+      <div class="config-section" style="max-width: 600px; margin: 0 auto; background: var(--card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border);">
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">2. Upload PDF Soal</h3>
+        
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="display: flex; gap: 0.5rem; align-items: start; font-size: 0.9rem; color: var(--text2);">
+            <input type="checkbox" id="consentCheck" style="margin-top: 3px;" />
+            <span>Saya setuju PDF ini diproses untuk membuat soal pribadi saya. Saya juga mengizinkan hasil parsing digunakan secara anonim untuk meningkatkan akurasi AI StudyForge.</span>
+          </label>
+        </div>
+
+        <div id="dropZone" class="drop-zone" style="border: 2px dashed var(--border); padding: 2rem; text-align: center; border-radius: 12px; cursor: pointer; transition: all 0.3s ease;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+          <p>Klik atau seret file PDF ke sini</p>
+          <p style="font-size: 0.8rem; color: var(--text2); margin-top: 0.5rem;">Maksimal 20MB, 30 Halaman, 100 Soal</p>
+          <input type="file" id="pdfInput" accept="application/pdf" style="display: none;" />
+        </div>
+        <p id="uploadStatus" style="margin-top: 1rem; font-weight: 600; text-align: center; color: var(--primary);"></p>
+        
+        <div class="form-group" style="margin-top: 1.5rem; display: none;" id="metaForm">
+          <input type="text" id="quizTitle" class="form-input" placeholder="Judul Quiz (mis: Tryout UTBK 2024)" style="margin-bottom: 1rem;" />
+          <input type="text" id="quizSubject" class="form-input" placeholder="Mata Pelajaran (mis: TPS)" />
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN AREA: Editor -->
+    <div class="admin-main" style="padding: 2rem 0;">
+      <div id="editorArea" style="display: none;">
+        <div class="quiz-header" style="justify-content: space-between; flex-direction: row;">
+          <h2 style="margin:0;">Preview & Edit Soal</h2>
+          <div style="display: flex; gap: 1rem;">
+            <button class="btn btn-outline" id="btnValidate">Validasi</button>
+            <button class="btn btn-primary" id="btnSaveQuiz">💾 Simpan ke Koleksi Pribadi</button>
+          </div>
+        </div>
+
+        <div id="validationAlerts" style="margin: 1rem 0;"></div>
+
+        <div id="questionsContainer" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+        
+        <div style="margin-top: 2rem;">
+          <button class="btn btn-outline" id="btnAddQuestion" style="width: 100%; border-style: dashed;">+ Tambah Soal Manual</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/creator.js"></script>
+<script>
+  window.onload = async () => {
+    const user = await checkUserAuth();
+    if (!user) window.location.href = '/login.html';
+    if (typeof updateNavForUser === 'function') updateNavForUser();
+  };
+</script>
+</body>
+</html>

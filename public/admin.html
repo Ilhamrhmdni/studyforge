@@ -90,6 +90,8 @@
     <nav class="sidebar-nav">
       <button class="sidebar-btn active" onclick="switchTab('upload', this)">📤 Upload & Parse PDF</button>
       <button class="sidebar-btn" onclick="switchTab('manage', this)">📋 Kelola Soal</button>
+      <button class="sidebar-btn" onclick="switchTab('ugc', this)">👥 User Submissions</button>
+      <button class="sidebar-btn" onclick="switchTab('analytics', this)">📈 Parser Intelligence</button>
       <button class="sidebar-btn" onclick="switchTab('results', this)">📊 Hasil Ujian</button>
       <button class="sidebar-btn" onclick="switchTab('bug-reports', this)">🐞 Laporan Bug</button>
       <button class="sidebar-btn" onclick="switchTab('config', this)">⚙️ Konfigurasi</button>
@@ -178,6 +180,53 @@
         </div>
 
         <div id="questionsList"></div>
+      </div>
+    </div>
+
+    <!-- TAB: UGC SUBMISSIONS -->
+    <div class="tab-content" id="tab-ugc">
+      <div class="admin-box">
+        <h3>👥 User Submissions</h3>
+        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem;">Daftar kuis yang diajukan oleh pengguna untuk menjadi kuis publik.</p>
+        <div id="ugcList"><div style="text-align:center;padding:2rem;color:var(--text3);">Memuat...</div></div>
+      </div>
+    </div>
+
+    <!-- TAB: PARSER ANALYTICS -->
+    <div class="tab-content" id="tab-analytics">
+      <div class="admin-box">
+        <h3>📈 Parser Intelligence & Analytics</h3>
+        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem;">Analisis performa AI dalam mengekstrak soal dari PDF.</p>
+        
+        <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:1rem;margin-bottom:2rem;" id="analyticsMetrics">
+          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--text2);">Total Job</div>
+            <div id="an_total" style="font-size:1.5rem;font-weight:bold;color:var(--primary);">0</div>
+          </div>
+          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--text2);">Berhasil Disimpan</div>
+            <div id="an_success" style="font-size:1.5rem;font-weight:bold;color:var(--success);">0</div>
+          </div>
+          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--text2);">Rata-rata Soal/Job</div>
+            <div id="an_avg" style="font-size:1.5rem;font-weight:bold;color:var(--accent);">0</div>
+          </div>
+          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--text2);">Gagal</div>
+            <div id="an_fail" style="font-size:1.5rem;font-weight:bold;color:var(--danger);">0</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+          <div>
+            <h4 style="margin-bottom:0.5rem;">Top Validation Errors</h4>
+            <div id="an_errors" style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);font-size:0.85rem;color:var(--text2);"></div>
+          </div>
+          <div>
+            <h4 style="margin-bottom:0.5rem;">User Feedback</h4>
+            <div id="an_feedback" style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);font-size:0.85rem;color:var(--text2);"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1332,6 +1381,70 @@ function switchTab(name, el) {
   if (name==='manage') loadManage();
   if (name==='results') loadResults();
   if (name==='bug-reports') loadBugReports();
+  if (name==='ugc') loadUGC();
+  if (name==='analytics') loadAnalytics();
+}
+
+async function loadUGC() {
+  const el = document.getElementById('ugcList');
+  el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text3);">Memuat...</div>';
+  try {
+    const payload = await adminApiFetch('/api/admin/ugc-submissions');
+    const quizzes = payload.quizzes || [];
+    if (!quizzes.length) {
+      el.innerHTML = '<div class="empty-state"><p>Tidak ada pengajuan kuis baru.</p></div>';
+      return;
+    }
+    el.innerHTML = quizzes.map(q => `
+      <div class="quiz-list-row">
+        <div class="name">${escapeHTML(q.title)} <span style="font-size:0.8rem; color:var(--text2); font-weight:normal;">(${q.count} soal)</span>
+        <br><span style="font-size:0.8rem; color:var(--primary);">Oleh: ${escapeHTML(q.profiles?.full_name || 'Anonim')}</span></div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-primary" onclick="approveUGC('${q.id}')">Setujui</button>
+          <button class="btn btn-outline" onclick="rejectUGC('${q.id}')">Tolak</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { el.innerHTML = `<p style="color:red">Error: ${e.message}</p>`; }
+}
+
+async function approveUGC(id) {
+  if (!confirm('Setujui kuis ini? (Akan menjadi publik)')) return;
+  try {
+    await adminApiFetch('/api/admin/approve-quiz', 'POST', { quiz_id: id });
+    alert('Disetujui!');
+    loadUGC();
+  } catch(e) { alert(e.message); }
+}
+
+async function rejectUGC(id) {
+  const reason = prompt('Alasan penolakan?');
+  if (reason === null) return;
+  try {
+    await adminApiFetch('/api/admin/reject-quiz', 'POST', { quiz_id: id, reason });
+    alert('Ditolak!');
+    loadUGC();
+  } catch(e) { alert(e.message); }
+}
+
+async function loadAnalytics() {
+  try {
+    const payload = await adminApiFetch('/api/admin/parser-analytics');
+    const m = payload.metrics;
+    if (!m) return;
+    document.getElementById('an_total').textContent = m.total_processed || 0;
+    document.getElementById('an_success').textContent = m.total_success || 0;
+    document.getElementById('an_avg').textContent = m.avg_questions || 0;
+    document.getElementById('an_fail').textContent = m.total_failed || 0;
+
+    const errHtml = (m.top_errors || []).map(e => `<div>• ${escapeHTML(e[0])}: <strong>${e[1]}</strong> kali</div>`).join('') || 'Belum ada error.';
+    document.getElementById('an_errors').innerHTML = errHtml;
+
+    const fbHtml = (m.top_feedback || []).map(f => `<div>• ${escapeHTML(f[0])}: <strong>${f[1]}</strong> kali</div>`).join('') || 'Belum ada feedback.';
+    document.getElementById('an_feedback').innerHTML = fbHtml;
+  } catch(e) {
+    console.error(e);
+  }
 }
 
 async function loadBugReports() {

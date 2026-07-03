@@ -48,6 +48,7 @@ async function updateNavForUser() {
     const name = typeof escapeHTML === 'function' ? escapeHTML(rawName) : rawName;
     navLinks.innerHTML = `
       <a href="/dashboard.html">Dashboard</a>
+      <a href="/creator.html" style="color: var(--accent);">✨ Creator Studio</a>
       <a href="/admin.html">Admin</a>
       <a href="/bug-report.html">🐞 Laporkan Bug</a>
       <div style="display:inline-flex; align-items:center; gap:0.5rem; background:rgba(255,255,255,0.05); padding:0.4rem 0.8rem; border-radius:50px; font-size:0.85rem; border:1px solid var(--border);">

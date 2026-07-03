@@ -105,6 +105,15 @@ export async function requireAdmin(context) {
   return { ok: true, user, profile };
 }
 
+export async function requireUser(context) {
+  const token = extractBearerToken(context.request);
+  const user = await getUserFromToken(context.env, token);
+  if (!user) return { ok: false, status: 401, message: 'Sesi login tidak valid.' };
+  
+  const profile = await getProfile(context.env, user.id);
+  return { ok: true, user, profile };
+}
+
 async function deriveQuizKey(secret) {
   if (!derivedKeys.has(secret)) {
     const digest = await crypto.subtle.digest('SHA-256', encoder.encode(secret));
