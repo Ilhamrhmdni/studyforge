@@ -4,7 +4,7 @@
 -- Mengagregasi data dari quiz_attempt_answers dan quizzes
 CREATE OR REPLACE VIEW public.question_stats_view AS
 SELECT 
-  qaa.quiz_id,
+  qa.quiz_id,
   qa.quiz_title,
   COALESCE(q.subject, q.title) AS subject,
   qaa.question_num,
@@ -26,7 +26,7 @@ JOIN
 JOIN 
   public.quizzes q ON qa.quiz_id = q.id
 GROUP BY 
-  qaa.quiz_id, qa.quiz_title, q.subject, q.title, qaa.question_num;
+  qa.quiz_id, qa.quiz_title, q.subject, q.title, qaa.question_num;
 
 -- RLS tidak bisa diaplikasikan langsung ke View biasa dengan cara yang sama seperti tabel, 
 -- tapi View ini akan dipanggil oleh backend Cloudflare Workers yang menggunakan Service Role,
