@@ -113,7 +113,7 @@ async function handleLogin(e) {
     btn.textContent = 'Masuk';
   } else {
     showMsg('Berhasil masuk! Mengalihkan...');
-    const redirect = sessionStorage.getItem('sf_redirect') || '/';
+    const redirect = sessionStorage.getItem('sf_redirect') || '/dashboard.html';
     sessionStorage.removeItem('sf_redirect');
     setTimeout(() => { window.location.href = redirect; }, 1000);
   }
@@ -153,7 +153,7 @@ async function handleRegister(e) {
 
 window.onload = async () => {
   const user = await checkUserAuth();
-  if (user) window.location.href = '/';
+  if (user) window.location.href = '/dashboard.html';
 };
 </script>
 </body>

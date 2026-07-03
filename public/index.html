@@ -3,73 +3,152 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>StudyForge - Platform Latihan Soal Terbaik</title>
-<meta name="description" content="StudyForge membantu pelajar dan mahasiswa berlatih soal ujian secara interaktif. Upload PDF, langsung kerjakan online."/>
-<link rel="stylesheet" href="/css/style.css?v=2.1"/>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
+<title>StudyForge - Tempa Kemampuanmu, Raih Prestasi Terbaik</title>
+<meta name="description" content="Platform latihan soal ujian interaktif. Tingkatkan skormu dengan latihan soal, simulasi try out, dan analisis performa."/>
+<link rel="stylesheet" href="/css/style.css?v=2.2"/>
 </head>
-<body>
+<body class="landing-page">
 
 <nav class="navbar">
   <a href="/" class="nav-logo">⚡ StudyForge</a>
   <div class="nav-links">
-    <a href="/">Beranda</a>
+    <a href="#features">Fitur</a>
+    <a href="#how-it-works">Cara Kerja</a>
+    <a href="#faq">FAQ</a>
+    <a href="/login.html" class="btn btn-primary" id="navLoginBtn">Masuk</a>
   </div>
 </nav>
 
-<div class="dashboard-container" style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;">
-  <div class="main-content">
-    <div class="welcome-banner" style="background: linear-gradient(135deg, var(--primary), var(--accent)); padding: 2.5rem 2rem; border-radius: 16px; margin-bottom: 2.5rem; position: relative; overflow: hidden;">
-      <div style="position: relative; z-index: 2;">
-        <h1 style="color: #fff; font-size: 2rem; margin-bottom: 0.5rem;">Halo, Pejuang Ujian! 👋</h1>
-        <p style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">Siap menaklukkan tantangan hari ini? Pilih paket soal di bawah dan mulai berlatih.</p>
+<!-- HERO SECTION -->
+<header class="hero-section">
+  <div class="hero-content">
+    <div class="hero-badge">🚀 Platform Belajar Generasi Baru</div>
+    <h1 class="hero-title">Taklukkan Ujianmu dengan <span class="highlight">Lebih Cerdas</span></h1>
+    <p class="hero-subtitle">Tinggalkan cara lama. Berlatih dengan simulasi interaktif, analisis real-time, dan evaluasi mendalam untuk meraih skor maksimal di setiap ujian.</p>
+    <div class="hero-cta">
+      <a href="/login.html" class="btn btn-primary btn-lg" id="heroCtaBtn">Mulai Belajar Gratis</a>
+      <a href="#features" class="btn btn-outline btn-lg">Pelajari Lebih Lanjut</a>
+    </div>
+  </div>
+  <div class="hero-graphics">
+    <div class="hero-card mockup-1">
+      <div class="mockup-header">Try Out: Manajemen</div>
+      <div class="mockup-body">
+        <div class="mockup-line w-100"></div>
+        <div class="mockup-line w-80"></div>
+        <div class="mockup-options">
+          <div class="mockup-option selected"></div>
+          <div class="mockup-option"></div>
+          <div class="mockup-option"></div>
+        </div>
       </div>
-      <div style="position:absolute; top:-50px; right:-50px; width:200px; height:200px; background:rgba(255,255,255,0.1); border-radius:50%; blur(10px);"></div>
-      <div style="position:absolute; bottom:-80px; right:50px; width:150px; height:150px; background:rgba(255,255,255,0.15); border-radius:50%; blur(10px);"></div>
     </div>
-
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
-      <h2 style="font-size:1.3rem; font-weight:800;">📚 Paket Soal Tersedia</h2>
-      <input class="form-input" id="searchInput" placeholder="🔍 Cari paket soal..." style="max-width:240px;width:100%;" oninput="filterQuizzes()"/>
-    </div>
-
-    <div id="quizGrid" class="cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
-      <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text3);">
-        <div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px;"></div>
-        <p>Memuat paket soal...</p>
+    <div class="hero-card mockup-2">
+      <div class="mockup-header" style="color:var(--success);">✅ Jawaban Benar!</div>
+      <div class="mockup-body">
+        <div class="mockup-line w-90"></div>
+        <p style="font-size:0.75rem; margin-top:0.5rem; color:var(--text2);">Skor Sementara: 85/100</p>
       </div>
     </div>
   </div>
+</header>
 
-  <aside class="side-content" style="display: flex; flex-direction: column; gap: 2rem;">
-    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
-      <h3 style="font-size:1.1rem; margin-bottom:1.2rem; font-weight:700;">📊 Statistik Platform</h3>
-      <div style="display:flex; flex-direction:column; gap: 1rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.8rem; border-bottom:1px dashed var(--border);">
-          <span style="color:var(--text2); font-size:0.9rem;">Total Paket Soal</span>
-          <strong id="totalQuiz" style="font-size:1.1rem; color:var(--primary);">0</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.8rem; border-bottom:1px dashed var(--border);">
-          <span style="color:var(--text2); font-size:0.9rem;">Total Pertanyaan</span>
-          <strong id="totalQ" style="font-size:1.1rem; color:var(--primary);">0</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="color:var(--text2); font-size:0.9rem;">Ujian Diselesaikan</span>
-          <strong id="totalResult" style="font-size:1.1rem; color:var(--primary);">0</strong>
-        </div>
-      </div>
+<!-- FITUR UNGGULAN -->
+<section id="features" class="landing-section">
+  <div class="section-header">
+    <h2>Kenapa Memilih <span class="highlight">StudyForge?</span></h2>
+    <p>Fitur premium yang didesain khusus untuk memaksimalkan potensi belajarmu.</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Latihan Interaktif</h3>
+      <p>Kerjakan ribuan soal dengan antarmuka yang bersih, cepat, dan tanpa distraksi layaknya ujian sungguhan.</p>
     </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Analisis Performa</h3>
+      <p>Ketahui kelemahan dan kekuatanmu lewat riwayat evaluasi dan statistik nilai secara real-time.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3>Belajar Dimana Saja</h3>
+      <p>Akses paket soal dari laptop, tablet, atau smartphone kamu kapan pun kamu butuhkan tanpa ribet instal aplikasi.</p>
+    </div>
+  </div>
+</section>
 
-    <div id="history-section" style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
-      <h3 style="font-size:1.1rem; margin-bottom:1.2rem; font-weight:700;">🕒 Riwayat Terakhir</h3>
-      <div id="historyGrid" style="display:flex; flex-direction:column; gap: 1rem;">
-        <p style="color:var(--text3); font-size:0.85rem; text-align:center; padding: 2rem 0;">Belum ada riwayat ujian.<br>Kerjakan soal untuk melihat evaluasi.</p>
-      </div>
+<!-- CARA KERJA -->
+<section id="how-it-works" class="landing-section bg-alt">
+  <div class="section-header">
+    <h2>Cara <span class="highlight">Kerja</span></h2>
+    <p>Mulai perjalanan suksesmu hanya dengan 3 langkah mudah.</p>
+  </div>
+  <div class="steps-container">
+    <div class="step-box">
+      <div class="step-number">1</div>
+      <h3>Pilih Paket Soal</h3>
+      <p>Telusuri koleksi Try Out dan latihan soal yang tersedia di dashboard.</p>
     </div>
-  </aside>
-</div>
+    <div class="step-box">
+      <div class="step-number">2</div>
+      <h3>Kerjakan Fokus</h3>
+      <p>Gunakan pengingat waktu dan jawab setiap pertanyaan dengan teliti.</p>
+    </div>
+    <div class="step-box">
+      <div class="step-number">3</div>
+      <h3>Evaluasi Hasil</h3>
+      <p>Lihat kunci jawaban dan pahami pembahasannya langsung setelah selesai.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PREVIEW PAKET SOAL -->
+<section id="preview" class="landing-section">
+  <div class="section-header">
+    <h2>Intip <span class="highlight">Paket Soal</span> Kami</h2>
+    <p>Beberapa paket soal terbaru yang siap untuk kamu taklukkan.</p>
+  </div>
+  <div id="previewQuizGrid" class="cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+    <div style="grid-column:1/-1;text-align:center;color:var(--text3);">
+      <div class="loader" style="margin:0 auto 1rem;width:32px;height:32px;border-width:3px;"></div>
+      <p>Memuat bocoran paket soal...</p>
+    </div>
+  </div>
+  <div style="text-align:center; margin-top: 3rem;">
+    <a href="/login.html" class="btn btn-outline btn-lg" id="previewMoreBtn">Lihat Semua Paket Soal &rarr;</a>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="landing-section bg-alt">
+  <div class="section-header">
+    <h2>Pertanyaan <span class="highlight">Sering Diajukan</span></h2>
+  </div>
+  <div class="faq-container">
+    <div class="faq-item">
+      <h4>Apakah platform ini gratis?</h4>
+      <p>Ya! Saat ini StudyForge dapat diakses dan digunakan sepenuhnya secara gratis untuk sarana pembelajaran.</p>
+    </div>
+    <div class="faq-item">
+      <h4>Apakah saya harus membuat akun?</h4>
+      <p>Ya, pembuatan akun diperlukan agar kami bisa menyimpan riwayat dan statistik belajarmu secara personal.</p>
+    </div>
+    <div class="faq-item">
+      <h4>Bagaimana jika saya menemukan jawaban yang salah (error)?</h4>
+      <p>Kamu bisa melaporkannya menggunakan fitur 🐞 Laporkan Bug yang tersedia saat mengerjakan soal atau di menu navigasi.</p>
+    </div>
+  </div>
+</section>
+
+<!-- BOTTOM CTA -->
+<section class="bottom-cta-section">
+  <div class="bottom-cta-content">
+    <h2>Sudah Siap Mendapatkan Nilai Sempurna?</h2>
+    <p>Jangan buang waktu lagi. Bergabunglah bersama pejuang ujian lainnya.</p>
+    <a href="/login.html" class="btn btn-primary btn-lg" style="margin-top:1.5rem;" id="bottomCtaBtn">Daftar Sekarang - Gratis!</a>
+  </div>
+</section>
 
 <footer>
   <p>&copy; <script>document.write(new Date().getFullYear())</script> <span>StudyForge</span> - Tempa Kemampuanmu, Raih Prestasi Terbaik 🚀</p>
@@ -79,125 +158,78 @@
 <script src="/js/site-config.js"></script>
 <script src="/js/auth.js"></script>
 <script>
-
-async function loadQuizzes() {
+// Logic to load some preview quizzes
+async function loadPreviewQuizzes() {
+  const grid = document.getElementById('previewQuizGrid');
   try {
-    const sb = initSupabase();
-    const quizRes = await fetch('/api/quizzes');
-    const quizPayload = await quizRes.json();
-    if (!quizRes.ok) throw new Error(quizPayload.error || 'Gagal memuat quiz.');
-    const quizzes = quizPayload.quizzes || [];
-
-    const user = await checkUserAuth();
-    let totalResults = 0;
-    if (user) {
-      const { count, error: countErr } = await sb
-        .from('quiz_attempts')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-      if (!countErr) totalResults = count;
+    const res = await fetch('/api/quizzes');
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.error || 'Gagal memuat');
+    
+    // Ambil maksimal 3 soal aja buat preview
+    const quizzes = (payload.quizzes || []).slice(0, 3);
+    
+    if (quizzes.length === 0) {
+      grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text3);">Belum ada soal tersedia.</p>';
+      return;
     }
 
-    window._allQuizzes = quizzes;
-    renderQuizzes(window._allQuizzes);
-    updateStats({ quizzes: window._allQuizzes, totalResults });
-  } catch (e) {
-    document.getElementById('quizGrid').innerHTML = `
-      <div style="grid-column:1/-1;" class="empty-state">
-        <div class="empty-icon">📭</div>
-        <p>Belum ada paket soal tersedia.</p>
-      </div>`;
-  }
-}
-
-function updateStats(data) {
-  document.getElementById('totalQuiz').textContent = data.quizzes?.length || 0;
-  document.getElementById('totalQ').textContent = data.quizzes?.reduce((a, q) => a + (q.count || 0), 0) || 0;
-  document.getElementById('totalResult').textContent = data.totalResults || 0;
-}
-
-function renderQuizzes(list) {
-  const grid = document.getElementById('quizGrid');
-  if (!list.length) {
-    grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><div class="empty-icon">📭</div><p>Belum ada paket soal.</p></div>`;
-    return;
-  }
-  const tagColors = ['', 'purple', 'amber'];
-  grid.innerHTML = list.map((q, i) => `
-    <div class="card">
-      <div class="card-tag ${tagColors[i % 3]}">${escapeHTML(q.subject || 'Umum')}</div>
-      <h3>${escapeHTML(q.title)}</h3>
-      <p>${escapeHTML(q.description || 'Paket soal latihan interaktif.')}</p>
-      <div class="card-meta">
-        <span>📝 ${q.count} Soal</span>
-        <span>⏱️ ${q.duration || 60} Menit</span>
-        <span>📅 ${new Date(q.created_at).toLocaleDateString('id-ID')}</span>
-      </div>
-      <br/>
-      <a href="/quiz?id=${escapeHTML(q.id)}" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>
-    </div>
-  `).join('');
-}
-
-function filterQuizzes() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = (window._allQuizzes || []).filter((x) =>
-    (x.title || '').toLowerCase().includes(q) || (x.subject || '').toLowerCase().includes(q)
-  );
-  renderQuizzes(filtered);
-}
-
-async function loadHistory() {
-  const user = await checkUserAuth();
-
-  if (!user) {
-    document.getElementById('history-section').style.display = 'block';
-    document.getElementById('historyGrid').innerHTML = `
-      <div style="text-align:center; padding: 2rem 1rem; border: 1px dashed var(--border); border-radius: 8px;">
-        <p style="color:var(--text2); margin-bottom:1rem;">Masuk untuk menyimpan dan melihat riwayat latihanmu.</p>
-        <a href="/login.html" class="btn btn-primary">Masuk ke Akun</a>
-      </div>
-    `;
-    return;
-  }
-
-  try {
-    const sb = initSupabase();
-    const { data, error } = await sb.from('quiz_attempts')
-      .select('id, quiz_title, score, correct, total, time_taken, submitted_at')
-      .eq('user_id', user.id)
-      .order('submitted_at', { ascending: false })
-      .limit(4);
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      document.getElementById('history-section').style.display = 'block';
-      document.getElementById('historyGrid').innerHTML = data.map((h) => `
-        <div style="border: 1px solid var(--border); border-left: 3px solid var(--primary); border-radius: 8px; padding: 1rem; background: var(--bg);">
-          <h4 style="font-size:0.95rem; margin-bottom:0.3rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHTML(h.quiz_title)}</h4>
-          <div style="color:var(--text2); font-size:0.75rem; margin-bottom:0.8rem;">
-            📅 ${new Date(h.submitted_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
-            <div style="font-size:1.2rem; font-weight:800; color:${h.score >= 70 ? 'var(--success)' : 'var(--danger)'};">${h.score} <span style="font-size:0.7rem; color:var(--text3); font-weight:500;">Nilai</span></div>
-            <div style="font-size:0.75rem; color:var(--text2); text-align:right;">✅ ${h.correct} / ${h.total} Benar</div>
-          </div>
-          <a href="/result?id=${h.id}" class="btn btn-outline" style="width:100%; justify-content:center; padding:0.4rem; font-size:0.8rem;">📖 Review</a>
+    grid.innerHTML = quizzes.map(q => `
+      <div class="card quiz-card">
+        <div class="card-header">
+          <span class="subject-badge">${escapeHTML(q.subject)}</span>
         </div>
-      `).join('');
-    } else {
-      document.getElementById('history-section').style.display = 'block';
-      document.getElementById('historyGrid').innerHTML = '<p style="color:var(--text3); font-size:0.85rem; text-align:center; padding: 2rem 0;">Belum ada riwayat ujian.<br>Kerjakan soal untuk melihat evaluasi.</p>';
-    }
-  } catch (e) {
-    console.error('History load error:', e);
+        <h3 class="quiz-title">${escapeHTML(q.title)}</h3>
+        <p class="quiz-desc">${escapeHTML(q.description || 'Paket soal latihan interaktif.')}</p>
+        <div class="quiz-meta">
+          <span>📝 ${q.count} Soal</span>
+          <span>⏱️ ${q.duration} Menit</span>
+        </div>
+        <a href="/login.html" class="btn btn-primary w-100" style="margin-top:1rem;text-align:center;">Mulai Kerjakan &rarr;</a>
+      </div>
+    `).join('');
+  } catch(e) {
+    grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--danger);">Gagal memuat preview soal.</p>';
   }
 }
 
-updateNavForUser();
-loadHistory();
-loadQuizzes();
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag]));
+}
+
+// Cek apakah user udah login
+async function setupLandingPage() {
+  const user = await checkUserAuth();
+  if (user) {
+    // Kalo udah login, ganti semua CTA ngarah ke Dashboard
+    const navBtn = document.getElementById('navLoginBtn');
+    if (navBtn) {
+      navBtn.href = '/dashboard.html';
+      navBtn.textContent = 'Dashboard';
+    }
+    const heroBtn = document.getElementById('heroCtaBtn');
+    if (heroBtn) {
+      heroBtn.href = '/dashboard.html';
+      heroBtn.textContent = 'Lanjut Belajar';
+    }
+    const bottomBtn = document.getElementById('bottomCtaBtn');
+    if (bottomBtn) {
+      bottomBtn.href = '/dashboard.html';
+      bottomBtn.textContent = 'Buka Dashboard';
+    }
+    const moreBtn = document.getElementById('previewMoreBtn');
+    if (moreBtn) {
+      moreBtn.href = '/dashboard.html';
+    }
+  }
+  
+  loadPreviewQuizzes();
+}
+
+setupLandingPage();
 </script>
 </body>
 </html>

@@ -47,7 +47,9 @@ async function updateNavForUser() {
     const rawName = user.user_metadata?.full_name || user.email.split('@')[0];
     const name = typeof escapeHTML === 'function' ? escapeHTML(rawName) : rawName;
     navLinks.innerHTML = `
-      <a href="/">Beranda</a>
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/admin.html">Admin</a>
+      <a href="/bug-report.html">🐞 Laporkan Bug</a>
       <div style="display:inline-flex; align-items:center; gap:0.5rem; background:rgba(255,255,255,0.05); padding:0.4rem 0.8rem; border-radius:50px; font-size:0.85rem; border:1px solid var(--border);">
         <span style="font-weight:600; color:var(--primary);">${name}</span>
         <button onclick="logoutUser()" style="background:transparent; border:none; color:var(--danger); cursor:pointer; font-size:0.8rem; font-weight:700;">Keluar</button>
