@@ -1348,7 +1348,7 @@ async function loadInsight() {
     }
     list.innerHTML = html;
   } catch (err) {
-    list.innerHTML = \`<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--danger);">Gagal memuat insight: \${escapeHTML(err.message)}</td></tr>\`;
+    list.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--danger);">Gagal memuat insight: ${escapeHTML(err.message)}</td></tr>`;
   }
 }
 window.loadInsight = loadInsight;
