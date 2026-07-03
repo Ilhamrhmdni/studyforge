@@ -1,4 +1,5 @@
 let quiz = null, answers = {}, currentIdx = 0;
+let doubtfulQuestions = new Set();
 let timerInterval = null, timeLeft = 0;
 let userName = '';
 let currentQuizId = '';
@@ -6,7 +7,8 @@ let currentUser = null;
 let bugReportImageDataUrl = '';
 
 function getQuizStateKey() {
-  return currentQuizId ? `sf_quiz_state:${currentQuizId}` : '';
+  if (!currentQuizId || !currentUser) return '';
+  return `quizState:${currentQuizId}:${currentUser.id}`;
 }
 
 function saveQuizState() {
@@ -18,6 +20,7 @@ function saveQuizState() {
     answers,
     timeLeft,
     questionOrder: quiz.questions.map((question) => question.qid),
+    doubtfulQuestions: Array.from(doubtfulQuestions),
     optionOrder: Object.fromEntries(
       quiz.questions.map((question) => [
         question.qid,
@@ -29,9 +32,11 @@ function saveQuizState() {
   sessionStorage.setItem(key, JSON.stringify(state));
 }
 
-function loadQuizState(quizId) {
+function loadQuizState() {
   try {
-    const raw = sessionStorage.getItem(`sf_quiz_state:${quizId}`);
+    const key = getQuizStateKey();
+    if (!key) return null;
+    const raw = sessionStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -81,6 +86,7 @@ function applyQuizState(savedState) {
   });
 
   answers = savedState?.answers && typeof savedState.answers === 'object' ? savedState.answers : {};
+  doubtfulQuestions = new Set(savedState?.doubtfulQuestions || []);
   currentIdx = Math.min(Math.max(parseInt(savedState?.currentIdx, 10) || 0, 0), Math.max(quiz.questions.length - 1, 0));
   timeLeft = Math.max(0, parseInt(savedState?.timeLeft, 10) || ((quiz.duration || 60) * 60));
   return true;
@@ -113,7 +119,7 @@ async function init() {
     const payload = await response.json();
     if (!response.ok || !payload.quiz) throw new Error(payload.error || 'Quiz tidak ditemukan');
     quiz = payload.quiz;
-    applyQuizState(loadQuizState(id));
+    applyQuizState(loadQuizState());
 
     document.title = `${escapeHTML(quiz.title)} - StudyForge`;
     document.getElementById('quizNavInfo').textContent = escapeHTML(quiz.title);
@@ -163,12 +169,8 @@ function renderQuestion() {
   const q = quiz.questions[currentIdx];
   const total = quiz.questions.length;
   document.getElementById('questionNum').textContent = `Soal ${currentIdx + 1} dari ${total}`;
-  document.getElementById('questionText').textContent = q.text;
   document.getElementById('progressText').textContent = `Soal ${currentIdx + 1} dari ${total}`;
-  const answered = Object.keys(answers).length;
-  document.getElementById('answeredText').textContent = `${answered} dijawab`;
-  document.getElementById('progressBar').style.width = `${(currentIdx + 1) / total * 100}%`;
-
+  
   const opts = document.getElementById('optionsList');
   opts.innerHTML = q.options.map((o) => `
     <button class="option-btn ${answers[q.qid] === o.id ? 'selected' : ''}" onclick="selectAnswer('${escapeHTML(q.qid)}','${escapeHTML(o.id)}')">
@@ -188,25 +190,81 @@ function renderQuestion() {
   document.getElementById('prevBtn').disabled = currentIdx === 0;
   document.getElementById('nextBtn').textContent = currentIdx === total - 1 ? 'Lihat Ringkasan' : 'Selanjutnya →';
 
-  const dotsEl = document.getElementById('navDots');
-  dotsEl.innerHTML = quiz.questions.map((_, i) => `
-    <div class="dot ${answers[quiz.questions[i].qid] ? 'answered' : ''} ${i === currentIdx ? 'current' : ''}" onclick="goTo(${i})" title="Soal ${i + 1}"></div>
-  `).join('');
-
+  updateDoubtBtn();
   updateSidebar();
+}
+
+function updateDoubtBtn() {
+  if (!quiz) return;
+  const q = quiz.questions[currentIdx];
+  const btn = document.getElementById('doubtBtn');
+  if (doubtfulQuestions.has(q.qid)) {
+    btn.classList.remove('btn-secondary');
+    btn.classList.add('btn-outline');
+    btn.textContent = 'Hapus Ragu-ragu';
+    btn.style.color = '#a855f7';
+    btn.style.borderColor = '#a855f7';
+  } else {
+    btn.classList.remove('btn-outline');
+    btn.classList.add('btn-secondary');
+    btn.textContent = 'Tandai Ragu-ragu';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
+
+function toggleDoubt() {
+  if (!quiz) return;
+  const q = quiz.questions[currentIdx];
+  if (doubtfulQuestions.has(q.qid)) {
+    doubtfulQuestions.delete(q.qid);
+  } else {
+    doubtfulQuestions.add(q.qid);
+  }
+  saveQuizState();
+  updateDoubtBtn();
+  updateSidebar();
+}
+
+function toggleQuizSidebar() {
+  const sidebar = document.getElementById('quizSidebarWrapper');
+  if (sidebar) {
+    sidebar.classList.toggle('open');
+  }
 }
 
 function renderSidebar() {
   const el = document.getElementById('sidebarDots');
-  el.innerHTML = quiz.questions.map((_, i) => `
-    <div class="sdot ${answers[quiz.questions[i].qid] ? 'answered' : ''} ${i === currentIdx ? 'current' : ''}" onclick="goTo(${i})">${i + 1}</div>
-  `).join('');
+  el.innerHTML = quiz.questions.map((_, i) => {
+    const qid = quiz.questions[i].qid;
+    const isAnswered = !!answers[qid];
+    const isDoubtful = doubtfulQuestions.has(qid);
+    const isCurrent = (i === currentIdx);
+    
+    let cls = 'sdot';
+    if (isDoubtful) cls += ' doubtful';
+    else if (isAnswered) cls += ' answered';
+    if (isCurrent) cls += ' current';
+    
+    let title = `Soal ${i + 1}`;
+    if (isDoubtful) title += `, ragu-ragu`;
+    else if (isAnswered) title += `, sudah dijawab`;
+    else title += `, belum dijawab`;
+    
+    return `<button class="${cls}" onclick="goTo(${i})" title="${title}" aria-label="${title}">${i + 1}</button>`;
+  }).join('');
 }
 
 function updateSidebar() {
+  const total = quiz.questions.length;
   const answered = Object.keys(answers).length;
+  const doubtful = doubtfulQuestions.size;
+  const remaining = total - answered;
+
   document.getElementById('sb-answered').textContent = answered;
-  document.getElementById('sb-remaining').textContent = quiz.questions.length - answered;
+  document.getElementById('sb-doubtful').textContent = doubtful;
+  document.getElementById('sb-remaining').textContent = remaining;
+  
   renderSidebar();
 }
 
@@ -405,3 +463,5 @@ window.getQuizStateKey = getQuizStateKey;
 window.confirmSubmit = confirmSubmit;
 window.clearBugReportImage = clearBugReportImage;
 window.goTo = goTo;
+window.toggleDoubt = toggleDoubt;
+window.toggleQuizSidebar = toggleQuizSidebar;

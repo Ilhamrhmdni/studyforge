@@ -30,54 +30,78 @@
 </head>
 <body>
 
-<nav class="navbar">
-  <a href="/" class="nav-logo">⚡ StudyForge</a>
-  <div id="quizNavInfo" style="font-size:0.85rem;color:var(--text2);"></div>
-  <div class="timer-box" id="timer">--:--</div>
-</nav>
-
-<div class="layout">
-  <div>
-    <div class="quiz-progress">
-      <div class="quiz-progress-info">
-        <span id="progressText">Soal 0 dari 0</span>
-        <span id="answeredText">0 dijawab</span>
-      </div>
-      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+<div class="quiz-page-container">
+  <div class="quiz-topbar">
+    <div class="quiz-topbar-left">
+      <a href="/" class="quiz-logo">⚡ StudyForge</a>
+      <span class="quiz-title" id="quizNavInfo"></span>
     </div>
-
-    <div class="question-card" id="questionCard" style="display:none;">
-      <div class="question-num" id="questionNum"></div>
-      <div class="question-text" id="questionText"></div>
-      <div class="options-list" id="optionsList"></div>
+    <div class="quiz-topbar-center">
+      <span id="progressText" class="quiz-progress-text">Soal 0 dari 0</span>
+      <span class="quiz-autosave">Tersimpan di perangkat</span>
     </div>
-
-    <div class="quiz-nav" id="quizNav" style="display:none;">
-      <button class="btn btn-outline" id="prevBtn" onclick="navigate(-1)">← Sebelumnya</button>
-      <div class="quiz-nav-dots" id="navDots"></div>
-      <button class="btn btn-primary" id="nextBtn" onclick="navigate(1)">Selanjutnya →</button>
+    <div class="quiz-topbar-right">
+      <button class="btn btn-outline mobile-nav-btn" onclick="toggleQuizSidebar()">☰ Navigasi</button>
+      <div class="timer-box" id="timer">--:--</div>
     </div>
   </div>
 
-  <div class="sidebar">
-    <div class="sidebar-box">
-      <h4>📋 Navigasi Soal</h4>
-      <div class="sidebar-dots" id="sidebarDots"></div>
-    </div>
-    <div class="sidebar-box">
-      <h4>📊 Status</h4>
-      <div style="font-size:0.85rem;display:flex;flex-direction:column;gap:0.5rem;">
-        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);">Dijawab</span><span id="sb-answered" style="color:var(--primary);font-weight:700;">0</span></div>
-        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);">Belum</span><span id="sb-remaining" style="color:var(--accent);font-weight:700;">0</span></div>
-        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);">Total</span><span id="sb-total" style="color:var(--text);font-weight:700;">0</span></div>
+  <div class="quiz-layout">
+    <div class="quiz-main">
+      <div class="question-card" id="questionCard" style="display:none;">
+        <div class="question-num" id="questionNum"></div>
+        <div class="question-text" id="questionText"></div>
+        <div class="options-list" id="optionsList"></div>
+        
+        <div class="quiz-bottom-actions" id="quizNav" style="display:none;">
+          <button class="btn btn-outline" id="prevBtn" onclick="navigate(-1)">← Sebelumnya</button>
+          <button class="btn btn-secondary" id="doubtBtn" onclick="toggleDoubt()">Tandai Ragu-ragu</button>
+          <button class="btn btn-primary" id="nextBtn" onclick="navigate(1)">Selanjutnya →</button>
+        </div>
       </div>
     </div>
-    <button class="btn btn-success" style="width:100%;justify-content:center;" id="submitBtn" onclick="confirmSubmit()">
-      ✅ Kumpulkan Jawaban
-    </button>
-    <button class="btn btn-outline report-trigger" id="reportBugBtn" onclick="openBugReportModal()">
-      🐞 Laporkan Bug
-    </button>
+
+    <div class="quiz-sidebar-wrapper" id="quizSidebarWrapper">
+      <div class="quiz-sidebar-overlay" onclick="toggleQuizSidebar()"></div>
+      <div class="quiz-sidebar">
+        <div class="quiz-sidebar-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+            <h4>📋 Navigasi Soal</h4>
+            <button class="mobile-close-btn" onclick="toggleQuizSidebar()">✕</button>
+          </div>
+          <div class="sidebar-dots" id="sidebarDots"></div>
+        </div>
+        
+        <div class="quiz-sidebar-box">
+          <h4>📊 Status</h4>
+          <div class="quiz-status-list">
+            <div class="status-item">
+              <span class="status-label">Dijawab</span>
+              <span class="status-val answered" id="sb-answered">0</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Ragu-ragu</span>
+              <span class="status-val doubtful" id="sb-doubtful">0</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Belum</span>
+              <span class="status-val remaining" id="sb-remaining">0</span>
+            </div>
+            <div class="status-item total">
+              <span class="status-label">Total Soal</span>
+              <span class="status-val" id="sb-total">0</span>
+            </div>
+          </div>
+        </div>
+        
+        <button class="btn btn-success" style="width:100%;justify-content:center;margin-bottom:0.8rem;" id="submitBtn" onclick="confirmSubmit()">
+          ✅ Kumpulkan Jawaban
+        </button>
+        <button class="btn btn-outline report-trigger" id="reportBugBtn" onclick="openBugReportModal()">
+          🐞 Laporkan Bug
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
