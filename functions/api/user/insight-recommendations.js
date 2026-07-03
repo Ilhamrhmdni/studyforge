@@ -1,4 +1,6 @@
-import { requireUser, sendJson, supabaseFetch } from '../../_shared/auth.js';
+import { requireUser } from '../../_shared/auth.js';
+import { sendJson } from '../../_shared/response.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
 
 export async function onRequest(context) {
   // 1. Verifikasi User
@@ -13,9 +15,7 @@ export async function onRequest(context) {
     // 2. Cari subject terlemah
     const weakSubjectRows = await supabaseFetch(context.env,
       `/rest/v1/user_subject_stats_view?user_id=eq.${encodeURIComponent(userId)}&total_answered=gte.5&select=subject&order=accuracy_rate.asc&limit=1`,
-      'GET',
-      null,
-      auth.token
+      { method: 'GET' }
     );
 
     let weakestSubject = null;
@@ -27,9 +27,7 @@ export async function onRequest(context) {
     // Supaya simpel, kita fetch semua quiz_id milik user ini. (Idealnya ambil yg score-nya bagus aja yg diexclude, tapi MVP kita exclude semua attempt yg sdh ada)
     const attempts = await supabaseFetch(context.env,
       `/rest/v1/quiz_attempts?user_id=eq.${encodeURIComponent(userId)}&select=quiz_id`,
-      'GET',
-      null,
-      auth.token
+      { method: 'GET' }
     );
     
     const attemptedQuizIds = (attempts && !attempts.error) ? attempts.map(a => a.quiz_id) : [];
@@ -44,7 +42,7 @@ export async function onRequest(context) {
         queryPath = `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&or=(subject.eq."${encodeURIComponent(weakestSubject)}",title.eq."${encodeURIComponent(weakestSubject)}")&select=id,title,subject,description&order=created_at.desc`;
     }
 
-    let recommendedQuizzes = await supabaseFetch(context.env, queryPath, 'GET', null, auth.token);
+    let recommendedQuizzes = await supabaseFetch(context.env, queryPath, { method: 'GET' });
 
     if (!recommendedQuizzes || recommendedQuizzes.error) {
       recommendedQuizzes = [];
@@ -57,7 +55,7 @@ export async function onRequest(context) {
     if (filteredQuizzes.length === 0 && weakestSubject) {
         const fallbackQuizzes = await supabaseFetch(context.env, 
             `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&select=id,title,subject,description&order=created_at.desc`, 
-            'GET', null, auth.token);
+            { method: 'GET' });
         if (fallbackQuizzes && !fallbackQuizzes.error) {
             filteredQuizzes = fallbackQuizzes.filter(q => !attemptedQuizIds.includes(q.id));
         }

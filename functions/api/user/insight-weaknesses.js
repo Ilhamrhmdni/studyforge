@@ -1,4 +1,6 @@
-import { requireUser, sendJson, supabaseFetch } from '../../_shared/auth.js';
+import { requireUser } from '../../_shared/auth.js';
+import { sendJson } from '../../_shared/response.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
 
 export async function onRequest(context) {
   // 1. Verifikasi User
@@ -14,9 +16,7 @@ export async function onRequest(context) {
     // Di view ini kita filter by user_id di supabaseFetch
     const rows = await supabaseFetch(context.env,
       `/rest/v1/user_subject_stats_view?user_id=eq.${encodeURIComponent(userId)}&total_answered=gte.5&select=*`,
-      'GET',
-      null,
-      auth.token
+      { method: 'GET' }
     );
 
     if (!rows || rows.error) {

@@ -1,4 +1,6 @@
-import { requireAdmin, sendJson, supabaseFetch } from '../../_shared/auth.js';
+import { requireAdmin } from '../../_shared/auth.js';
+import { sendJson } from '../../_shared/response.js';
+import { supabaseFetch } from '../../_shared/supabase.js';
 
 export async function onRequest(context) {
   // 1. Verifikasi Admin
@@ -11,9 +13,7 @@ export async function onRequest(context) {
     // 2. Fetch data dari view question_stats_view (gunakan token admin)
     const rows = await supabaseFetch(context.env,
       '/rest/v1/question_stats_view?select=*',
-      'GET',
-      null,
-      auth.token
+      { method: 'GET' }
     );
 
     if (!rows || rows.error) {
