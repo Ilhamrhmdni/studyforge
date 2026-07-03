@@ -672,3 +672,59 @@ footer span { color: var(--primary); }
   }
 }
 
+/* ── LANDING PAGE REDESIGN ── */
+.landing-page .hero-section {
+  min-height: 90vh;
+}
+.landing-page .mockup-3 {
+  top: -10%; left: 0; width: 220px; z-index: 1; animation-delay: -1.5s;
+}
+
+.landing-page .badge-active { background: rgba(16,185,129,0.15); color: var(--success); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(16,185,129,0.3); margin-bottom: 0.5rem; display: inline-block; }
+.landing-page .badge-beta { background: rgba(245,158,11,0.15); color: var(--accent); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(245,158,11,0.3); margin-bottom: 0.5rem; display: inline-block; }
+.landing-page .badge-soon { background: rgba(99,102,241,0.15); color: #818cf8; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(99,102,241,0.3); margin-bottom: 0.5rem; display: inline-block; }
+
+.landing-page .insight-showcase { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+.landing-page .insight-info h3 { font-size: 1.8rem; margin-bottom: 1rem; color: var(--text); }
+.landing-page .insight-info p { color: var(--text2); margin-bottom: 1.5rem; line-height: 1.6; }
+.landing-page .insight-list { list-style: none; display: flex; flex-direction: column; gap: 0.8rem; }
+.landing-page .insight-list li { color: var(--text); font-weight: 500; display: flex; align-items: center; gap: 0.5rem; }
+.landing-page .insight-list li::before { content: '✅'; font-size: 1.1rem; }
+.landing-page .insight-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.landing-page .insight-mini-card { background: var(--card); border: 1px solid var(--border); padding: 1.2rem; border-radius: 12px; transition: transform 0.2s; }
+.landing-page .insight-mini-card:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: var(--shadow); }
+.landing-page .insight-mini-card h4 { font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text); }
+.landing-page .insight-mini-card p { font-size: 0.8rem; color: var(--text2); line-height: 1.4; }
+
+.landing-page .audience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+.landing-page .audience-card { background: var(--card); border: 1px solid var(--border); padding: 2rem; border-radius: 16px; transition: all 0.2s; }
+.landing-page .audience-card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: var(--shadow); }
+.landing-page .audience-icon { font-size: 3rem; margin-bottom: 1.5rem; }
+.landing-page .audience-card h3 { font-size: 1.3rem; margin-bottom: 1rem; }
+.landing-page .check-list { list-style: none; }
+.landing-page .check-list li { position: relative; padding-left: 1.5rem; margin-bottom: 0.8rem; color: var(--text2); font-size: 0.95rem; }
+.landing-page .check-list li::before { content: "✓"; position: absolute; left: 0; color: var(--success); font-weight: bold; }
+
+.landing-page .stepper-container { display: flex; align-items: flex-start; justify-content: space-between; max-width: 1000px; margin: 0 auto; flex-wrap: wrap; }
+.landing-page .step-item { flex: 1; text-align: center; min-width: 140px; padding: 1rem; position: relative; }
+.landing-page .step-circle { width: 40px; height: 40px; border-radius: 50%; background: var(--card); border: 2px solid var(--primary); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; margin: 0 auto 1rem; box-shadow: 0 0 15px rgba(92,156,252,0.2); }
+.landing-page .step-item h4 { font-size: 1rem; margin-bottom: 0.5rem; }
+.landing-page .step-item p { font-size: 0.8rem; color: var(--text2); }
+.landing-page .step-line { height: 2px; background: var(--border); flex: 1; margin-top: 35px; min-width: 30px; }
+
+.landing-page .roadmap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+.landing-page .roadmap-item { background: var(--bg); border: 1px solid var(--border); padding: 1.5rem; border-radius: 12px; }
+.landing-page .roadmap-item h4 { font-size: 1.1rem; margin-bottom: 0.5rem; margin-top: 0.5rem; }
+.landing-page .roadmap-item p { color: var(--text2); font-size: 0.85rem; }
+
+.landing-page .security-flex { display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center; }
+.landing-page .security-item { flex: 1; min-width: 220px; max-width: 280px; text-align: center; background: var(--card); border: 1px solid var(--border); padding: 2rem 1.5rem; border-radius: 16px; }
+.landing-page .sec-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+.landing-page .security-item h4 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+.landing-page .security-item p { font-size: 0.85rem; color: var(--text2); }
+
+@media (max-width: 900px) {
+  .landing-page .insight-showcase { grid-template-columns: 1fr; gap: 2rem; }
+  .landing-page .stepper-container { flex-direction: column; align-items: center; }
+  .landing-page .step-line { width: 2px; height: 30px; min-height: 30px; margin: 0 auto; background: var(--border); }
+}

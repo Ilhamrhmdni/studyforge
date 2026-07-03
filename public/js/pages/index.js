@@ -29,7 +29,7 @@ async function loadPreviewQuizzes() {
       </div>
     `).join('');
   } catch(e) {
-    grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--danger);">Gagal memuat preview soal.</p>';
+    grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:0.95rem;">Paket soal sedang dimuat. Silakan masuk ke dashboard untuk melihat koleksi lengkap.</p>';
   }
 }
 
@@ -50,21 +50,35 @@ async function setupLandingPage() {
       navBtn.href = '/dashboard.html';
       navBtn.textContent = 'Dashboard';
     }
+    const navSignupBtn = document.getElementById('navSignupBtn');
+    if (navSignupBtn) {
+      navSignupBtn.style.display = 'none'; // Sembunyikan daftar gratis jika sudah login
+    }
     const heroBtn = document.getElementById('heroCtaBtn');
     if (heroBtn) {
       heroBtn.href = '/dashboard.html';
       heroBtn.textContent = 'Lanjut Belajar';
+    }
+    const heroSecondaryBtn = document.getElementById('heroSecondaryBtn');
+    if (heroSecondaryBtn) {
+      heroSecondaryBtn.href = '/dashboard.html';
+      heroSecondaryBtn.textContent = 'Buka Dashboard';
     }
     const bottomBtn = document.getElementById('bottomCtaBtn');
     if (bottomBtn) {
       bottomBtn.href = '/dashboard.html';
       bottomBtn.textContent = 'Buka Dashboard';
     }
+    const bottomLoginBtn = document.getElementById('bottomLoginBtn');
+    if (bottomLoginBtn) {
+      bottomLoginBtn.style.display = 'none';
+    }
     const moreBtn = document.getElementById('previewMoreBtn');
     if (moreBtn) {
       moreBtn.href = '/dashboard.html';
     }
   }
+
   
   loadPreviewQuizzes();
 }
