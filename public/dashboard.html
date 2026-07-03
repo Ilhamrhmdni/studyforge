@@ -30,14 +30,21 @@
       <div style="position:absolute; bottom:-80px; right:50px; width:150px; height:150px; background:rgba(255,255,255,0.15); border-radius:50%; blur(10px);"></div>
     </div>
 
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="font-size:1.5rem; font-weight:700; margin-bottom:0.2rem;">Paket Soal</h2>
+        <p style="color:var(--text2); font-size:0.9rem;">Pilih paket soal yang ingin kamu kerjakan.</p>
+      </div>
+      <a href="/creator.html" class="btn btn-primary" style="background: linear-gradient(135deg, var(--primary), var(--accent));">✨ Bikin Soal Sendiri</a>
+    </div>
+
     <div style="display:flex; gap:1rem; border-bottom: 2px solid var(--border); width: 100%; margin-bottom: 1.5rem;">
       <button id="tabPublic" onclick="switchDashboardTab('public')" style="background:transparent; border:none; padding:0.5rem 1rem; font-weight:700; cursor:pointer; color:var(--primary); border-bottom: 2px solid var(--primary); margin-bottom:-2px;">📚 Soal Tersedia</button>
       <button id="tabPrivate" onclick="switchDashboardTab('private')" style="background:transparent; border:none; padding:0.5rem 1rem; font-weight:700; cursor:pointer; color:var(--text2);">🔒 Koleksi Pribadi</button>
     </div>
     
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
-      <input class="form-input" id="searchInput" placeholder="🔍 Cari paket soal..." style="max-width:240px;width:100%;" oninput="filterQuizzes()"/>
-      <a href="/creator.html" class="btn btn-primary" style="background: linear-gradient(135deg, var(--primary), var(--accent));">✨ Bikin Soal Sendiri</a>
+    <div style="margin-bottom:1.5rem;">
+      <input class="form-input" id="searchInput" placeholder="🔍 Cari paket soal..." style="width:100%;" oninput="filterQuizzes()"/>
     </div>
 
     <div id="quizGrid" class="cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">

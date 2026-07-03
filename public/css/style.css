@@ -575,3 +575,100 @@ footer span { color: var(--primary); }
   .hero-graphics { display: none; }
   .section-header h2 { font-size: 2rem; }
 }
+
+
+/* -- DROPDOWN & MOBILE NAV -- */
+.user-dropdown {
+  position: relative;
+  display: inline-block;
+}
+.user-dropdown-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.8rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.user-dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 110%;
+  background-color: var(--bg2);
+  min-width: 160px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 1000;
+  overflow: hidden;
+}
+.user-dropdown-content.show {
+  display: flex;
+  flex-direction: column;
+}
+.user-dropdown-content a {
+  color: var(--text);
+  padding: 0.8rem 1rem;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+  display: block;
+}
+.user-dropdown-content a:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--primary);
+}
+.user-dropdown-content .text-danger:hover {
+  color: var(--danger);
+}
+
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: block;
+  }
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    width: 100%;
+    background: rgba(6,9,18,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .nav-links.show {
+    display: flex;
+  }
+  .user-dropdown-content {
+    position: static;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+  }
+  .dashboard-container {
+    grid-template-columns: 1fr !important;
+  }
+  /* Card statistik pindah ke bawah */
+  .side-content {
+    grid-row: 2;
+  }
+}
+

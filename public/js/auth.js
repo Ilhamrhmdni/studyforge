@@ -38,22 +38,54 @@ async function logoutUser() {
 }
 
 // ── UI HELPERS ──
+window.toggleUserDropdown = function() {
+  const dropdown = document.getElementById('userDropdownContent');
+  if (dropdown) dropdown.classList.toggle('show');
+};
+window.toggleMobileNav = function() {
+  const navLinks = document.querySelector('.nav-links');
+  if (navLinks) navLinks.classList.toggle('show');
+};
+
 async function updateNavForUser() {
   const user = await checkUserAuth();
   const navLinks = document.querySelector('.nav-links');
   if (!navLinks) return;
   
+  // Add hamburger if not exists
+  const nav = document.querySelector('.navbar');
+  if (nav && !document.getElementById('mobileHamburger')) {
+    const hamburger = document.createElement('button');
+    hamburger.id = 'mobileHamburger';
+    hamburger.className = 'hamburger-btn';
+    hamburger.innerHTML = '☰';
+    hamburger.onclick = window.toggleMobileNav;
+    nav.insertBefore(hamburger, navLinks);
+  }
+  
   if (user) {
+    const sb = initSupabase();
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
+    const isAdmin = profile?.role === 'admin';
+
     const rawName = user.user_metadata?.full_name || user.email.split('@')[0];
     const name = typeof escapeHTML === 'function' ? escapeHTML(rawName) : rawName;
+    
+    let adminLink = isAdmin ? `<a href="/admin.html">Admin</a>` : '';
+
     navLinks.innerHTML = `
       <a href="/dashboard.html">Dashboard</a>
       <a href="/creator.html" style="color: var(--accent);">✨ Creator Studio</a>
-      <a href="/admin.html">Admin</a>
-      <a href="/bug-report.html">🐞 Laporkan Bug</a>
-      <div style="display:inline-flex; align-items:center; gap:0.5rem; background:rgba(255,255,255,0.05); padding:0.4rem 0.8rem; border-radius:50px; font-size:0.85rem; border:1px solid var(--border);">
-        <span style="font-weight:600; color:var(--primary);">${name}</span>
-        <button onclick="logoutUser()" style="background:transparent; border:none; color:var(--danger); cursor:pointer; font-size:0.8rem; font-weight:700;">Keluar</button>
+      ${adminLink}
+      <div class="user-dropdown">
+        <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
+          ${name} ▼
+        </button>
+        <div class="user-dropdown-content" id="userDropdownContent">
+          <a href="/dashboard.html">Profil / Akun Saya</a>
+          <a href="/bug-report.html">🐞 Laporkan Bug</a>
+          <a href="#" class="text-danger" onclick="logoutUser(); return false;">Keluar</a>
+        </div>
       </div>
     `;
   } else {
