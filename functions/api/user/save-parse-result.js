@@ -22,12 +22,12 @@ export async function onRequestPost(context) {
     if (validation_status) {
       await supabaseFetch(context.env, `/rest/v1/parse_jobs?id=eq.${parse_job_id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
+        body: {
           detected_question_count,
           detected_answer_key_count,
           validation_status,
           validation_errors
-        })
+        }
       });
     }
 
@@ -45,19 +45,19 @@ export async function onRequestPost(context) {
 
       await supabaseFetch(context.env, `/rest/v1/parse_results?parse_job_id=eq.${parse_job_id}`, {
         method: 'PATCH',
-        body: JSON.stringify(updates)
+        body: updates
       });
     } else {
       // Insert new result
       await supabaseFetch(context.env, '/rest/v1/parse_results', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           parse_job_id,
           raw_ai_output,
           normalized_output,
           final_user_corrected_output,
           correction_summary
-        })
+        }
       });
     }
 

@@ -14,12 +14,7 @@ export async function onRequestGet(context) {
     });
 
     const rows = await supabaseFetch(context.env, `/rest/v1/quizzes?${params.toString()}`);
-    if (!rows.ok) {
-      throw new Error('Gagal mengambil kuis.');
-    }
-
-    const quizzes = await rows.json();
-    return sendJson({ quizzes });
+    return sendJson({ quizzes: rows || [] });
   } catch (error) {
     return sendJson({ error: error.message }, 500);
   }

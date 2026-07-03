@@ -31,9 +31,8 @@ export async function onRequestPost(context) {
     });
 
     const usageRes = await supabaseFetch(context.env, `/rest/v1/creator_usage_logs?${query}`);
-    if (usageRes.ok) {
-      const logs = await usageRes.json();
-      if (logs.length >= 3) {
+    if (usageRes && Array.isArray(usageRes)) {
+      if (usageRes.length >= 3) {
         return sendJson({ error: 'Batas harian tercapai. Maksimal 3 upload per hari.' }, 429);
       }
     }
@@ -42,29 +41,28 @@ export async function onRequestPost(context) {
     const jobRes = await supabaseFetch(context.env, '/rest/v1/parse_jobs', {
       method: 'POST',
       headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify({
+      body: {
         user_id: auth.user.id,
         file_name,
         file_size,
         page_count,
         analytics_consent: !!analytics_consent
-      })
+      }
     });
 
-    if (!jobRes.ok) throw new Error('Gagal membuat parse job.');
-    const jobs = await jobRes.json();
-    const parse_job_id = jobs[0].id;
+    if (!jobRes || jobRes.error) throw new Error('Gagal membuat parse job.');
+    const parse_job_id = jobRes[0].id;
 
     // Log usage
     await supabaseFetch(context.env, '/rest/v1/creator_usage_logs', {
       method: 'POST',
-      body: JSON.stringify({
+      body: {
         user_id: auth.user.id,
         action: 'init_parse',
         file_name,
         file_size,
         page_count
-      })
+      }
     });
 
     return sendJson({ success: true, parse_job_id });

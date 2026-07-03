@@ -25,20 +25,16 @@ async function checkRateLimit(env, userId) {
 async function incrementUsage(env, userId) {
   const today = new Date().toISOString().split('T')[0];
   try {
-    // Upsert usage log
-    await supabaseFetch(env, '/rest/v1/ai_usage_logs', {
+    // Call RPC function to safely increment usage count
+    await supabaseFetch(env, '/rest/v1/rpc/increment_ai_usage', {
       method: 'POST',
-      headers: {
-        'Prefer': 'resolution=merge-duplicates'
-      },
       body: {
-        user_id: userId,
-        usage_date: today,
-        request_count: 1
+        p_user_id: userId,
+        p_date: today
       }
     });
   } catch {
-    // Jika tabel belum ada, abaikan saja
+    // Jika tabel/RPC belum ada, abaikan saja
   }
 }
 

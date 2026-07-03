@@ -29,12 +29,10 @@ export async function onRequestPost(context) {
       user_note
     };
 
-    const fbRes = await supabaseFetch(context.env, '/rest/v1/parse_feedback', {
+    await supabaseFetch(context.env, '/rest/v1/parse_feedback', {
       method: 'POST',
-      body: JSON.stringify(feedbackData)
+      body: feedbackData
     });
-
-    if (!fbRes.ok) throw new Error('Gagal menyimpan feedback.');
 
     return sendJson({ success: true });
   } catch (error) {

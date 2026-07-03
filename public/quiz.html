@@ -8,25 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/core/site-config.js"></script>
 <script src="/js/core/auth.js"></script>
-<style>
-.user-modal { position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center; }
-.user-modal-box { background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:2.5rem;max-width:420px;width:90%;text-align:center; }
-.user-modal-box h2 { font-size:1.4rem;margin-bottom:0.5rem; }
-.user-modal-box p { color:var(--text2);margin-bottom:1.5rem;font-size:0.9rem; }
-.sidebar-dots { display:flex;flex-wrap:wrap;gap:0.4rem;max-height:200px;overflow-y:auto; }
-.sdot { width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:rgba(14,21,38,0.7);transition:all 0.15s; }
-.sdot.answered { background:rgba(79,142,247,0.2);border-color:var(--primary);color:var(--primary); }
-.sdot.current { background:var(--accent);border-color:var(--accent);color:#000; }
-.layout { display:grid;grid-template-columns:1fr 220px;gap:1.5rem;max-width:1050px;margin:0 auto;padding:1.5rem; }
-@media(max-width:768px){.layout{grid-template-columns:1fr;}.sidebar{display:none;}}
-.sidebar { position:sticky;top:80px;height:fit-content; }
-.sidebar-box { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;margin-bottom:1rem; }
-.sidebar-box h4 { font-size:0.85rem;color:var(--text2);margin-bottom:0.8rem;font-weight:600; }
-.report-trigger { width:100%;justify-content:center;margin-top:0.8rem; }
-.report-preview { margin-top:0.8rem;border:1px dashed var(--border);border-radius:10px;padding:0.75rem; }
-.report-preview img { max-width:100%;max-height:220px;border-radius:8px;border:1px solid var(--border);display:block;margin-top:0.6rem; }
-.report-note { font-size:0.8rem;color:var(--text2);margin-top:0.6rem;line-height:1.5; }
-</style>
+
 </head>
 <body>
 

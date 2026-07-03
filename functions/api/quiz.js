@@ -15,11 +15,15 @@ export async function onRequestGet(context) {
       return sendJson({ error: 'Quiz tidak ditemukan.' }, 404);
     }
 
-    if (isDraftTitle(quiz.title) || quiz.is_hidden) {
+    if (isDraftTitle(quiz.title) || quiz.is_hidden || quiz.visibility !== 'public') {
       const token = extractBearerToken(context.request);
       const user = await getUserFromToken(context.env, token);
       const profile = user ? await getProfile(context.env, user.id) : null;
-      if (!profile || profile.role !== 'admin') {
+      
+      const isAdmin = profile?.role === 'admin';
+      const isOwner = user && quiz.creator_id === user.id;
+      
+      if (!isAdmin && !isOwner) {
         return sendJson({ error: 'Quiz tidak ditemukan.' }, 404);
       }
     }

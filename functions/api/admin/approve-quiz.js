@@ -12,18 +12,16 @@ export async function onRequestPost(context) {
 
     if (!quiz_id) return sendJson({ error: 'quiz_id diperlukan.' }, 400);
 
-    const patchRes = await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}`, {
+    await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ 
+      body: { 
         review_status: 'approved', 
         visibility: 'public',
         is_hidden: false,
         approved_by: auth.user.id,
         approved_at: new Date().toISOString()
-      })
+      }
     });
-
-    if (!patchRes.ok) throw new Error('Gagal menyetujui kuis.');
 
     return sendJson({ success: true });
   } catch (error) {

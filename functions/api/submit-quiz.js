@@ -1,5 +1,5 @@
 import { extractBearerToken, getUserFromToken } from '../_shared/auth.js';
-import { getServiceConfigError, supabaseFetch } from '../_shared/supabase.js';
+import { getServiceConfigError, getProfile, supabaseFetch } from '../_shared/supabase.js';
 import { readJson, sendJson } from '../_shared/response.js';
 import { getQuizById, isDraftTitle, resolveStoredAnswer } from '../_shared/quiz.js';
 
@@ -27,7 +27,19 @@ export async function onRequestPost(context) {
     }
 
     const quiz = await getQuizById(context.env, quizId);
-    if (!quiz || isDraftTitle(quiz.title)) {
+    if (!quiz) {
+      return sendJson({ error: 'Quiz tidak ditemukan.' }, 404);
+    }
+
+    const profile = await getProfile(context.env, user.id);
+    const isAdmin = profile?.role === 'admin';
+    const isOwner = quiz.creator_id === user.id;
+    const isNonPublicQuiz =
+      isDraftTitle(quiz.title) ||
+      quiz.is_hidden ||
+      quiz.visibility !== 'public';
+
+    if (isNonPublicQuiz && !isAdmin && !isOwner) {
       return sendJson({ error: 'Quiz tidak ditemukan.' }, 404);
     }
 

@@ -39,7 +39,7 @@ export async function onRequest(context) {
     // Jika punya kelemahan, coba prioritaskan pencarian dengan subject tersebut
     // Karena REST API Supabase agak terbatas untuk NOT IN list besar, kita ambil agak banyak lalu filter di Worker.
     if (weakestSubject) {
-        queryPath = `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&or=(subject.eq."${encodeURIComponent(weakestSubject)}",title.eq."${encodeURIComponent(weakestSubject)}")&select=id,title,subject,description&order=created_at.desc`;
+        queryPath = `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&subject=eq.${encodeURIComponent(weakestSubject)}&select=id,title,subject,description&order=created_at.desc`;
     }
 
     let recommendedQuizzes = await supabaseFetch(context.env, queryPath, { method: 'GET' });

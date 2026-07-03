@@ -1,11 +1,16 @@
 import { readJson, sendJson } from '../../_shared/response.js';
-import { supabaseFetch } from '../../_shared/supabase.js';
+import { supabaseFetch, getServiceConfigError } from '../../_shared/supabase.js';
 import { requireUser } from '../../_shared/auth.js';
-
+import { prepareQuestionsForStorage } from '../../_shared/quiz.js';
 export async function onRequestPost(context) {
   try {
     const auth = await requireUser(context);
     if (!auth.ok) return sendJson({ error: auth.message }, auth.status);
+
+    const serviceConfigError = getServiceConfigError(context.env);
+    if (serviceConfigError) {
+      return sendJson({ error: serviceConfigError }, 500);
+    }
 
     const body = await readJson(context.request);
     const { title, subject, description, duration, questions, parse_job_id } = body;
@@ -53,7 +58,7 @@ export async function onRequestPost(context) {
       description: description || '',
       duration: duration || 0,
       count: questions.length,
-      questions,
+      questions: await prepareQuestionsForStorage(context.env, questions),
       creator_id: auth.user.id,
       source_type: 'user_generated',
       visibility: 'private',

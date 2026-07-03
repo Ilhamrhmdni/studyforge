@@ -115,7 +115,7 @@ export async function resolveStoredAnswer(env, question) {
 
 export async function getQuizById(env, id) {
   const params = new URLSearchParams({
-    select: 'id,title,subject,description,duration,count,created_at,is_hidden,questions',
+    select: 'id,title,subject,description,duration,count,created_at,is_hidden,questions,creator_id,visibility,review_status',
     id: `eq.${id}`
   });
   const rows = await supabaseFetch(env, `/rest/v1/quizzes?${params.toString()}`);

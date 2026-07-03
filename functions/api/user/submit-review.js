@@ -24,12 +24,10 @@ export async function onRequestPost(context) {
     }
 
     // Update status to pending
-    const patchRes = await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}`, {
+    await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ review_status: 'pending', visibility: 'private' })
+      body: { review_status: 'pending', visibility: 'private' }
     });
-
-    if (!patchRes.ok) throw new Error('Gagal mengajukan kuis.');
 
     return sendJson({ success: true });
   } catch (error) {
