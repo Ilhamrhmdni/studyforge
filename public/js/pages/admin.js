@@ -1118,6 +1118,7 @@ function switchTab(name, el) {
   if (name==='bug-reports') loadBugReports();
   if (name==='ugc') loadUGC();
   if (name==='analytics') loadAnalytics();
+  if (name==='insight') loadInsight();
 }
 
 async function loadUGC() {
@@ -1255,8 +1256,9 @@ window.initAdminAuth = initAdminAuth;
 window.closeCropModal = closeCropModal;
 window.showToast = showToast;
 window.deleteResult = deleteResult;
-window.esc = esc;
+window.approveUGC = approveUGC;
 window.rejectUGC = rejectUGC;
+window.esc = esc;
 window.toggleQuizVisibility = toggleQuizVisibility;
 window.openCropModal = openCropModal;
 window.addOption = addOption;
@@ -1300,3 +1302,53 @@ window.loadUGC = loadUGC;
 window.removeImage = removeImage;
 window.deleteQuestion = deleteQuestion;
 window.loadManage = loadManage;
+
+// ── STUDYFORGE INSIGHT ──
+async function loadInsight() {
+  const list = document.getElementById('insightList');
+  list.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text3);">Memuat insight...</td></tr>';
+  
+  try {
+    const data = await adminApiFetch('/api/admin/insight-questions');
+    const summary = data.summary || {};
+    
+    document.getElementById('ins_total').textContent = summary.total_questions || 0;
+    document.getElementById('ins_prob').textContent = summary.problematic || 0;
+    document.getElementById('ins_hard').textContent = summary.hard || 0;
+    document.getElementById('ins_med').textContent = summary.medium || 0;
+    document.getElementById('ins_easy').textContent = summary.easy || 0;
+
+    const items = data.items || [];
+    if (!items.length) {
+      list.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text3);">Belum ada data insight yang cukup.</td></tr>';
+      return;
+    }
+
+    let html = '';
+    for (const q of items) {
+      let statusHtml = '';
+      if (q.status === 'Bermasalah') statusHtml = `<span style="color:var(--danger);font-weight:600;">⚠️ Bermasalah</span>`;
+      else if (q.status === 'Sulit') statusHtml = `<span style="color:var(--warning);">Sulit</span>`;
+      else if (q.status === 'Sedang') statusHtml = `<span style="color:var(--text);">Sedang</span>`;
+      else if (q.status === 'Mudah') statusHtml = `<span style="color:var(--success);">Mudah</span>`;
+      else statusHtml = `<span style="color:var(--text3);">Data Kurang</span>`;
+      
+      const rateStr = q.status === 'Data Kurang' ? '-' : Math.round(q.correct_rate * 100) + '%';
+      
+      html += `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+          <td style="padding:0.8rem;">${escapeHTML(q.quiz_title)}<br><small style="color:var(--text3);">${escapeHTML(q.quiz_id)}</small></td>
+          <td style="padding:0.8rem;">${escapeHTML(q.subject || '-')}</td>
+          <td style="padding:0.8rem;"><strong>${q.question_num}</strong></td>
+          <td style="padding:0.8rem;">${q.total_attempts}x</td>
+          <td style="padding:0.8rem;">${rateStr}</td>
+          <td style="padding:0.8rem;">${statusHtml}</td>
+        </tr>
+      `;
+    }
+    list.innerHTML = html;
+  } catch (err) {
+    list.innerHTML = \`<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--danger);">Gagal memuat insight: \${escapeHTML(err.message)}</td></tr>\`;
+  }
+}
+window.loadInsight = loadInsight;

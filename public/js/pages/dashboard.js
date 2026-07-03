@@ -179,8 +179,74 @@ async function loadHistory() {
   }
 }
 
+// ── USER INSIGHTS ──
+async function loadUserInsights() {
+  try {
+    const token = await getAccessToken();
+    if (!token) return;
+
+    // Fetch weaknesses
+    const weakRes = await fetch('/api/user/insight-weaknesses', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const weakData = await weakRes.json();
+
+    // Fetch recommendations
+    const recRes = await fetch('/api/user/insight-recommendations', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const recData = await recRes.json();
+
+    if (weakData.error || recData.error) throw new Error(weakData.error || recData.error);
+
+    document.getElementById('insightSection').style.display = 'grid';
+
+    // 1. Render Weaknesses
+    const wList = document.getElementById('weaknessList');
+    if (weakData.empty) {
+      wList.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text3);font-size:0.85rem;">${escapeHTML(weakData.message)}</div>`;
+    } else {
+      wList.innerHTML = weakData.items.map(w => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div>
+            <div style="font-weight:600; font-size:0.95rem;">${escapeHTML(w.subject)}</div>
+            <div style="font-size:0.75rem; color:var(--text2);">Total dijawab: ${w.total_answered} soal</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.1rem; font-weight:700; color:var(--danger);">${Math.round(w.accuracy_rate * 100)}%</div>
+            <div style="font-size:0.7rem; color:var(--text3);">Akurasi</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 2. Render Recommendations
+    const rList = document.getElementById('recommendationList');
+    if (!recData.items || recData.items.length === 0) {
+      rList.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text3);font-size:0.85rem;">Belum ada rekomendasi soal saat ini.</div>`;
+    } else {
+      let subjectLabel = recData.weakest_subject ? `<span style="background:var(--primary); color:#fff; padding:0.1rem 0.4rem; border-radius:4px; font-size:0.7rem;">Fokus: ${escapeHTML(recData.weakest_subject)}</span>` : '';
+      
+      rList.innerHTML = recData.items.map(r => `
+        <div style="padding:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="font-weight:600; font-size:0.95rem;">${escapeHTML(r.title)}</div>
+            ${subjectLabel}
+          </div>
+          <a href="/quiz?id=${escapeHTML(r.id)}" class="btn btn-outline" style="padding:0.3rem 0.6rem; font-size:0.8rem; width:fit-content;">Kerjakan Sekarang →</a>
+        </div>
+      `).join('');
+    }
+
+  } catch (err) {
+    console.error('Failed to load insights:', err);
+    // Silent fail if error, just don't show the insight section or show error text.
+  }
+}
+
 updateNavForUser();
 loadHistory();
+loadUserInsights();
 loadQuizzes();
 
 // --- Auto-exports to window ---

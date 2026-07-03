@@ -92,6 +92,7 @@
       <button class="sidebar-btn" onclick="switchTab('manage', this)">📋 Kelola Soal</button>
       <button class="sidebar-btn" onclick="switchTab('ugc', this)">👥 User Submissions</button>
       <button class="sidebar-btn" onclick="switchTab('analytics', this)">📈 Parser Intelligence</button>
+      <button class="sidebar-btn" onclick="switchTab('insight', this)">🧠 StudyForge Insight</button>
       <button class="sidebar-btn" onclick="switchTab('results', this)">📊 Hasil Ujian</button>
       <button class="sidebar-btn" onclick="switchTab('bug-reports', this)">🐞 Laporan Bug</button>
       <button class="sidebar-btn" onclick="switchTab('config', this)">⚙️ Konfigurasi</button>
@@ -226,6 +227,55 @@
             <h4 style="margin-bottom:0.5rem;">User Feedback</h4>
             <div id="an_feedback" style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);font-size:0.85rem;color:var(--text2);"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: STUDYFORGE INSIGHT -->
+    <div class="tab-content" id="tab-insight">
+      <div class="admin-box">
+        <h3>🧠 StudyForge Insight</h3>
+        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem;">Analisis tingkat kesulitan soal berdasarkan riwayat pengerjaan user.</p>
+        
+        <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:1rem;margin-bottom:2rem;" id="insightMetrics">
+          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--text2);">Total Soal</div>
+            <div id="ins_total" style="font-size:1.5rem;font-weight:bold;color:var(--primary);">0</div>
+          </div>
+          <div style="background:rgba(239,68,68,0.05);padding:1rem;border-radius:8px;border:1px solid rgba(239,68,68,0.2);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--danger);">Bermasalah</div>
+            <div id="ins_prob" style="font-size:1.5rem;font-weight:bold;color:var(--danger);">0</div>
+          </div>
+          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--text2);">Sulit</div>
+            <div id="ins_hard" style="font-size:1.5rem;font-weight:bold;color:var(--text);">0</div>
+          </div>
+          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--text2);">Sedang</div>
+            <div id="ins_med" style="font-size:1.5rem;font-weight:bold;color:var(--text);">0</div>
+          </div>
+          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
+            <div style="font-size:0.8rem;color:var(--text2);">Mudah</div>
+            <div id="ins_easy" style="font-size:1.5rem;font-weight:bold;color:var(--success);">0</div>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:0.85rem; text-align:left;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="padding:0.8rem; color:var(--text2);">Paket Soal</th>
+                <th style="padding:0.8rem; color:var(--text2);">Mata Pelajaran</th>
+                <th style="padding:0.8rem; color:var(--text2);">No Soal</th>
+                <th style="padding:0.8rem; color:var(--text2);">Total Attempt</th>
+                <th style="padding:0.8rem; color:var(--text2);">Tingkat Benar</th>
+                <th style="padding:0.8rem; color:var(--text2);">Status</th>
+              </tr>
+            </thead>
+            <tbody id="insightList">
+              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text3);">Memuat insight...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
