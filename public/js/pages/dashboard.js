@@ -116,7 +116,7 @@ function renderQuizzes(list, isPrivate = false) {
   
   grid.innerHTML = list.map((q, i) => {
     let badgeHtml = '';
-    let actionBtnHtml = `<a href="/quiz?id=${escapeHTML(q.id)}" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>`;
+    let actionBtnHtml = `<a href="/quiz?id=${escapeHTML(q.id)}&reset=1" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>`;
     
     if (isPrivate) {
       if (q.review_status === 'draft') badgeHtml = `<span style="background:var(--card); color:var(--text2); border:1px solid var(--border); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem;">🔒 Draft</span>`;

@@ -85,7 +85,7 @@ async function loadUserInsights() {
             </div>
             ${subjectLabel}
           </div>
-          <a href="/quiz?id=${escapeHTML(r.id)}" class="btn btn-outline" style="padding:0.5rem 1rem; font-size:0.9rem; width:fit-content; margin-top:0.5rem;">Kerjakan Sekarang →</a>
+          <a href="/quiz?id=${escapeHTML(r.id)}&reset=1" class="btn btn-outline" style="padding:0.5rem 1rem; font-size:0.9rem; width:fit-content; margin-top:0.5rem;">Kerjakan Sekarang →</a>
         </div>
       `).join('');
     }
