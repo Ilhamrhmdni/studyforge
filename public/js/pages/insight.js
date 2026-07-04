@@ -92,7 +92,7 @@ async function loadUserInsights() {
 
   } catch (err) {
     console.error('Failed to load insights:', err);
-    wList.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--danger);">Gagal memuat insight.</div>`;
+    wList.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--danger);">Gagal memuat insight: ${escapeHTML(err.message)}</div>`;
     rList.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--danger);">Gagal memuat rekomendasi.</div>`;
   }
 }

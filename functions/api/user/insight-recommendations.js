@@ -26,7 +26,7 @@ export async function onRequest(context) {
     // 3. Ambil daftar quiz_id yang sudah pernah dikerjakan oleh user (untuk di-exclude atau dicek)
     // Supaya simpel, kita fetch semua quiz_id milik user ini. (Idealnya ambil yg score-nya bagus aja yg diexclude, tapi MVP kita exclude semua attempt yg sdh ada)
     const attempts = await supabaseFetch(context.env,
-      `/rest/v1/quiz_attempts?user_id=eq.${encodeURIComponent(userId)}&select=quiz_id&order=created_at.desc&limit=100`,
+      `/rest/v1/quiz_attempts?user_id=eq.${encodeURIComponent(userId)}&select=quiz_id&order=submitted_at.desc&limit=100`,
       { method: 'GET' }
     );
     
@@ -71,6 +71,6 @@ export async function onRequest(context) {
 
   } catch (error) {
     console.error('Insight recommendations error:', error);
-    return sendJson({ error: 'Terjadi kesalahan server internal' }, 500);
+    return sendJson({ error: `Terjadi kesalahan server internal: ${error.message}` }, 500);
   }
 }
