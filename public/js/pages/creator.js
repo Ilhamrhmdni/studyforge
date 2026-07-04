@@ -225,40 +225,59 @@ function renderEditor() {
     const card = document.createElement('div');
     card.className = 'feature-card';
     card.style.padding = '1.5rem';
-    
-    let optionsHtml = '';
-    if (q.options && q.options.length) {
-      q.options.forEach((opt, oidx) => {
-        const isAns = q.answer === opt.key;
-        const inputEl = document.createElement('input');
-        inputEl.type = 'text';
-        inputEl.className = 'form-input';
-        inputEl.style.cssText = 'padding:0.2rem 0.5rem; flex:1;';
-        inputEl.addEventListener('change', (e) => updateOpt(idx, oidx, e.target.value));
-        // Gunakan .value agar opt.text aman dari HTML injection di atribut
-        const optDiv = document.createElement('div');
-        optDiv.style.cssText = 'display:flex; gap:0.5rem; margin-bottom:0.5rem; align-items:center;';
-        optDiv.innerHTML = `<input type="radio" name="ans_${idx}" value="${opt.key}" ${isAns ? 'checked' : ''} onchange="updateAns(${idx}, '${opt.key}')"><strong>${opt.key}.</strong>`;
-        inputEl.value = opt.text;
-        optDiv.appendChild(inputEl);
-        optionsHtml += optDiv.outerHTML;
-      });
-    }
 
-    card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-        <strong>Soal ${q.num}</strong>
-        <button class="btn-logout" onclick="delQuestion(${idx})">Hapus</button>
-      </div>
-      ${optionsHtml}
-    `;
-    // Gunakan DOM API untuk textarea agar q.text aman dari injection
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; justify-content:space-between; margin-bottom:1rem;';
+
+    const title = document.createElement('strong');
+    title.textContent = `Soal ${q.num}`;
+    header.appendChild(title);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-logout';
+    deleteBtn.textContent = 'Hapus';
+    deleteBtn.addEventListener('click', () => delQuestion(idx));
+    header.appendChild(deleteBtn);
+    card.appendChild(header);
+
     const ta = document.createElement('textarea');
     ta.className = 'form-input';
     ta.style.cssText = 'min-height:80px; margin-bottom:1rem; width:100%;';
-    ta.addEventListener('change', (e) => updateText(idx, e.target.value));
-    ta.value = q.text;
-    card.insertBefore(ta, card.querySelector('div:first-child').nextSibling);
+    ta.value = q.text || '';
+    ta.addEventListener('input', (e) => updateText(idx, e.target.value));
+    card.appendChild(ta);
+
+    if (q.options && q.options.length) {
+      q.options.forEach((opt, oidx) => {
+        const optDiv = document.createElement('div');
+        optDiv.style.cssText = 'display:flex; gap:0.5rem; margin-bottom:0.5rem; align-items:center;';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = `ans_${idx}`;
+        radio.value = opt.key || '';
+        radio.checked = q.answer === opt.key;
+        radio.addEventListener('change', () => {
+          if (radio.checked) updateAns(idx, opt.key);
+        });
+        optDiv.appendChild(radio);
+
+        const label = document.createElement('strong');
+        label.textContent = `${opt.key}.`;
+        optDiv.appendChild(label);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-input';
+        input.style.cssText = 'padding:0.2rem 0.5rem; flex:1;';
+        input.value = opt.text || '';
+        input.addEventListener('input', (e) => updateOpt(idx, oidx, e.target.value));
+        optDiv.appendChild(input);
+
+        card.appendChild(optDiv);
+      });
+    }
+
     c.appendChild(card);
   });
 }
