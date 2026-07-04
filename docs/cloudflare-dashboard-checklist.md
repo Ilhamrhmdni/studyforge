@@ -23,6 +23,11 @@ Pastikan Anda tahu:
 - Pages project yang aktif
 - hostname preview/production yang ingin dipantau
 
+Catatan penting:
+
+- WAF dan Cache Rules sebaiknya dites di custom domain/zone yang benar
+- preview `pages.dev` tidak selalu merepresentasikan perilaku rule yang sama seperti custom domain production
+
 ## 1. WAF Rate Limiting Rules
 
 Dokumentasi acuan:
@@ -37,6 +42,10 @@ Dokumentasi acuan:
 4. Buka `WAF`
 5. Buka `Rate limiting rules`
 6. Klik `Create rule`
+
+Jika dashboard meminta `characteristics` atau `counting characteristics`, pilih:
+
+- `IP`
 
 ### Rule 1: AI explanation
 
@@ -267,6 +276,12 @@ Tujuan:
 
 - mengurangi request berulang untuk CSS/JS statis
 
+Catatan:
+
+- rule ini bersifat `opsional` untuk tahap 1
+- Cloudflare Pages sudah punya caching default yang cukup baik
+- karena file CSS/JS StudyForge belum semuanya hashed atau versioned secara konsisten, cache agresif bisa membuat asset lama tetap tersaji setelah deploy
+
 Isi rule:
 
 - Rule name: `studyforge-cache-static-assets`
@@ -283,13 +298,20 @@ Action:
 
 Settings tambahan:
 
-- Edge TTL: `1 month`
+- Edge TTL: default dulu atau gunakan dengan hati-hati
 
 Jika dashboard meminta Browser TTL terpisah:
 
 - Browser TTL: `Respect existing headers` atau `1 day`
 
 Simpan rule.
+
+Rekomendasi tahap 1:
+
+- lebih aman aktifkan dulu:
+  - bypass cache untuk `/api/*`
+  - bypass cache untuk private/auth HTML
+- tunda cache agresif `/css/*` dan `/js/*` sampai cache busting/version query lebih rapi
 
 ### Setelah Cache Rules dibuat
 
@@ -380,7 +402,7 @@ Whitelist origin berikut:
 
 - [ ] Bypass `/api/*`
 - [ ] Bypass halaman private/auth
-- [ ] Cache lebih agresif untuk `/css/*` dan `/js/*`
+- [ ] Opsional: cache lebih agresif untuk `/css/*` dan `/js/*` hanya jika sudah yakin aman
 
 ### Analytics
 
@@ -388,3 +410,13 @@ Whitelist origin berikut:
 - [ ] Pilih automatic setup jika ada
 - [ ] Jika tidak ada, siapkan snippet manual untuk route publik
 - [ ] Validasi hit di `/`, `/masuk`, `/daftar`, `/paket-soal`
+
+## Keputusan tahap 1 yang paling aman
+
+- aktifkan dulu:
+  - WAF Rate Limiting
+  - bypass cache untuk `/api/*`
+  - bypass cache untuk private/auth HTML
+  - Web Analytics
+- tunda dulu:
+  - static asset aggressive cache untuk `/css/*` dan `/js/*` sampai cache busting/version query lebih rapi
