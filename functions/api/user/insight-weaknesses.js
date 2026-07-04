@@ -46,6 +46,6 @@ export async function onRequest(context) {
 
   } catch (error) {
     console.error('Insight user endpoint error:', error);
-    return sendJson({ error: 'Terjadi kesalahan server internal' }, 500);
+    return sendJson({ error: `Terjadi kesalahan server internal: ${error.message}` }, 500);
   }
 }
