@@ -631,8 +631,8 @@ footer span { color: var(--primary); }
   margin-bottom: 1rem;
 }
 .feature-icon { font-size: 2.5rem; margin-bottom: 1.5rem; }
-.feature-card h3 { font-size: 1.3rem; margin-bottom: 1rem; }
-.feature-card p { color: var(--text2); line-height: 1.6; }
+.landing-page .feature-card h3 { font-size: 1.3rem; margin-bottom: 1rem; }
+.landing-page .feature-card p { color: var(--text2); line-height: 1.6; }
 
 .steps-container {
   display: grid;
