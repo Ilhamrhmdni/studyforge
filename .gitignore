@@ -19,6 +19,8 @@ node_modules/
 diff.txt
 server_log.txt
 server_log*.txt
+server_test.log
+wrangler_test.log
 
 # OS/editor noise
 .DS_Store

@@ -1178,13 +1178,18 @@ async function loadUGC() {
         </div>
       </div>
     `).join('');
-  } catch(e) { el.innerHTML = `<p style="color:red">Error: ${e.message}</p>`; }
+  } catch(e) {
+    const p = document.createElement('p');
+    p.style.color = 'red';
+    p.textContent = 'Error: ' + (e.message || 'Gagal memuat UGC.');
+    el.appendChild(p);
+  }
 }
 
 async function approveUGC(id) {
   if (!confirm('Setujui kuis ini? (Akan menjadi publik)')) return;
   try {
-    await adminApiFetch('/api/admin/approve-quiz', 'POST', { quiz_id: id });
+    await adminApiFetch('/api/admin/approve-quiz', { method: 'POST', body: { quiz_id: id } });
     alert('Disetujui!');
     loadUGC();
   } catch(e) { alert(e.message); }
@@ -1194,7 +1199,7 @@ async function rejectUGC(id) {
   const reason = prompt('Alasan penolakan?');
   if (reason === null) return;
   try {
-    await adminApiFetch('/api/admin/reject-quiz', 'POST', { quiz_id: id, reason });
+    await adminApiFetch('/api/admin/reject-quiz', { method: 'POST', body: { quiz_id: id, reason } });
     alert('Ditolak!');
     loadUGC();
   } catch(e) { alert(e.message); }
@@ -1248,7 +1253,7 @@ async function loadBugReports() {
         </div>
         <div style="white-space:pre-wrap;line-height:1.65;margin-bottom:0.85rem;">${escapeHTML(report.message || '')}</div>
         ${report.page_url ? `<div style="font-size:0.8rem;color:var(--text2);margin-bottom:0.8rem;word-break:break-all;"><strong>URL:</strong> ${escapeHTML(report.page_url)}</div>` : ''}
-        ${report.screenshot_data_url ? `<img src="${report.screenshot_data_url}" alt="Screenshot laporan bug" style="max-width:100%;max-height:360px;display:block;border:1px solid var(--border);border-radius:12px;margin-bottom:0.9rem;" />` : ''}
+        ${(report.screenshot_data_url && report.screenshot_data_url.startsWith('data:image/')) ? `<img src="${report.screenshot_data_url}" alt="Screenshot laporan bug" style="max-width:100%;max-height:360px;display:block;border:1px solid var(--border);border-radius:12px;margin-bottom:0.9rem;" />` : ''}
         <div style="display:flex;justify-content:flex-end;">
           <button class="del-quiz-btn" onclick="deleteBugReport('${report.id}')">Hapus</button>
         </div>
@@ -1274,7 +1279,9 @@ async function deleteBugReport(id) {
 // ── LOG & TOAST ──
 function log(msg) {
   const el = document.getElementById('parseLog');
-  el.innerHTML += `<p>→ ${msg}</p>`;
+  const p = document.createElement('p');
+  p.textContent = `→ ${msg}`;
+  el.appendChild(p);
   el.scrollTop = el.scrollHeight;
 }
 
