@@ -30,8 +30,13 @@ Pilih hostname custom domain production yang benar.
 
 Contoh:
 
-- `temtaskor.com`
-- `www.temtaskor.com`
+- `tempaskor.com`
+- `www.tempaskor.com`
+
+Atau jika domain final belum diputuskan:
+
+- `contoh-domain-kamu.com`
+- `www.contoh-domain-kamu.com`
 
 Jangan mengandalkan `pages.dev` sebagai validasi utama.
 
@@ -406,6 +411,17 @@ or starts_with(http.request.uri.path, "/result")
 - `/admin`
 - `/quiz?id=...`
 - `/result?id=...`
+
+### Catatan QA khusus
+
+- login sebagai admin → `/admin` harus bisa dibuka
+- login sebagai user biasa → `/admin` harus ditolak atau redirect
+- `/daftar` harus menampilkan mode daftar/register, bukan hanya login biasa
+
+Catatan:
+
+- jika `/daftar` masih membuka mode login biasa, itu bukan blocker Cloudflare
+- tetapi itu tetap perlu dicatat sebagai isu UX routing
 
 ### Endpoint flow yang dites
 
