@@ -31,11 +31,13 @@ async function setupDashboard() {
 
 async function handleHashNav() {
   const hash = window.location.hash;
+  const path = window.location.pathname;
+  const isPrivatePath = path === '/koleksi';
   
   // Reset active classes
   document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
   
-  if (hash === '#private') {
+  if (hash === '#private' || isPrivatePath) {
     _currentTab = 'private';
     const navItem = document.getElementById('navPrivate');
     if (navItem) navItem.classList.add('active');
@@ -49,7 +51,7 @@ async function handleHashNav() {
   } else {
     _currentTab = 'public';
     // Default to Paket Soal
-    const navItem = document.querySelector('.sidebar-btn[href="/dashboard.html"]');
+    const navItem = document.querySelector('.sidebar-btn[href="/paket-soal"]');
     if (navItem) navItem.classList.add('active');
     
     document.getElementById('pageTitle').textContent = 'Paket Soal Tersedia';

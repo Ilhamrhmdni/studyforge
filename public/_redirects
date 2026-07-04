@@ -1,0 +1,16 @@
+/masuk        /login.html       200
+/daftar       /login.html       200
+
+/dashboard    /dashboard.html   200
+/paket-soal   /dashboard.html   200
+/tryout       /dashboard.html   200
+/koleksi      /dashboard.html   200
+
+/insight      /insight.html     200
+/riwayat      /history.html     200
+/history      /history.html     200
+
+/creator      /creator.html     200
+/admin        /admin.html       200
+/quiz         /quiz.html        200
+/result       /result.html      200
