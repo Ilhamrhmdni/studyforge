@@ -2,6 +2,24 @@ import { requireUser } from '../../_shared/auth.js';
 import { supabaseFetch } from '../../_shared/supabase.js';
 import { readJson, sendJson } from '../../_shared/response.js';
 
+function getJakartaDayStartUtcIso(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const utcMs = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day)
+  ) - (7 * 60 * 60 * 1000);
+
+  return new Date(utcMs).toISOString();
+}
+
 export async function onRequestPost(context) {
   try {
     const auth = await requireUser(context);
@@ -21,12 +39,11 @@ export async function onRequestPost(context) {
     }
 
     // Check quota: max 3 uploads per day
-    const today = new Date();
-    today.setUTCHours(0,0,0,0);
+    const jakartaDayStartUtcIso = getJakartaDayStartUtcIso();
     const query = new URLSearchParams({
       user_id: `eq.${auth.user.id}`,
       action: `eq.init_parse`,
-      created_at: `gte.${today.toISOString()}`,
+      created_at: `gte.${jakartaDayStartUtcIso}`,
       select: 'id'
     });
 

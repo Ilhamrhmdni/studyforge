@@ -6,9 +6,20 @@ import { getQuizById, decryptAnswer } from '../../_shared/quiz.js';
 // Rate limiting: maks 20 request AI per user per hari
 const DAILY_LIMIT = 20;
 
+function getJakartaDateString(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
 async function checkRateLimit(env, userId) {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const key = `ai_explain:${userId}:${today}`;
+  const today = getJakartaDateString();
 
   try {
     const rows = await supabaseFetch(env,
@@ -23,7 +34,7 @@ async function checkRateLimit(env, userId) {
 }
 
 async function incrementUsage(env, userId) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getJakartaDateString();
   try {
     // Call RPC function to safely increment usage count
     await supabaseFetch(env, '/rest/v1/rpc/increment_ai_usage', {

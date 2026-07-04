@@ -1,0 +1,8 @@
+/masuk        /login            200
+/daftar       /login            200
+
+/paket-soal   /dashboard        200
+/tryout       /dashboard        200
+/koleksi      /dashboard        200
+
+/riwayat      /history          200

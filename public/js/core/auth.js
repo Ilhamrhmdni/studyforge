@@ -32,7 +32,7 @@ async function requireAuth() {
   const user = await checkUserAuth();
   if (!user) {
     sessionStorage.setItem('sf_redirect', window.location.href);
-    window.location.href = '/login.html';
+    window.location.href = '/masuk';
     return null;
   }
   return user;
@@ -78,18 +78,18 @@ async function updateNavForUser() {
     const rawName = user.user_metadata?.full_name || user.email.split('@')[0];
     const name = typeof escapeHTML === 'function' ? escapeHTML(rawName) : rawName;
     
-    let adminLink = isAdmin ? `<a href="/admin.html">Admin</a>` : '';
+    let adminLink = isAdmin ? `<a href="/admin">Admin Panel</a>` : '';
 
     navLinks.innerHTML = `
-      <a href="/dashboard.html">Dashboard</a>
-      <a href="/creator.html" style="color: var(--accent);">✨ Creator Studio</a>
+      <a href="/paket-soal">Paket Soal</a>
+      <a href="/creator" style="color: var(--accent);">✨ Creator Studio</a>
       ${adminLink}
       <div class="user-dropdown">
         <button class="user-dropdown-btn" onclick="toggleUserDropdown()">
           ${name} ▼
         </button>
         <div class="user-dropdown-content" id="userDropdownContent">
-          <a href="/dashboard.html">Profil / Akun Saya</a>
+          <a href="/paket-soal">Paket Soal</a>
           <a href="/bug-report.html">🐞 Laporkan Bug</a>
           <a href="#" class="text-danger" onclick="logoutUser(); return false;">Keluar</a>
         </div>
@@ -98,7 +98,7 @@ async function updateNavForUser() {
   } else {
     navLinks.innerHTML = `
       <a href="/">Beranda</a>
-      <a href="/login.html" class="btn btn-primary" style="padding:0.4rem 1rem; font-size:0.85rem;">Login</a>
+      <a href="/masuk" class="btn btn-primary" style="padding:0.4rem 1rem; font-size:0.85rem;">Masuk</a>
     `;
   }
 }

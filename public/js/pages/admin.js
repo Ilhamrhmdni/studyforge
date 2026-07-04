@@ -83,13 +83,13 @@ initAdminAuthSafe();
 function saveConfig() {
   const geminiKey = document.getElementById('cfgGemini').value.trim();
   const cfg = { geminiKey };
-  localStorage.setItem('sf_config', JSON.stringify(cfg));
+  sessionStorage.setItem('sf_config', JSON.stringify(cfg));
   document.getElementById('cfgStatus').textContent = geminiKey ? '✅ Key tersimpan! (Gemini aktif 🤖)' : '✅ Key tersimpan!';
   setTimeout(() => document.getElementById('cfgStatus').textContent = '', 3000);
 }
 
 function getConfig() {
-  try { return JSON.parse(localStorage.getItem('sf_config')||'null'); } catch { return null; }
+  try { return JSON.parse(sessionStorage.getItem('sf_config')||'null'); } catch { return null; }
 }
 
 function initAdmin() {
@@ -1253,7 +1253,6 @@ async function loadBugReports() {
         </div>
         <div style="white-space:pre-wrap;line-height:1.65;margin-bottom:0.85rem;">${escapeHTML(report.message || '')}</div>
         ${report.page_url ? `<div style="font-size:0.8rem;color:var(--text2);margin-bottom:0.8rem;word-break:break-all;"><strong>URL:</strong> ${escapeHTML(report.page_url)}</div>` : ''}
-        ${(report.screenshot_data_url && report.screenshot_data_url.startsWith('data:image/')) ? `<img src="${report.screenshot_data_url}" alt="Screenshot laporan bug" style="max-width:100%;max-height:360px;display:block;border:1px solid var(--border);border-radius:12px;margin-bottom:0.9rem;" />` : ''}
         <div style="display:flex;justify-content:flex-end;">
           <button class="del-quiz-btn" onclick="deleteBugReport('${report.id}')">Hapus</button>
         </div>

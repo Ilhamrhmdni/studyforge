@@ -10,7 +10,7 @@ export async function onRequestGet(context) {
     }
 
     const params = new URLSearchParams({
-      select: 'id,reporter_email,reporter_name,quiz_id,quiz_title,question_num,page_url,message,screenshot_data_url,created_at',
+      select: 'id,reporter_email,reporter_name,quiz_id,quiz_title,question_num,page_url,message,created_at',
       order: 'created_at.desc',
       limit: '100'
     });

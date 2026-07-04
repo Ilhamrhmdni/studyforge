@@ -3,6 +3,8 @@ import { getProfile, getSupabaseConfigError, supabaseFetch } from '../_shared/su
 import { readJson, sendJson } from '../_shared/response.js';
 import { getQuizById } from '../_shared/quiz.js';
 
+const MAX_SCREENSHOT_CHARS = 700_000;
+
 function trimText(value, maxLength) {
   return String(value || '').trim().slice(0, maxLength);
 }
@@ -30,6 +32,12 @@ export async function onRequestPost(context) {
 
     if (!message) {
       return sendJson({ error: 'Deskripsi bug wajib diisi.' }, 400);
+    }
+    if (screenshotDataUrl && !screenshotDataUrl.startsWith('data:image/')) {
+      return sendJson({ error: 'Format screenshot tidak valid.' }, 400);
+    }
+    if (screenshotDataUrl && screenshotDataUrl.length > MAX_SCREENSHOT_CHARS) {
+      return sendJson({ error: 'Screenshot terlalu besar. Coba kompres atau kirim gambar yang lebih kecil.' }, 413);
     }
 
     const profile = await getProfile(context.env, user.id);

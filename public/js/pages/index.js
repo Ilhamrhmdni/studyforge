@@ -25,7 +25,7 @@ async function loadPreviewQuizzes() {
           <span>📝 ${q.count} Soal</span>
           <span>⏱️ ${q.duration} Menit</span>
         </div>
-        <a href="/login.html" class="btn btn-primary w-100" style="margin-top:1rem;text-align:center;">Mulai Kerjakan &rarr;</a>
+        <a href="/masuk" class="btn btn-primary w-100" style="margin-top:1rem;text-align:center;">Mulai Kerjakan &rarr;</a>
       </div>
     `).join('');
   } catch(e) {
@@ -47,8 +47,8 @@ async function setupLandingPage() {
     // Kalo udah login, ganti semua CTA ngarah ke Dashboard
     const navBtn = document.getElementById('navLoginBtn');
     if (navBtn) {
-      navBtn.href = '/dashboard.html';
-      navBtn.textContent = 'Dashboard';
+      navBtn.href = '/paket-soal';
+      navBtn.textContent = 'Paket Soal';
     }
     const navSignupBtn = document.getElementById('navSignupBtn');
     if (navSignupBtn) {
@@ -56,18 +56,18 @@ async function setupLandingPage() {
     }
     const heroBtn = document.getElementById('heroCtaBtn');
     if (heroBtn) {
-      heroBtn.href = '/dashboard.html';
+      heroBtn.href = '/paket-soal';
       heroBtn.textContent = 'Lanjut Belajar';
     }
     const heroSecondaryBtn = document.getElementById('heroSecondaryBtn');
     if (heroSecondaryBtn) {
-      heroSecondaryBtn.href = '/dashboard.html';
-      heroSecondaryBtn.textContent = 'Buka Dashboard';
+      heroSecondaryBtn.href = '/paket-soal';
+      heroSecondaryBtn.textContent = 'Buka Paket Soal';
     }
     const bottomBtn = document.getElementById('bottomCtaBtn');
     if (bottomBtn) {
-      bottomBtn.href = '/dashboard.html';
-      bottomBtn.textContent = 'Buka Dashboard';
+      bottomBtn.href = '/paket-soal';
+      bottomBtn.textContent = 'Buka Paket Soal';
     }
     const bottomLoginBtn = document.getElementById('bottomLoginBtn');
     if (bottomLoginBtn) {
@@ -75,7 +75,7 @@ async function setupLandingPage() {
     }
     const moreBtn = document.getElementById('previewMoreBtn');
     if (moreBtn) {
-      moreBtn.href = '/dashboard.html';
+      moreBtn.href = '/paket-soal';
     }
   }
 
