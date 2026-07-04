@@ -8,34 +8,9 @@ const log = (msg) => {
   console.log(msg);
 };
 
-// Handle Drag and Drop
-const dropZone = document.getElementById('dropZone');
-const pdfInput = document.getElementById('pdfInput');
-
-dropZone.addEventListener('click', () => pdfInput.click());
-dropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  dropZone.style.borderColor = 'var(--primary)';
-  dropZone.style.background = 'rgba(99, 102, 241, 0.05)';
-});
-dropZone.addEventListener('dragleave', (e) => {
-  e.preventDefault();
-  dropZone.style.borderColor = 'var(--border)';
-  dropZone.style.background = 'transparent';
-});
-dropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropZone.style.borderColor = 'var(--border)';
-  dropZone.style.background = 'transparent';
-  if (e.dataTransfer.files.length) {
-    handleFileUpload(e.dataTransfer.files[0]);
-  }
-});
-pdfInput.addEventListener('change', (e) => {
-  if (e.target.files.length) {
-    handleFileUpload(e.target.files[0]);
-  }
-});
+// Event listeners dipasang di dalam init() setelah auth selesai
+let dropZone = null;
+let pdfInput = null;
 
 async function apiCall(endpoint, data = {}) {
   const token = await getAccessToken();
@@ -255,13 +230,18 @@ function renderEditor() {
     if (q.options && q.options.length) {
       q.options.forEach((opt, oidx) => {
         const isAns = q.answer === opt.key;
-        optionsHtml += `
-          <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem; align-items:center;">
-            <input type="radio" name="ans_${idx}" value="${opt.key}" ${isAns ? 'checked' : ''} onchange="updateAns(${idx}, '${opt.key}')">
-            <strong>${opt.key}.</strong>
-            <input type="text" class="form-input" style="padding:0.2rem 0.5rem; flex:1;" value="${opt.text}" onchange="updateOpt(${idx}, ${oidx}, this.value)">
-          </div>
-        `;
+        const inputEl = document.createElement('input');
+        inputEl.type = 'text';
+        inputEl.className = 'form-input';
+        inputEl.style.cssText = 'padding:0.2rem 0.5rem; flex:1;';
+        inputEl.addEventListener('change', (e) => updateOpt(idx, oidx, e.target.value));
+        // Gunakan .value agar opt.text aman dari HTML injection di atribut
+        const optDiv = document.createElement('div');
+        optDiv.style.cssText = 'display:flex; gap:0.5rem; margin-bottom:0.5rem; align-items:center;';
+        optDiv.innerHTML = `<input type="radio" name="ans_${idx}" value="${opt.key}" ${isAns ? 'checked' : ''} onchange="updateAns(${idx}, '${opt.key}')"><strong>${opt.key}.</strong>`;
+        inputEl.value = opt.text;
+        optDiv.appendChild(inputEl);
+        optionsHtml += optDiv.outerHTML;
       });
     }
 
@@ -270,9 +250,15 @@ function renderEditor() {
         <strong>Soal ${q.num}</strong>
         <button class="btn-logout" onclick="delQuestion(${idx})">Hapus</button>
       </div>
-      <textarea class="form-input" style="min-height:80px; margin-bottom:1rem;" onchange="updateText(${idx}, this.value)">${q.text}</textarea>
       ${optionsHtml}
     `;
+    // Gunakan DOM API untuk textarea agar q.text aman dari injection
+    const ta = document.createElement('textarea');
+    ta.className = 'form-input';
+    ta.style.cssText = 'min-height:80px; margin-bottom:1rem; width:100%;';
+    ta.addEventListener('change', (e) => updateText(idx, e.target.value));
+    ta.value = q.text;
+    card.insertBefore(ta, card.querySelector('div:first-child').nextSibling);
     c.appendChild(card);
   });
 }
@@ -331,6 +317,33 @@ window.onload = async () => {
   const user = await requireAuth();
   if (!user) return;
   if (typeof updateNavForUser === 'function') updateNavForUser();
+
+  // Setup event listeners setelah auth berhasil
+  dropZone = document.getElementById('dropZone');
+  pdfInput = document.getElementById('pdfInput');
+
+  if (dropZone && pdfInput) {
+    dropZone.addEventListener('click', () => pdfInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--primary)';
+      dropZone.style.background = 'rgba(99, 102, 241, 0.05)';
+    });
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--border)';
+      dropZone.style.background = 'transparent';
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--border)';
+      dropZone.style.background = 'transparent';
+      if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
+    });
+    pdfInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleFileUpload(e.target.files[0]);
+    });
+  }
 };
 
 // --- Auto-exports to window ---

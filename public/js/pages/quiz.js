@@ -324,7 +324,7 @@ async function submitQuiz() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || 'Gagal menyimpan hasil.');
     clearQuizState();
-    window.location.href = `/result.html?id=${payload.attemptId}`;
+    window.location.href = `/result?id=${payload.attemptId}`;
   } catch (e) {
     console.error('Failed to save result:', e);
     alert(`Gagal menyimpan hasil! ${e.message}`);

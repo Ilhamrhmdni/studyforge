@@ -12,7 +12,7 @@ export async function onRequestPost(context) {
 
     if (!quiz_id) return sendJson({ error: 'quiz_id diperlukan.' }, 400);
 
-    await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${quiz_id}`, {
+    await supabaseFetch(context.env, `/rest/v1/quizzes?id=eq.${encodeURIComponent(quiz_id)}`, {
       method: 'PATCH',
       body: { 
         review_status: 'approved', 

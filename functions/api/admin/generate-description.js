@@ -1,42 +1,38 @@
-// functions/api/admin/generate-description.js
+import { requireAdmin } from '../../_shared/auth.js';
+import { getServiceConfigError, supabaseFetch } from '../../_shared/supabase.js';
+import { sendJson } from '../../_shared/response.js';
+
 export async function onRequestPost(context) {
   try {
-    // 1. Verify Auth
-    const authHeader = context.request.headers.get('Authorization') || '';
-    if (!authHeader.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-    }
-    const token = authHeader.replace('Bearer ', '');
-    const supabaseUrl = context.env.SUPABASE_URL;
-    const supabaseKey = context.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-      return new Response(JSON.stringify({ error: 'Server misconfiguration' }), { status: 500 });
-    }
+    // 1. Cek konfigurasi server
+    const configError = getServiceConfigError(context.env);
+    if (configError) return sendJson({ error: configError }, 500);
 
-    const { user, error: userError } = await verifyToken(token, supabaseUrl, supabaseKey);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 });
-    }
+    // 2. Verifikasi admin via shared utility
+    const auth = await requireAdmin(context);
+    if (!auth.ok) return sendJson({ error: auth.message }, auth.status);
 
-    const { role } = await getUserRole(user.id, supabaseUrl, supabaseKey);
-    if (role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
-    }
-
-    // 2. Parse request
-    const { text } = await context.request.json();
-    if (!text || text.length < 10) {
-      return new Response(JSON.stringify({ error: 'Teks terlalu pendek' }), { status: 400 });
-    }
-
-    // 3. Check AI binding
+    // 3. Pastikan AI binding tersedia
     if (!context.env.AI) {
-      return new Response(JSON.stringify({ error: 'Cloudflare AI binding not configured' }), { status: 501 });
+      return sendJson({ error: 'Cloudflare AI binding belum dikonfigurasi.' }, 501);
     }
 
-    // 4. Generate with CF AI
+    // 4. Parse request body
+    let body;
+    try {
+      body = await context.request.json();
+    } catch {
+      return sendJson({ error: 'Request body tidak valid.' }, 400);
+    }
+
+    const { text } = body;
+    if (!text || typeof text !== 'string' || text.trim().length < 10) {
+      return sendJson({ error: 'Teks terlalu pendek (minimal 10 karakter).' }, 400);
+    }
+
+    // 5. Generate deskripsi dengan CF AI
     const prompt = `Buatkan deskripsi singkat (maksimal 2 kalimat) yang menarik untuk paket soal berikut. Fokus pada topik utamanya. Jangan menggunakan awalan seperti "Deskripsi:" atau tanda kutip. Langsung tulis kalimatnya saja.\n\nSoal:\n${text.substring(0, 1500)}`;
-    
+
     const response = await context.env.AI.run('@cf/meta/llama-3-8b-instruct', {
       messages: [
         { role: 'system', content: 'Kamu adalah asisten AI untuk platform edukasi StudyForge. Tugasmu membuat deskripsi singkat dan menarik untuk paket soal.' },
@@ -44,37 +40,11 @@ export async function onRequestPost(context) {
       ]
     });
 
-    const description = response.response?.trim() || '';
-
-    return new Response(JSON.stringify({ description }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const description = response?.response?.trim() || '';
+    return sendJson({ description });
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    console.error('generate-description error:', error);
+    return sendJson({ error: 'Terjadi kesalahan server saat membuat deskripsi.' }, 500);
   }
-}
-
-async function verifyToken(token, supabaseUrl, supabaseKey) {
-  const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-    headers: {
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${token}`
-    }
-  });
-  if (!res.ok) return { error: 'Invalid auth' };
-  const user = await res.json();
-  return { user };
-}
-
-async function getUserRole(userId, supabaseUrl, supabaseKey) {
-  const res = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=role`, {
-    headers: {
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}` // Service role key allows bypassing RLS
-    }
-  });
-  if (!res.ok) return { role: 'user' };
-  const data = await res.json();
-  return { role: data[0]?.role || 'user' };
 }
