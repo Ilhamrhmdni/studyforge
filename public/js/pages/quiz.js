@@ -44,8 +44,12 @@ function loadQuizState() {
 }
 
 function clearQuizState() {
-  const key = getQuizStateKey();
-  if (key) sessionStorage.removeItem(key);
+  try {
+    const key = getQuizStateKey();
+    if (key) sessionStorage.removeItem(key);
+  } catch (e) {
+    console.warn('Gagal menghapus state quiz:', e);
+  }
 }
 
 function reorderById(items, orderedIds, pickId) {
@@ -110,6 +114,16 @@ async function init() {
     const id = params.get('id');
     if (!id) { window.location.href = '/'; return; }
     currentQuizId = id;
+
+    const shouldReset = params.get('reset') === '1' || params.get('fresh') === '1';
+    if (shouldReset) {
+      clearQuizState();
+      // Remove reset param from URL so refresh doesn't reset again
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('reset');
+      newUrl.searchParams.delete('fresh');
+      window.history.replaceState({}, '', newUrl);
+    }
 
     const sb = initSupabase();
     const { data: { session } } = await sb.auth.getSession();
@@ -298,6 +312,7 @@ function confirmSubmit() {
 
 async function submitQuiz() {
   clearInterval(timerInterval);
+  window.isSubmitting = true; // Prevent beforeunload from saving state
   document.getElementById('submitModal').style.display = 'none';
   document.getElementById('submitBtn').disabled = true;
   document.getElementById('submitBtn').textContent = '⏳ Menyimpan...';
@@ -328,6 +343,7 @@ async function submitQuiz() {
   } catch (e) {
     console.error('Failed to save result:', e);
     alert(`Gagal menyimpan hasil! ${e.message}`);
+    window.isSubmitting = false;
     document.getElementById('submitBtn').disabled = false;
     document.getElementById('submitBtn').textContent = '✅ Kumpulkan Jawaban';
   }
@@ -432,7 +448,9 @@ async function submitBugReport() {
 }
 
 window.addEventListener('beforeunload', () => {
-  saveQuizState();
+  if (!window.isSubmitting) {
+    saveQuizState();
+  }
 });
 
 init();
