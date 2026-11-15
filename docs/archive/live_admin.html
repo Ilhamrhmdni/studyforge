@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Admin — StudyForge</title>
+<title>Admin â€” StudyForge</title>
 <link rel="stylesheet" href="/css/style.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css"/>
 <style>
@@ -72,7 +72,7 @@
   <div class="login-box" style="max-width:800px; width:95%; padding:1.5rem;">
     <h3 style="margin-top:0;margin-bottom:1rem;text-align:left;">?? Crop Gambar</h3>
     <div style="max-height:60vh; overflow:hidden; margin-bottom:1rem; border:1px solid var(--border); border-radius:8px; background:rgba(0,0,0,0.5);">
-      <img id="cropImageTarget" style="max-width:100%; display:block;" src="" alt="Crop Area">
+      <img id="cropImageTarget" style="max-width:100%; display:block;" src="data:," alt="Crop Area">
     </div>
     <div style="display:flex; gap:1rem; justify-content:flex-end;">
       <button class="btn btn-outline" onclick="closeCropModal()">Batal</button>
@@ -96,7 +96,7 @@
     <div style="margin-top:auto; padding:1.5rem; text-align:center;">
       <a href="/" class="btn btn-outline" style="width:100%;font-size:0.85rem;margin-bottom:0.5rem;justify-content:center;">?? Beranda Utama</a>
       <button class="btn btn-outline" id="logoutBtn" onclick="adminLogout()" style="display:none;width:100%;font-size:0.85rem;margin-bottom:1rem;color:var(--danger);border-color:var(--danger);justify-content:center;">?? Logout</button>
-      <p style="font-size:0.7rem;color:var(--text3);">© <script>document.write(new Date().getFullYear())</script> StudyForge</p>
+      <p style="font-size:0.7rem;color:var(--text3);">Â© <script>document.write(new Date().getFullYear())</script> StudyForge</p>
     </div>
   </aside>
 
@@ -126,7 +126,7 @@
         <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
           <div class="upload-icon">??</div>
           <h3>Drag & Drop PDF di sini</h3>
-          <p>atau klik untuk pilih file • Maksimal 20MB</p>
+          <p>atau klik untuk pilih file â€¢ Maksimal 20MB</p>
           <input type="file" id="fileInput" accept=".pdf" onchange="handleFile(this.files[0])"/>
         </div>
         
@@ -390,7 +390,7 @@ Aturan penting:
             const retryMatch = errMsg.match(/retry in ([\d.]+)s/i);
             if (retryMatch) {
               const waitSec = Math.ceil(parseFloat(retryMatch[1])) + 3;
-              log(`? Rate limit — menunggu ${waitSec}s lalu retry...`);
+              log(`? Rate limit â€” menunggu ${waitSec}s lalu retry...`);
               await new Promise(r => setTimeout(r, waitSec * 1000));
               retries--;
               continue;
@@ -427,7 +427,7 @@ Aturan penting:
       if (success) break;
     }
 
-    // Delay between batches — 20s ensures we stay under 20 RPM free tier
+    // Delay between batches â€” 20s ensures we stay under 20 RPM free tier
     if (bi < batches.length - 1) {
       log(`?? Jeda 20 detik antar batch (free tier limit)...`);
       await new Promise(r => setTimeout(r, 20000));
@@ -545,7 +545,7 @@ async function handleFile(file) {
         log(`?? Fallback: ${fallback.length} soal (mungkin tidak sempurna)`);
       }
     } else {
-      log(`?? ${imagePages.length} halaman punya gambar — isi Gemini API Key untuk hasil akurat!`);
+      log(`?? ${imagePages.length} halaman punya gambar â€” isi Gemini API Key untuk hasil akurat!`);
       log('?? Mencoba regex (mungkin ada soal yang tidak terparsing)...');
       const fallback = parseQuestions(imageFullText);
       geminiQuestions = fallback;
@@ -1109,7 +1109,7 @@ async function loadManage() {
     el.innerHTML = data.map(q => `
       <div class="quiz-list-row">
         <div class="name">${escapeHTML(q.title)}</div>
-        <div class="meta">${escapeHTML(q.subject)} • ${q.count} soal</div>
+        <div class="meta">${escapeHTML(q.subject)} â€¢ ${q.count} soal</div>
         <a href="/quiz?id=${q.id}" class="btn btn-outline" style="font-size:0.8rem;padding:0.3rem 0.8rem;">Preview</a>
         <button class="del-quiz-btn" onclick="deleteQuiz('${q.id}')">??? Hapus</button>
       </div>
@@ -1226,4 +1226,5 @@ function showToast(msg, type='') {
 </script>
 </body>
 </html>
+
 
