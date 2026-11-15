@@ -75,7 +75,13 @@
     "evaluasimu",
     "rarr",
     "ngarah",
-    "sdot"
+    "sdot",
+    "userr",
+    "Direkap",
+    "Bersumber",
+    "soalut",
+    "dibeli",
+    "keakuratannya"
   ],
   "ignoreRegExpList": [
     "/ey[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]+/g"

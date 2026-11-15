@@ -51,8 +51,19 @@ function hasWrongMarker(value) {
   return normalizeText(value).includes(X_MARK);
 }
 
+function stripPdfNoise(value) {
+  return String(value || '')
+    .replace(/Edit\s+soal\s+by\s+Tiktok\s*:\s*@\S+\s*(?:\([^)]*\))?\s*(?:WA\s*\d+)?/gi, ' ')
+    .replace(/Note:\s*Soal\s+Direkap\s+dan\s+Bersumber\s+dari\s+https?:\/\/\S+[\s\S]*?Semoga\s+bermanfaat\.?/gi, ' ')
+    .replace(/Tiktok\s*:\s*@userr_ut\s*(?:\([^)]*\))?/gi, ' ')
+    .replace(/Kisi\s+Kisi\s+Soal\s+UT/gi, ' ')
+    .replace(/Akses\s+Soal/gi, ' ')
+    .replace(/\b[A-Z][A-Z0-9\s]{4,}\(\s*[A-Z]{4}\d{4}\s*\)/g, ' ')
+    .replace(/([A-Za-z0-9])\s+-\s+([A-Za-z0-9])/g, '$1-$2');
+}
+
 function stripMarkers(value) {
-  return normalizeText(value)
+  return stripPdfNoise(normalizeText(value))
     .replace(new RegExp(`\\s*${CHECK_MARK}\\s*`, 'g'), ' ')
     .replace(new RegExp(`\\s*${X_MARK}\\s*`, 'g'), ' ')
     .replace(/\s{2,}/g, ' ')

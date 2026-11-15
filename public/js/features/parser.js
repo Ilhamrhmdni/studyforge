@@ -92,9 +92,26 @@ function parseAnswerKey(text) {
   return answerMap;
 }
 
+function isNoiseLine(line) {
+  const trimmed = String(line || '').trim();
+  if (!trimmed) return true;
+  return (
+    /^---\s*PAGE\s+\d+\s*---$/i.test(trimmed) ||
+    /^Edit\s+soal\s+by\s+Tiktok\b/i.test(trimmed) ||
+    /^Note:\s*Soal\s+Direkap\s+dan\s+Bersumber\s+dari\b/i.test(trimmed) ||
+    /^sebagai\s+bahan\s+belajar\s+dan\s+tetap\s+cek\s+kembali\s+jawabannya/i.test(trimmed) ||
+    /^Kisi\s+Kisi\s+Soal\s+UT\b/i.test(trimmed) ||
+    /^Akses\s+Soal$/i.test(trimmed) ||
+    /^[A-Z][A-Z0-9\s]{4,}\(\s*[A-Z]{4}\d{4}\s*\)$/.test(trimmed)
+  );
+}
+
 function parseQuestions(text, answerMap = {}) {
   const isLMSFormat = /Question\s+\d+/i.test(text) || /Correct\s+Mark\s+[\d.]+\s+out\s+of/i.test(text);
-  const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = String(text || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => Boolean(line) && !isNoiseLine(line));
   return isLMSFormat
     ? parseQuestionsLMS(lines, answerMap)
     : parseQuestionsStandard(lines, answerMap);

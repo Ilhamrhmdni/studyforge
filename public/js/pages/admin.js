@@ -317,6 +317,15 @@ function mergeQuestionsByNumber(questions) {
   const merged = [];
   for (const question of (questions || []).slice().sort((a, b) => a.num - b.num)) {
     if (!question || !question.num) continue;
+    if (typeof stripMarkers === 'function') {
+      question.text = stripMarkers(question.text);
+      if (Array.isArray(question.options)) {
+        question.options = question.options.map((opt) => ({
+          ...opt,
+          text: stripMarkers(opt.text)
+        }));
+      }
+    }
     const existingIndex = merged.findIndex((item) =>
       item.num === question.num && shouldMergeQuestionPair(item, question)
     );
@@ -633,8 +642,22 @@ function parseQuestions(text) {
 }
 
 // ── FORMAT 1: Standard (1. Soal, A. Opsi) ──
+function isAdminNoiseLine(line) {
+  const trimmed = String(line || '').trim();
+  if (!trimmed) return true;
+  return (
+    /^---\s*PAGE\s+\d+\s*---$/i.test(trimmed) ||
+    /^Edit\s+soal\s+by\s+Tiktok\b/i.test(trimmed) ||
+    /^Note:\s*Soal\s+Direkap\s+dan\s+Bersumber\s+dari\b/i.test(trimmed) ||
+    /^sebagai\s+bahan\s+belajar\s+dan\s+tetap\s+cek\s+kembali\s+jawabannya/i.test(trimmed) ||
+    /^Kisi\s+Kisi\s+Soal\s+UT\b/i.test(trimmed) ||
+    /^Akses\s+Soal$/i.test(trimmed) ||
+    /^[A-Z][A-Z0-9\s]{4,}\(\s*[A-Z]{4}\d{4}\s*\)$/.test(trimmed)
+  );
+}
+
 function parseStandardFormat(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l && !isAdminNoiseLine(l));
   const questions = [];
   let current = null;
 
