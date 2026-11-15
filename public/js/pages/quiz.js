@@ -453,6 +453,56 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
+function handleQuizKeydown(e) {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  const targetTag = (e.target && e.target.tagName) || '';
+  if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') return;
+
+  const bugModal = document.getElementById('bugReportModal');
+  const submitModal = document.getElementById('submitModal');
+  if (bugModal && bugModal.style.display === 'flex') return;
+  if (submitModal && submitModal.style.display === 'flex') return;
+
+  if (!quiz || !quiz.questions || !quiz.questions[currentIdx]) return;
+  const q = quiz.questions[currentIdx];
+  const key = e.key ? e.key.toUpperCase() : '';
+
+  const keyToOptionIdx = {
+    'A': 0, '1': 0,
+    'B': 1, '2': 1,
+    'C': 2, '3': 2,
+    'D': 3, '4': 3,
+    'E': 4, '5': 4
+  };
+
+  if (Object.prototype.hasOwnProperty.call(keyToOptionIdx, key)) {
+    const optIdx = keyToOptionIdx[key];
+    if (q.options && q.options[optIdx]) {
+      e.preventDefault();
+      selectAnswer(q.qid, q.options[optIdx].id);
+    }
+    return;
+  }
+
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    navigate(-1);
+    return;
+  }
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    navigate(1);
+    return;
+  }
+
+  if (key === 'R') {
+    e.preventDefault();
+    toggleDoubt();
+  }
+}
+
+window.addEventListener('keydown', handleQuizKeydown);
+
 init();
 
 // --- Auto-exports to window ---
@@ -483,3 +533,4 @@ window.clearBugReportImage = clearBugReportImage;
 window.goTo = goTo;
 window.toggleDoubt = toggleDoubt;
 window.toggleQuizSidebar = toggleQuizSidebar;
+window.handleQuizKeydown = handleQuizKeydown;
