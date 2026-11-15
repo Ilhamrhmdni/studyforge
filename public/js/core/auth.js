@@ -90,7 +90,8 @@ async function updateNavForUser() {
         </button>
         <div class="user-dropdown-content" id="userDropdownContent">
           <a href="/paket-soal">Paket Soal</a>
-          <a href="/bug-report.html">🐞 Laporkan Bug</a>
+          <a href="/koleksi">Koleksi Pribadi</a>
+          <a href="/riwayat">Riwayat Ujian</a>
           <a href="#" class="text-danger" onclick="logoutUser(); return false;">Keluar</a>
         </div>
       </div>

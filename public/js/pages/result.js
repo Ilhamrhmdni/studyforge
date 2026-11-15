@@ -102,7 +102,7 @@ window.onload = async () => {
             return `<div style="${style};font-size:0.85rem;"><strong>${escapeHTML(o.key)}.</strong> ${escapeHTML(o.text)} ${o.key === a.correctAnswer ? ' ✓' : ''}${o.key === a.userAnswer && o.key !== a.correctAnswer ? ' ✗' : ''}</div>`;
           }).join('')}
         </div>
-        ${!a.isCorrect ? `<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--success);">Jawaban benar: <strong>${escapeHTML(a.correctAnswer)}</strong></div>` : ''}
+        ${!a.isCorrect ? `<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--success);">Jawaban benar: <strong>${escapeHTML(a.correctAnswer)}${(() => { const opt = a.options.find((o) => o.key === a.correctAnswer); return opt ? `. ${escapeHTML(opt.text)}` : ''; })()}</strong></div>` : ''}
         
         <!-- Tombol AI Pembahasan -->
         <div style="margin-top:1rem;">

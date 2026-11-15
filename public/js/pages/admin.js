@@ -44,6 +44,8 @@ async function initAdminAuth() {
   try {
     await adminApiFetch('/api/admin/session');
     document.getElementById('loginScreen').style.display = 'none';
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.style.display = 'inline-flex';
     initAdmin();
   } catch (error) {
     document.getElementById('adminStatusText').innerHTML = '❌ Akses Ditolak';
@@ -64,6 +66,8 @@ async function initAdminAuthSafe() {
   try {
     await adminApiFetch('/api/admin/session');
     document.getElementById('loginScreen').style.display = 'none';
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.style.display = 'inline-flex';
     initAdmin();
   } catch (error) {
     if (error.status === 403) {
@@ -1276,6 +1280,7 @@ async function loadBugReports() {
           </div>
         </div>
         <div style="white-space:pre-wrap;line-height:1.65;margin-bottom:0.85rem;">${escapeHTML(report.message || '')}</div>
+        ${report.screenshot_data_url ? `<div style="margin-bottom:0.85rem;"><img src="${report.screenshot_data_url}" alt="Screenshot bug" style="max-width:100%;max-height:280px;border-radius:8px;border:1px solid var(--border);object-fit:contain;" /></div>` : ''}
         ${report.page_url ? `<div style="font-size:0.8rem;color:var(--text2);margin-bottom:0.8rem;word-break:break-all;"><strong>URL:</strong> ${escapeHTML(report.page_url)}</div>` : ''}
         <div style="display:flex;justify-content:flex-end;">
           <button class="del-quiz-btn" onclick="deleteBugReport('${report.id}')">Hapus</button>

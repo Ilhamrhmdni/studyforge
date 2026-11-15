@@ -1,5 +1,5 @@
 // Logic to load some preview quizzes
-async function loadPreviewQuizzes() {
+async function loadPreviewQuizzes(isLoggedIn = false) {
   const grid = document.getElementById('previewQuizGrid');
   try {
     const res = await fetch('/api/quizzes');
@@ -25,7 +25,7 @@ async function loadPreviewQuizzes() {
           <span>📝 ${q.count} Soal</span>
           <span>⏱️ ${q.duration} Menit</span>
         </div>
-        <a href="/masuk" class="btn btn-primary w-100" style="margin-top:1rem;text-align:center;">Mulai Kerjakan &rarr;</a>
+        <a href="${isLoggedIn ? `/quiz?id=${escapeHTML(q.id)}&reset=1` : '/masuk'}" class="btn btn-primary w-100" style="margin-top:1rem;text-align:center;">Mulai Kerjakan &rarr;</a>
       </div>
     `).join('');
   } catch(e) {
@@ -80,7 +80,7 @@ async function setupLandingPage() {
   }
 
   
-  loadPreviewQuizzes();
+  loadPreviewQuizzes(!!user);
 }
 
 setupLandingPage();

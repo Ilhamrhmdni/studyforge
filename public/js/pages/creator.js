@@ -296,10 +296,56 @@ function delQuestion(qidx) {
   currentQuestions.splice(qidx, 1);
   renderEditor();
 }
+
+function addManualQuestion() {
+  currentQuestions.push({
+    num: currentQuestions.length + 1,
+    text: 'Pertanyaan baru',
+    options: [
+      { key: 'A', text: 'Opsi A' },
+      { key: 'B', text: 'Opsi B' },
+      { key: 'C', text: 'Opsi C' },
+      { key: 'D', text: 'Opsi D' }
+    ],
+    answer: 'A'
+  });
+  renderEditor();
+}
+
+function validateCreatorQuiz() {
+  const alertsEl = document.getElementById('validationAlerts');
+  if (!alertsEl) return;
+
+  const issues = [];
+  const nums = new Set();
+  currentQuestions.forEach((q, idx) => {
+    const label = q.num || idx + 1;
+    if (!q.text || q.text.trim().length < 5) issues.push(`Soal ${label}: Teks soal terlalu pendek atau kosong.`);
+    if (!q.options || q.options.length < 2) issues.push(`Soal ${label}: Minimal harus ada 2 opsi jawaban.`);
+    if (!q.answer) issues.push(`Soal ${label}: Kunci jawaban belum dipilih.`);
+    if (nums.has(q.num)) issues.push(`Soal ${label}: Nomor soal duplikat.`);
+    nums.add(q.num);
+  });
+
+  if (issues.length === 0) {
+    alertsEl.innerHTML = `<div style="background:rgba(16,185,129,0.1);color:var(--success);border:1px solid rgba(16,185,129,0.2);padding:0.8rem 1rem;border-radius:8px;font-size:0.85rem;">✅ Semua ${currentQuestions.length} soal valid dan siap disimpan!</div>`;
+  } else {
+    alertsEl.innerHTML = `<div style="background:rgba(245,158,11,0.1);color:var(--warning);border:1px solid rgba(245,158,11,0.2);padding:0.8rem 1rem;border-radius:8px;font-size:0.85rem;"><strong>⚠️ Ditemukan ${issues.length} catatan:</strong><br>${issues.map((i) => `• ${i}`).join('<br>')}</div>`;
+  }
+}
+
 window.updateText = updateText;
 window.updateOpt = updateOpt;
 window.updateAns = updateAns;
 window.delQuestion = delQuestion;
+window.addManualQuestion = addManualQuestion;
+window.validateCreatorQuiz = validateCreatorQuiz;
+
+const btnValidateEl = document.getElementById('btnValidate');
+if (btnValidateEl) btnValidateEl.addEventListener('click', validateCreatorQuiz);
+
+const btnAddQuestionEl = document.getElementById('btnAddQuestion');
+if (btnAddQuestionEl) btnAddQuestionEl.addEventListener('click', addManualQuestion);
 
 document.getElementById('btnSaveQuiz').addEventListener('click', async () => {
   try {

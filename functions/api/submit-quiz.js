@@ -54,14 +54,15 @@ export async function onRequestPost(context) {
 
     for (let index = 0; index < storedQuestions.length; index++) {
       const question = storedQuestions[index];
-      const qid = `q-${Number.parseInt(question.num, 10) || index + 1}`;
-      const displayOrder = displayOrderMap.get(qid) || index + 1;
+      const stableNum = Number.parseInt(question.num, 10) || index + 1;
+      const qid = `q-${stableNum}`;
       const selected = answers[qid] ? String(answers[qid]) : null;
       const correctAnswer = await resolveStoredAnswer(context.env, question);
       const isCorrect = !!selected && selected === correctAnswer;
       if (isCorrect) correct += 1;
       review.push({
-        question_num: displayOrder,
+        question_num: stableNum,
+        display_order: displayOrderMap.get(qid) || index + 1,
         question_text: question.text || '',
         options: question.options || [],
         correct_answer: correctAnswer,
@@ -69,6 +70,8 @@ export async function onRequestPost(context) {
         is_correct: isCorrect
       });
     }
+
+    review.sort((a, b) => a.display_order - b.display_order);
 
     const total = storedQuestions.length;
     const score = total ? Math.round((correct / total) * 100) : 0;

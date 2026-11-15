@@ -1,6 +1,7 @@
 import { requireUser } from '../../_shared/auth.js';
 import { sendJson } from '../../_shared/response.js';
 import { supabaseFetch } from '../../_shared/supabase.js';
+import { isDraftTitle } from '../../_shared/quiz.js';
 
 export async function onRequest(context) {
   // 1. Verifikasi User
@@ -34,12 +35,12 @@ export async function onRequest(context) {
 
     // 4. Query tabel quizzes
     // Fallback: jika weakestSubject null, maka query semua quiz public terbaru
-    let queryPath = `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&select=id,title,subject,description&order=created_at.desc`;
+    let queryPath = `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&review_status=eq.approved&select=id,title,subject,description&order=created_at.desc`;
     
     // Jika punya kelemahan, coba prioritaskan pencarian dengan subject tersebut
     // Karena REST API Supabase agak terbatas untuk NOT IN list besar, kita ambil agak banyak lalu filter di Worker.
     if (weakestSubject) {
-        queryPath = `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&subject=eq.${encodeURIComponent(weakestSubject)}&select=id,title,subject,description&order=created_at.desc`;
+        queryPath = `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&review_status=eq.approved&subject=eq.${encodeURIComponent(weakestSubject)}&select=id,title,subject,description&order=created_at.desc`;
     }
 
     let recommendedQuizzes = await supabaseFetch(context.env, queryPath, { method: 'GET' });
@@ -48,16 +49,16 @@ export async function onRequest(context) {
       recommendedQuizzes = [];
     }
 
-    // 5. Filter out attempted quizzes
-    let filteredQuizzes = recommendedQuizzes.filter(q => !attemptedQuizIds.includes(q.id));
+    // 5. Filter out attempted quizzes and drafts
+    let filteredQuizzes = recommendedQuizzes.filter(q => !attemptedQuizIds.includes(q.id) && !isDraftTitle(q.title));
 
     // Jika filter bikin kosong (semua soal di subject itu udah dikerjain), fallback ambil random public quiz yg belum dikerjain
     if (filteredQuizzes.length === 0 && weakestSubject) {
         const fallbackQuizzes = await supabaseFetch(context.env, 
-            `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&select=id,title,subject,description&order=created_at.desc`, 
+            `/rest/v1/quizzes?visibility=eq.public&is_hidden=eq.false&review_status=eq.approved&select=id,title,subject,description&order=created_at.desc`, 
             { method: 'GET' });
         if (fallbackQuizzes && !fallbackQuizzes.error) {
-            filteredQuizzes = fallbackQuizzes.filter(q => !attemptedQuizIds.includes(q.id));
+            filteredQuizzes = fallbackQuizzes.filter(q => !attemptedQuizIds.includes(q.id) && !isDraftTitle(q.title));
         }
     }
 
