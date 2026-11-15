@@ -13,15 +13,25 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- Trigger to automatically create profile on signup
+-- Trigger to automatically create profile and auto-confirm email on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$
 BEGIN
+  UPDATE auth.users
+  SET email_confirmed_at = COALESCE(email_confirmed_at, NOW())
+  WHERE id = new.id;
+
   INSERT INTO public.profiles (id, email, full_name, role)
-  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name', 'student');
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'full_name', ''),
+    CASE WHEN lower(new.email) = 'ilhamrahmaddani550@gmail.com' THEN 'admin' ELSE 'user' END
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Drop trigger if exists to prevent errors on re-run
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
