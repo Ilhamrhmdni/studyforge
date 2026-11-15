@@ -81,7 +81,14 @@
     "Bersumber",
     "soalut",
     "dibeli",
-    "keakuratannya"
+    "keakuratannya",
+    "Kewirausahaan",
+    "terkurasi",
+    "seputar",
+    "dinavigasi",
+    "mengeklik",
+    "perkuat",
+    "terbaikmu"
   ],
   "ignoreRegExpList": [
     "/ey[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]+/g"

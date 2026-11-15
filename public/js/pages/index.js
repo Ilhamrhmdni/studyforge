@@ -14,18 +14,23 @@ async function loadPreviewQuizzes(isLoggedIn = false) {
       return;
     }
 
-    grid.innerHTML = quizzes.map(q => `
-      <div class="card quiz-card">
-        <div class="card-header">
-          <span class="subject-badge">${escapeHTML(q.subject)}</span>
+    const tagColors = ['', 'purple', 'amber'];
+    grid.innerHTML = quizzes.map((q, i) => `
+      <div class="card">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="card-tag ${tagColors[i % 3]}">${escapeHTML(q.subject || 'Umum')}</span>
+          </div>
+          <h3 class="card-title" title="${escapeHTML(q.title)}">${escapeHTML(q.title)}</h3>
+          <p class="card-desc">${escapeHTML(q.description || 'Paket latihan try out mandiri dan persiapan ujian.')}</p>
         </div>
-        <h3 class="quiz-title">${escapeHTML(q.title)}</h3>
-        <p class="quiz-desc">${escapeHTML(q.description || 'Paket soal latihan interaktif.')}</p>
-        <div class="quiz-meta">
-          <span>📝 ${q.count} Soal</span>
-          <span>⏱️ ${q.duration} Menit</span>
+        <div>
+          <div class="card-meta-chips">
+            <span class="meta-chip">📝 ${q.count} Soal</span>
+            <span class="meta-chip">⏱️ ${q.duration || 60} Menit</span>
+          </div>
+          <a href="${isLoggedIn ? `/quiz?id=${escapeHTML(q.id)}&reset=1` : '/masuk'}" class="btn btn-primary" style="width:100%;justify-content:center;">Mulai Kerjakan →</a>
         </div>
-        <a href="${isLoggedIn ? `/quiz?id=${escapeHTML(q.id)}&reset=1` : '/masuk'}" class="btn btn-primary w-100" style="margin-top:1rem;text-align:center;">Mulai Kerjakan &rarr;</a>
       </div>
     `).join('');
   } catch(e) {
