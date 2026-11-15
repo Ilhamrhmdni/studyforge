@@ -5,7 +5,8 @@ async function extractPdfText(file) {
     const reader = new FileReader();
     reader.onload = async function onLoad() {
       try {
-        const typedArray = new Uint8Array(this.result);
+        const buffer = /** @type {ArrayBuffer} */ (this.result);
+        const typedArray = new Uint8Array(buffer);
         const pdf = await pdfjsLib.getDocument(typedArray).promise;
         let fullText = '';
         const pageImagesMap = {};
@@ -79,7 +80,7 @@ function normalizePdfText(text) {
 function parseAnswerKey(text) {
   const answerMap = {};
   const lines = String(text || '').split('\n');
-  const regex = /^(?:no\s*)?(\d+)[\.\s:]*(?:jawaban\s*:\s*)?([A-E])/i;
+  const regex = /^(?:no\s*)?(\d+)[.\s:]*(?:jawaban\s*:\s*)?([A-E])/i;
 
   for (const line of lines) {
     const match = line.trim().match(regex);
@@ -178,14 +179,17 @@ function parseQuestionsStandard(lines, answerMap = {}) {
 
     if (!current) continue;
 
-    const optionMatch = line.match(/^[\(]?([A-Ea-e])[.)]\s+(.+)/);
+    const optionMatch = line.match(/^[(]?([A-Ea-e])[.)]\s+(.+)/);
     if (optionMatch) {
       current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2] });
       continue;
     }
 
     if (current.options.length > 0) {
-      current.options[current.options.length - 1].text += ` ${line}`;
+      const lastOption = current.options[current.options.length - 1];
+      if (lastOption) {
+        lastOption.text += ` ${line}`;
+      }
     } else {
       current.text += ` ${line}`;
     }
@@ -238,7 +242,10 @@ function parseQuestionsLMS(lines, answerMap = {}) {
     }
 
     if (current.options.length > 0) {
-      current.options[current.options.length - 1].text += ` ${line}`;
+      const lastOption = current.options[current.options.length - 1];
+      if (lastOption) {
+        lastOption.text += ` ${line}`;
+      }
       continue;
     }
 

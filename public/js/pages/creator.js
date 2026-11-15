@@ -3,13 +3,13 @@ let currentQuestions = [];
 let rawAIOutput = [];
 
 const logEl = document.getElementById('uploadStatus');
-const log = (msg) => {
+function log(msg) {
   logEl.textContent = msg;
   console.log(msg);
-};
+}
 
 // Event listeners dipasang di dalam init() setelah auth selesai
-let dropZone = null;
+let creatorDropZone = null;
 let pdfInput = null;
 
 async function apiCall(endpoint, data = {}) {
@@ -90,6 +90,7 @@ Aturan penting:
     const batchPages = batches[bi];
     log(`🤖 Memproses batch ${bi+1}/${batches.length} (halaman ${batchPages.join(', ')})...`);
 
+    /** @type {any[]} */
     const parts = [{ text: PROMPT(batchPages) }];
     for (const pg of batchPages) {
       const compressed = await compressForGemini(pageImagesMap[pg]);
@@ -148,8 +149,8 @@ async function handleFileUpload(file) {
   if (!consent) return alert('Anda harus menyetujui persyaratan penggunaan.');
 
   try {
-    dropZone.style.pointerEvents = 'none';
-    dropZone.style.opacity = '0.5';
+    creatorDropZone.style.pointerEvents = 'none';
+    creatorDropZone.style.opacity = '0.5';
     
     // 1. Read PDF
     log('Membaca PDF...');
@@ -211,8 +212,8 @@ async function handleFileUpload(file) {
     log(`Error: ${err.message}`);
     alert(err.message);
   } finally {
-    dropZone.style.pointerEvents = 'auto';
-    dropZone.style.opacity = '1';
+    creatorDropZone.style.pointerEvents = 'auto';
+    creatorDropZone.style.opacity = '1';
   }
 }
 
@@ -282,10 +283,23 @@ function renderEditor() {
   });
 }
 
-window.updateText = (qidx, val) => currentQuestions[qidx].text = val;
-window.updateOpt = (qidx, oidx, val) => currentQuestions[qidx].options[oidx].text = val;
-window.updateAns = (qidx, key) => currentQuestions[qidx].answer = key;
-window.delQuestion = (qidx) => { currentQuestions.splice(qidx, 1); renderEditor(); };
+function updateText(qidx, val) {
+  currentQuestions[qidx].text = val;
+}
+function updateOpt(qidx, oidx, val) {
+  currentQuestions[qidx].options[oidx].text = val;
+}
+function updateAns(qidx, key) {
+  currentQuestions[qidx].answer = key;
+}
+function delQuestion(qidx) {
+  currentQuestions.splice(qidx, 1);
+  renderEditor();
+}
+window.updateText = updateText;
+window.updateOpt = updateOpt;
+window.updateAns = updateAns;
+window.delQuestion = delQuestion;
 
 document.getElementById('btnSaveQuiz').addEventListener('click', async () => {
   try {
@@ -338,25 +352,25 @@ window.onload = async () => {
   if (typeof updateNavForUser === 'function') updateNavForUser();
 
   // Setup event listeners setelah auth berhasil
-  dropZone = document.getElementById('dropZone');
+  creatorDropZone = document.getElementById('dropZone');
   pdfInput = document.getElementById('pdfInput');
 
-  if (dropZone && pdfInput) {
-    dropZone.addEventListener('click', () => pdfInput.click());
-    dropZone.addEventListener('dragover', (e) => {
+  if (creatorDropZone && pdfInput) {
+    creatorDropZone.addEventListener('click', () => pdfInput.click());
+    creatorDropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      dropZone.style.borderColor = 'var(--primary)';
-      dropZone.style.background = 'rgba(99, 102, 241, 0.05)';
+      creatorDropZone.style.borderColor = 'var(--primary)';
+      creatorDropZone.style.background = 'rgba(99, 102, 241, 0.05)';
     });
-    dropZone.addEventListener('dragleave', (e) => {
+    creatorDropZone.addEventListener('dragleave', (e) => {
       e.preventDefault();
-      dropZone.style.borderColor = 'var(--border)';
-      dropZone.style.background = 'transparent';
+      creatorDropZone.style.borderColor = 'var(--border)';
+      creatorDropZone.style.background = 'transparent';
     });
-    dropZone.addEventListener('drop', (e) => {
+    creatorDropZone.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropZone.style.borderColor = 'var(--border)';
-      dropZone.style.background = 'transparent';
+      creatorDropZone.style.borderColor = 'var(--border)';
+      creatorDropZone.style.background = 'transparent';
       if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
     });
     pdfInput.addEventListener('change', (e) => {

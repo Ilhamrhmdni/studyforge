@@ -81,8 +81,8 @@ window.onload = async () => {
   document.getElementById('gradeBadge').className = `grade-badge ${grade.cls}`;
   document.getElementById('resultTitle').textContent = r.quiz_title;
   document.getElementById('resultMeta').textContent = `Dikerjakan pada ${new Date(r.submitted_at).toLocaleString('id-ID')}`;
-  document.getElementById('correctNum').textContent = r.correct;
-  document.getElementById('wrongNum').textContent = r.total - r.correct;
+  document.getElementById('correctNum').textContent = String(r.correct);
+  document.getElementById('wrongNum').textContent = String(r.total - r.correct);
   document.getElementById('timeNum').textContent = formatTime(r.time_taken || 0);
 
   document.getElementById('reviewList').innerHTML = r.answers.map((a, i) => `

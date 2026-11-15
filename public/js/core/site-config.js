@@ -5,8 +5,8 @@
 
 const SITE_CONFIG = {
   // ── Supabase Database ──
-  supabaseUrl:        'https://wsmclqrqfhrzysxgmfdj.supabase.co',
-  supabaseAnonKey:    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzbWNscXJxZmhyenlzeGdtZmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NjkwOTUsImV4cCI6MjA5ODI0NTA5NX0.l1lne-ZObuFd0gu9PbWz9rRm7e6y8V3KXgDTTxD8atE',
+  supabaseUrl:        'https://seklyplqvawnnajzlpgm.supabase.co',
+  supabaseAnonKey:    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNla2x5cGxxdmF3bm5hanpscGdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ3MjA4NTEsImV4cCI6MjExMDI5Njg1MX0.bDByOIADiLvCqAPD9rPrqpn8G4ZnXTcJS0hgZ2EA8bI',
 
   // ── App Info ──
   siteName:    'StudyForge',

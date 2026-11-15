@@ -188,6 +188,7 @@ Aturan penting:
     log(`🤖 Gemini batch ${bi+1}/${batches.length}: halaman ${batchPages.join(', ')}...`);
 
     // Build multi-image parts (compressed to save tokens)
+    /** @type {any[]} */
     const parts = [{ text: PROMPT(batchPages) }];
     for (const pg of batchPages) {
       const compressed = await compressForGemini(pageImagesMap[pg]);
@@ -256,11 +257,11 @@ Aturan penting:
             allQuestions.push(q);
           }
           success = true;
-          retries = 0; break;
+          break;
 
         } catch(e) {
           log(`❌ Batch ${bi+1} error: ${e.message}`);
-          retries = 0; break;
+          break;
         }
       }
       if (success) break;
@@ -559,7 +560,7 @@ function attachCroppedImages(questions, pageQuestionMap) {
     const qY = qMarker.y; // PDF Y of question start (from bottom)
 
     // Find Y of first option text (MUST be below the question text, so y < qY + 10)
-    let bottomY = null;
+    let bottomY;
     const optionYs = q.options.map(opt => {
       const validMarkers = items.filter(it =>
         it.y < qY + 10 &&

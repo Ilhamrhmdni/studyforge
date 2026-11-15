@@ -275,9 +275,9 @@ function updateSidebar() {
   const doubtful = doubtfulQuestions.size;
   const remaining = total - answered;
 
-  document.getElementById('sb-answered').textContent = answered;
-  document.getElementById('sb-doubtful').textContent = doubtful;
-  document.getElementById('sb-remaining').textContent = remaining;
+  document.getElementById('sb-answered').textContent = String(answered);
+  document.getElementById('sb-doubtful').textContent = String(doubtful);
+  document.getElementById('sb-remaining').textContent = String(remaining);
   
   renderSidebar();
 }

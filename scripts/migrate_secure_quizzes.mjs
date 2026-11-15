@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://wsmclqrqfhrzysxgmfdj.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://seklyplqvawnnajzlpgm.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const QUIZ_ENCRYPTION_SECRET = process.env.QUIZ_ENCRYPTION_SECRET;
 

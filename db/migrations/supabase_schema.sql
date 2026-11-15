@@ -29,9 +29,18 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- 2. QUIZZES / QUIZ_PACKAGES (Existing table for Admin)
--- Tambahkan kolom is_hidden buat fitur Sembunyikan Soal (Jalankan manual di Supabase SQL Editor!)
--- ALTER TABLE public.quizzes ADD COLUMN IF NOT EXISTS is_hidden boolean DEFAULT false;
+-- 2. QUIZZES / QUIZ_PACKAGES
+CREATE TABLE IF NOT EXISTS public.quizzes (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  subject TEXT DEFAULT 'Umum',
+  description TEXT DEFAULT '',
+  duration INTEGER DEFAULT 60,
+  count INTEGER DEFAULT 0,
+  questions JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  is_hidden BOOLEAN DEFAULT false
+);
 
 ALTER TABLE IF EXISTS public.quizzes ENABLE ROW LEVEL SECURITY;
 

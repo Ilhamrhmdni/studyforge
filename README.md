@@ -36,7 +36,7 @@ Cloudflare Pages akan otomatis membaca:
 Set di Cloudflare Pages project:
 
 ```text
-SUPABASE_URL=https://wsmclqrqfhrzysxgmfdj.supabase.co
+SUPABASE_URL=https://seklyplqvawnnajzlpgm.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 QUIZ_ENCRYPTION_SECRET=...
 ```

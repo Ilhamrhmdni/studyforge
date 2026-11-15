@@ -1,0 +1,5 @@
+node_modules/**
+studyforge/**
+docs/**
+supabase_dashboard_sql.html
+live_admin.html

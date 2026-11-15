@@ -1,5 +1,5 @@
 import { requireAdmin } from '../../_shared/auth.js';
-import { getServiceConfigError, supabaseFetch } from '../../_shared/supabase.js';
+import { getServiceConfigError } from '../../_shared/supabase.js';
 import { sendJson } from '../../_shared/response.js';
 
 export async function onRequestPost(context) {

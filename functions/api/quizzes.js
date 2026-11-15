@@ -15,7 +15,7 @@ export async function onRequestGet(context) {
     // Fallback filter untuk judul draft (defensif)
     const quizzes = (rows || []).filter((quiz) => !isDraftTitle(quiz.title));
     return sendJson({ quizzes });
-  } catch (error) {
+  } catch {
     return sendJson({ error: 'Gagal memuat daftar kuis.' }, 500);
   }
 }

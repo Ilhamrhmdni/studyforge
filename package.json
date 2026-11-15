@@ -1,5 +1,15 @@
 {
+  "name": "studyforge",
+  "private": true,
   "engines": {
     "node": "24.x"
+  },
+  "scripts": {
+    "lint:js": "eslint functions/ public/js/ scripts/",
+    "lint:html": "htmlhint \"public/**/*.html\"",
+    "lint:css": "stylelint \"public/**/*.css\"",
+    "lint:spelling": "cspell \"functions/**/*.js\" \"public/**/*.html\" \"public/js/**/*.js\"",
+    "check:types": "tsc -p jsconfig.json",
+    "check": "npm run lint:js && npm run lint:html && npm run lint:css && npm run lint:spelling"
   }
 }

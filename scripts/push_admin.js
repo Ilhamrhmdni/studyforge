@@ -49,7 +49,9 @@ async function pushFile(local, remote) {
   try {
     const existing = await apiRequest('GET', remote);
     sha = existing.sha;
-  } catch {}
+  } catch {
+    // File does not exist yet on remote
+  }
 
   const result = await apiRequest('PUT', remote, {
     message: `StudyForge: update ${remote}`,

@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "checkJs": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "useUnknownInCatchVariables": false,
+    "noEmit": true,
+    "allowJs": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "types/**/*.d.ts",
+    "functions/**/*.js",
+    "public/js/**/*.js",
+    "scripts/**/*.js",
+    "scripts/**/*.mjs"
+  ],
+  "exclude": [
+    "node_modules",
+    "docs",
+    "scripts/test_e2e"
+  ]
+}

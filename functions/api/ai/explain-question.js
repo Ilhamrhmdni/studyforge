@@ -1,7 +1,6 @@
 import { requireUser } from '../../_shared/auth.js';
 import { sendJson } from '../../_shared/response.js';
 import { supabaseFetch } from '../../_shared/supabase.js';
-import { getQuizById, decryptAnswer } from '../../_shared/quiz.js';
 
 // Rate limiting: maks 20 request AI per user per hari
 const DAILY_LIMIT = 20;
