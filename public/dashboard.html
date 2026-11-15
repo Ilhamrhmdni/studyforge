@@ -30,25 +30,61 @@
       <a href="/riwayat" class="sidebar-btn">🕒 Riwayat Ujian</a>
       <a href="/creator" class="sidebar-btn">✨ Creator Studio</a>
       <a href="/admin" class="sidebar-btn" id="navAdmin" style="display:none; color:var(--accent);">⚙️ Admin Panel</a>
-      
-      <div style="flex:1;"></div>
-      <a href="#" onclick="logoutUser(); return false;" class="sidebar-btn" style="color:var(--text3); border-top:1px solid var(--border); border-radius:0; padding-top:1rem; margin-top:1rem;">🚪 Keluar</a>
+    </div>
+
+    <div class="sidebar-user" id="sidebarUserBox" style="display:none;">
+      <div class="user-avatar" id="sidebarUserAvatar">U</div>
+      <div style="flex:1; overflow:hidden;">
+        <div id="sidebarUserName" style="font-size:0.85rem; font-weight:600; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">User</div>
+        <div id="sidebarUserEmail" style="font-size:0.75rem; color:var(--text3); white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">email@domain</div>
+      </div>
+      <button onclick="logoutUser()" title="Keluar" style="background:none; border:none; color:var(--text3); cursor:pointer; font-size:1.1rem; padding:0.2rem;" aria-label="Keluar">🚪</button>
     </div>
   </aside>
 
   <!-- MAIN CONTENT -->
   <main class="app-main">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-      <div>
-        <h1 id="pageTitle" style="font-size:1.8rem; font-weight:800; margin-bottom:0.2rem;">Paket Soal Tersedia</h1>
-        <p id="pageDesc" style="color:var(--text2); font-size:0.95rem;">Telusuri koleksi try out dan latihan yang siap dikerjakan.</p>
+    <!-- HERO / WELCOME BANNER -->
+    <div class="dashboard-hero">
+      <div class="hero-welcome">
+        <span class="hero-badge">👋 Selamat Datang</span>
+        <h1 id="welcomeUserTitle">Halo, Mahasiswa!</h1>
+        <p id="pageDesc">Pilih paket try out di bawah atau gunakan AI Parser untuk latihan dari modul kuliah kamu.</p>
       </div>
-      <a href="/creator" class="btn btn-primary" id="btnCreateQuiz" style="display:none; background: linear-gradient(135deg, var(--primary), var(--accent));">✨ Bikin Soal Sendiri</a>
+      <div class="hero-stats">
+        <div class="hero-stat-card">
+          <span class="stat-icon">📚</span>
+          <div>
+            <strong id="statTotalQuizzes">-</strong>
+            <small>Paket Soal</small>
+          </div>
+        </div>
+        <div class="hero-stat-card">
+          <span class="stat-icon">⚡</span>
+          <div>
+            <strong id="statTotalQuestions">-</strong>
+            <small>Total Butir</small>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- SEARCH & FILTER -->
-    <div style="margin-bottom:2rem; max-width:500px;">
-      <input class="form-input" id="searchInput" placeholder="🔍 Cari judul atau kategori soal..." style="width:100%;" oninput="filterQuizzes()"/>
+    <!-- SEARCH & ACTION TOOLBAR -->
+    <div class="dashboard-toolbar">
+      <div class="toolbar-search">
+        <span class="search-icon">🔍</span>
+        <input class="form-input search-input" id="searchInput" placeholder="Cari judul mata kuliah atau topik soal..." oninput="filterQuizzes()"/>
+      </div>
+      <a href="/creator" class="btn btn-primary" id="btnCreateQuiz" style="display:none; background: linear-gradient(135deg, var(--primary), var(--secondary));">✨ Bikin Soal Sendiri</a>
+    </div>
+
+    <!-- CATEGORY PILLS -->
+    <div class="category-pills" id="categoryPills"></div>
+
+    <!-- LIST HEADER -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.2rem;">
+      <h2 id="pageTitle" style="font-size:1.25rem; font-weight:700;">Paket Soal Tersedia</h2>
+      <span id="quizCountBadge" style="font-size:0.85rem; color:var(--text2); font-weight:500;">0 paket</span>
     </div>
 
     <!-- GRID CARDS -->

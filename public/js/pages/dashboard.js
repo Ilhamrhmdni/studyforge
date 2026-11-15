@@ -2,10 +2,30 @@
 
 let _allQuizzes = [];
 let _currentTab = 'public';
+let _selectedCategory = 'Semua';
 
 async function setupDashboard() {
   const user = await requireAuth();
   if (!user) return;
+
+  // Set personalized greeting in hero
+  const greetingEl = document.getElementById('welcomeUserTitle');
+  const userDisplayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Mahasiswa';
+  if (greetingEl) {
+    greetingEl.textContent = `Halo, ${userDisplayName}! 👋`;
+  }
+
+  // Set user profile at bottom of sidebar
+  const userBox = document.getElementById('sidebarUserBox');
+  const userAvatar = document.getElementById('sidebarUserAvatar');
+  const userName = document.getElementById('sidebarUserName');
+  const userEmail = document.getElementById('sidebarUserEmail');
+  if (userBox) {
+    userBox.style.display = 'flex';
+    if (userAvatar) userAvatar.textContent = userDisplayName.charAt(0).toUpperCase();
+    if (userName) userName.textContent = userDisplayName;
+    if (userEmail) userEmail.textContent = user.email || '';
+  }
 
   // Cek admin role
   const sb = initSupabase();
@@ -36,14 +56,17 @@ async function handleHashNav() {
   
   // Reset active classes
   document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
-  
+  _selectedCategory = 'Semua';
+  const searchEl = document.getElementById('searchInput');
+  if (searchEl) searchEl.value = '';
+
   if (hash === '#private' || isPrivatePath) {
     _currentTab = 'private';
     const navItem = document.getElementById('navPrivate');
     if (navItem) navItem.classList.add('active');
     
     document.getElementById('pageTitle').textContent = 'Koleksi Pribadi';
-    document.getElementById('pageDesc').textContent = 'Daftar paket soal yang kamu buat sendiri.';
+    document.getElementById('pageDesc').textContent = 'Daftar paket try out yang kamu buat mandiri lewat Creator Studio.';
     const btnCreate = document.getElementById('btnCreateQuiz');
     if (btnCreate) btnCreate.style.display = 'inline-flex';
     
@@ -55,11 +78,21 @@ async function handleHashNav() {
     if (navItem) navItem.classList.add('active');
     
     document.getElementById('pageTitle').textContent = 'Paket Soal Tersedia';
-    document.getElementById('pageDesc').textContent = 'Telusuri koleksi try out dan latihan yang siap dikerjakan.';
+    document.getElementById('pageDesc').textContent = 'Pilih paket try out di bawah atau gunakan AI Parser untuk latihan dari modul kuliah kamu.';
     const btnCreate = document.getElementById('btnCreateQuiz');
     if (btnCreate) btnCreate.style.display = 'none';
 
     await loadQuizzes();
+  }
+}
+
+function updateHeroStats(list) {
+  const statQuizzes = document.getElementById('statTotalQuizzes');
+  const statQuestions = document.getElementById('statTotalQuestions');
+  if (statQuizzes) statQuizzes.textContent = String(list.length);
+  if (statQuestions) {
+    const totalQ = list.reduce((acc, q) => acc + (Number(q.count) || 0), 0);
+    statQuestions.textContent = String(totalQ);
   }
 }
 
@@ -73,6 +106,8 @@ async function loadQuizzes() {
     if (!res.ok) throw new Error(payload.error || 'Gagal memuat quiz.');
     
     _allQuizzes = payload.quizzes || [];
+    updateHeroStats(_allQuizzes);
+    renderCategoryPills(_allQuizzes);
     renderQuizzes(_allQuizzes, false);
   } catch (e) {
     grid.innerHTML = `
@@ -80,6 +115,7 @@ async function loadQuizzes() {
         <div class="empty-icon">📭</div>
         <p>Tersedia segera. Admin belum menambahkan paket soal.</p>
       </div>`;
+    updateHeroStats([]);
   }
 }
 
@@ -96,6 +132,8 @@ async function loadPrivateQuizzes() {
     if (!res.ok) throw new Error(payload.error);
     
     _allQuizzes = payload.quizzes || [];
+    updateHeroStats(_allQuizzes);
+    renderCategoryPills(_allQuizzes);
     renderQuizzes(_allQuizzes, true);
   } catch (e) {
     grid.innerHTML = `
@@ -103,14 +141,55 @@ async function loadPrivateQuizzes() {
         <div class="empty-icon">📭</div>
         <p>Belum ada paket soal buatanmu sendiri.</p>
       </div>`;
+    updateHeroStats([]);
   }
+}
+
+function renderCategoryPills(list) {
+  const container = document.getElementById('categoryPills');
+  if (!container) return;
+
+  const subjectCounts = {};
+  list.forEach(q => {
+    const subj = q.subject || 'Umum';
+    subjectCounts[subj] = (subjectCounts[subj] || 0) + 1;
+  });
+
+  const subjects = Object.keys(subjectCounts).sort();
+  let html = `<button class="category-pill ${_selectedCategory === 'Semua' ? 'active' : ''}" data-category="Semua" onclick="selectCategory('Semua')">Semua (${list.length})</button>`;
+  subjects.forEach(subj => {
+    const active = _selectedCategory === subj ? 'active' : '';
+    html += `<button class="category-pill ${active}" data-category="${escapeHTML(subj)}" onclick="selectCategory('${escapeHTML(subj)}')">${escapeHTML(subj)} (${subjectCounts[subj]})</button>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function selectCategory(category) {
+  _selectedCategory = category;
+  document.querySelectorAll('.category-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-category') === category);
+  });
+  filterQuizzes();
 }
 
 function renderQuizzes(list, isPrivate = false) {
   const grid = document.getElementById('quizGrid');
+  const countBadge = document.getElementById('quizCountBadge');
+  if (countBadge) {
+    countBadge.textContent = `${list.length} paket`;
+  }
+
   if (!list.length) {
-    const emptyMsg = isPrivate ? 'Belum ada paket soal buatanmu sendiri.' : 'Tersedia segera. Admin belum menambahkan paket soal.';
-    grid.innerHTML = `<div style="grid-column:1/-1;" class="empty-state"><div class="empty-icon">📭</div><p>${emptyMsg}</p></div>`;
+    const emptyMsg = isPrivate
+      ? 'Belum ada paket soal buatanmu sendiri.'
+      : 'Tidak ditemukan paket soal yang sesuai dengan pencarian atau filter kategori.';
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;" class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>${emptyMsg}</p>
+        ${isPrivate ? '<a href="/creator" class="btn btn-primary" style="margin-top:1rem;">✨ Buat Soal Sekarang</a>' : ''}
+      </div>`;
     return;
   }
   
@@ -136,27 +215,32 @@ function renderQuizzes(list, isPrivate = false) {
 
     return `
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div class="card-tag ${tagColors[i % 3]}">${escapeHTML(q.subject || 'Umum')}</div>
-        ${badgeHtml}
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="card-tag ${tagColors[i % 3]}">${escapeHTML(q.subject || 'Umum')}</div>
+          ${badgeHtml}
+        </div>
+        <h3 class="card-title" title="${escapeHTML(q.title)}">${escapeHTML(q.title)}</h3>
+        <p class="card-desc">${escapeHTML(q.description || 'Paket latihan try out mandiri dan persiapan ujian.')}</p>
       </div>
-      <h3 style="margin-top:1rem;">${escapeHTML(q.title)}</h3>
-      <p>${escapeHTML(q.description || 'Paket soal latihan interaktif.')}</p>
-      <div class="card-meta">
-        <span>📝 ${q.count} Soal</span>
-        <span>⏱️ ${q.duration || 60} Menit</span>
+      <div>
+        <div class="card-meta-chips">
+          <span class="meta-chip">📝 ${q.count} Soal</span>
+          <span class="meta-chip">⏱️ ${q.duration || 60} Menit</span>
+        </div>
+        ${actionBtnHtml}
       </div>
-      <br/>
-      ${actionBtnHtml}
     </div>
   `}).join('');
 }
 
 function filterQuizzes() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = _allQuizzes.filter((x) =>
-    (x.title || '').toLowerCase().includes(q) || (x.subject || '').toLowerCase().includes(q)
-  );
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+  const filtered = _allQuizzes.filter((x) => {
+    const matchCat = (_selectedCategory === 'Semua') || ((x.subject || 'Umum') === _selectedCategory);
+    const matchQuery = !q || (x.title || '').toLowerCase().includes(q) || (x.subject || '').toLowerCase().includes(q) || (x.description || '').toLowerCase().includes(q);
+    return matchCat && matchQuery;
+  });
   renderQuizzes(filtered, _currentTab === 'private');
 }
 
@@ -184,4 +268,5 @@ function escapeHTML(str) {
 setupDashboard();
 
 window.filterQuizzes = filterQuizzes;
+window.selectCategory = selectCategory;
 window.submitReview = submitReview;
