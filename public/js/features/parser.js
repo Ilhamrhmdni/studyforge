@@ -132,6 +132,10 @@ function finalizeParsedQuestions(questions) {
       }
     }
 
+    if (question.explanation && typeof stripMarkers === 'function') {
+      question.explanation = stripMarkers(question.explanation);
+    }
+
     if (question._correctText && typeof normalizeForCompare === 'function') {
       const normalizedCorrectText = normalizeForCompare(question._correctText);
       for (const option of question.options) {
@@ -154,20 +158,23 @@ function finalizeParsedQuestions(questions) {
 
 function parseQuestionsStandard(lines, answerMap = {}) {
   let answerKeyStart = -1;
-  for (let index = 0; index < lines.length; index++) {
-    if (/kunci\s*jawaban|answer\s*key|pembahasan|kunci\s*soal/i.test(lines[index])) {
-      answerKeyStart = index;
-      break;
-    }
-  }
-
   const mergedAnswerMap = { ...answerMap };
-  if (answerKeyStart > -1) {
-    for (let index = answerKeyStart; index < lines.length; index++) {
-      const match = lines[index].match(/^(\d+)[.)]\s*([A-Ea-e])\b/) ||
-        lines[index].match(/no\.?\s*(\d+)\s*[=:]\s*([A-Ea-e])\b/i);
-      if (match) {
-        mergedAnswerMap[parseInt(match[1], 10)] = match[2].toUpperCase();
+
+  // Only scan for an answer key section if it's placed after the opening header/title (index >= 5)
+  for (let index = 5; index < lines.length; index++) {
+    if (/^(?:daftar\s+)?(?:kunci\s*jawaban|answer\s*key|kunci\s*soal|pembahasan\s*soal)\b/i.test(lines[index])) {
+      let foundKeys = 0;
+      for (let j = index; j < lines.length; j++) {
+        const match = lines[j].match(/^(\d+)[.)]\s*([A-Ea-e])\b/) ||
+          lines[j].match(/no\.?\s*(\d+)\s*[=:]\s*([A-Ea-e])\b/i);
+        if (match) {
+          foundKeys++;
+          mergedAnswerMap[parseInt(match[1], 10)] = match[2].toUpperCase();
+        }
+      }
+      if (foundKeys >= 2) {
+        answerKeyStart = index;
+        break;
       }
     }
   }
@@ -175,30 +182,60 @@ function parseQuestionsStandard(lines, answerMap = {}) {
   const workLines = answerKeyStart > 0 ? lines.slice(0, answerKeyStart) : lines;
   const questions = [];
   let current = null;
+  let inExplanation = false;
+
+  const questionRegex = /^(?:(?:Soal|No\.?|Pertanyaan)\s*)?(\d+)(?:\s*\([a-z]\))?\s*(?:[.):-](?!\d)|\))\s*(.*)/i;
+  const optionRegex = /^[([]?([A-Ea-e])\s*(?:[.):-](?!\d)|\)|\])\s*(.*)/;
+  const explanationRegex = /^(?:Cara\s*hitung|Pembahasan|Penjelasan|Keterangan|Catatan)\s*[:=-]/i;
 
   for (const line of workLines) {
-    const questionMatch = line.match(/^(\d+)[.)]\s+(.+)/);
+    const questionMatch = line.match(questionRegex);
     if (questionMatch) {
       const nextNum = parseInt(questionMatch[1], 10);
-      if (current && nextNum <= current.num) {
-        current.text += ` ${line}`;
+      const questionText = (questionMatch[2] || '').trim();
+
+      if (current && current.options.length >= 2) {
+        questions.push(current);
+        current = {
+          num: nextNum,
+          text: questionText,
+          options: [],
+          answer: mergedAnswerMap[nextNum] || '',
+          explanation: ''
+        };
+        inExplanation = false;
         continue;
       }
-      if (current) questions.push(current);
-      current = {
-        num: nextNum,
-        text: questionMatch[2],
-        options: [],
-        answer: mergedAnswerMap[nextNum] || ''
-      };
-      continue;
+
+      if (!current) {
+        current = {
+          num: nextNum,
+          text: questionText,
+          options: [],
+          answer: mergedAnswerMap[nextNum] || '',
+          explanation: ''
+        };
+        inExplanation = false;
+        continue;
+      }
     }
 
     if (!current) continue;
 
-    const optionMatch = line.match(/^[(]?([A-Ea-e])[.)]\s+(.+)/);
+    if (explanationRegex.test(line)) {
+      inExplanation = true;
+      current.explanation = current.explanation ? `${current.explanation} ${line}` : line;
+      continue;
+    }
+
+    if (inExplanation) {
+      current.explanation = current.explanation ? `${current.explanation} ${line}` : line;
+      continue;
+    }
+
+    const optionMatch = line.match(optionRegex);
     if (optionMatch) {
-      current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2] });
+      current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
       continue;
     }
 
@@ -208,7 +245,7 @@ function parseQuestionsStandard(lines, answerMap = {}) {
         lastOption.text += ` ${line}`;
       }
     } else {
-      current.text += ` ${line}`;
+      current.text = current.text ? `${current.text} ${line}` : line;
     }
   }
 
@@ -252,9 +289,9 @@ function parseQuestionsLMS(lines, answerMap = {}) {
       continue;
     }
 
-    const optionMatch = line.match(/^([A-Ea-e])[.)]\s+(.+)/);
+    const optionMatch = line.match(/^[([]?([A-Ea-e])\s*(?:[.):-](?!\d)|\)|\])\s*(.*)/);
     if (optionMatch) {
-      current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2] });
+      current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
       continue;
     }
 

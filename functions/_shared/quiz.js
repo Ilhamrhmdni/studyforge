@@ -112,6 +112,7 @@ export async function prepareQuestionsForStorage(env, questions) {
         key: String(option.key || option.id || ''),
         text: option.text || ''
       })),
+      explanation: question.explanation ? String(question.explanation).trim() : null,
       answer_token: await encryptAnswer(env.QUIZ_ENCRYPTION_SECRET, String(question.answer || ''))
     });
   }

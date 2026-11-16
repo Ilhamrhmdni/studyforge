@@ -386,16 +386,23 @@ async function handleFile(file) {
       .filter(it => it.str.trim())
       .map(it => ({ str: it.str.trim(), x: it.transform[4], y: it.transform[5] }));
 
-    // Reconstruct lines
-    const byY = {};
-    for (const it of pageTextItems[i]) {
-      const yr = Math.round(it.y);
-      if (!byY[yr]) byY[yr] = [];
-      byY[yr].push(it);
+    // Reconstruct lines by clustering items with Y tolerance (prevents splitting text chunks)
+    const sortedItems = pageTextItems[i].slice().sort((a, b) => b.y - a.y || a.x - b.x);
+    const lineBuckets = [];
+    for (const it of sortedItems) {
+      const bucket = lineBuckets.find(b => Math.abs(b.y - it.y) <= 2.5);
+      if (bucket) {
+        bucket.items.push(it);
+        bucket.y = bucket.items.reduce((sum, item) => sum + item.y, 0) / bucket.items.length;
+      } else {
+        lineBuckets.push({ y: it.y, items: [it] });
+      }
     }
-    const pageLines = Object.keys(byY).map(Number).sort((a,b) => b-a)
-      .map(y => byY[y].sort((a,b) => a.x-b.x).map(t => t.str).join(' ').trim())
-      .filter(l => l);
+    lineBuckets.sort((a, b) => b.y - a.y);
+    const pageLines = lineBuckets.map(b => {
+      b.items.sort((a, b) => a.x - b.x);
+      return b.items.map(t => t.str).join(' ').trim();
+    }).filter(Boolean);
 
     // ── Detect embedded images via operator list ──
     const opList = await page.getOperatorList();
@@ -426,12 +433,12 @@ async function handleFile(file) {
     log(`✅ Regex: ${regexQuestions.length} soal dari halaman teks`);
   }
 
-  // ── Step 3: Parse image pages with GEMINI (only if key exists) ──
+  // ── Step 3: Parse image pages with GEMINI (or AI fallback if regex returned 0) ──
   let geminiQuestions = [];
-  if (imagePages.length > 0) {
-    const cfg = getConfig();
-    const geminiKey = cfg?.geminiKey;
+  const cfg = getConfig();
+  const geminiKey = cfg?.geminiKey;
 
+  if (imagePages.length > 0) {
     if (geminiKey) {
       log(`🤖 Gemini memproses ${imagePages.length} halaman bergambar...`);
       // Build map of ONLY image page images
@@ -453,6 +460,19 @@ async function handleFile(file) {
       const fallback = parserHelpers.parseQuestions(imageFullText);
       geminiQuestions = fallback;
       log(`📋 Regex fallback: ${fallback.length} soal`);
+    }
+  } else if (regexQuestions.length === 0 && textOnlyPages.length > 0) {
+    // Fallback: If regex found 0 questions on text pages, try Gemini visual/multimodal parser
+    if (geminiKey) {
+      log(`⚠️ Regex mendeteksi 0 soal dari teks. Mencoba analisis visual AI Gemini...`);
+      try {
+        geminiQuestions = await parseWithGemini(pageImages, geminiKey);
+        log(`✅ Gemini Fallback: ${geminiQuestions.length} soal berhasil diekstrak!`);
+      } catch (e) {
+        log(`❌ Gemini Fallback gagal: ${e.message}`);
+      }
+    } else {
+      log(`⚠️ Regex tidak mendeteksi soal pada format PDF ini. Jika dokumen berisi format tabel/khusus, masukkan Gemini API Key di tab Konfigurasi untuk parsing otomatis.`);
     }
   }
 
@@ -493,7 +513,6 @@ async function handleFile(file) {
   updatePreview();
 
   // Generate description with Gemini (client) or Cloudflare AI (server)
-  const cfg = getConfig();
   if (parsedQuestions.length > 0) {
     const descInput = document.getElementById('quizDesc');
     descInput.placeholder = '✨ AI sedang membuat deskripsi...';
@@ -642,7 +661,7 @@ function parseQuestions(text) {
   // ── Detect format ──
   const isLMSFormat = /Question\s+\d+/i.test(text) || /Correct\s+Mark\s+[\d.]+\s+out\s+of/i.test(text);
   log(`📋 Format terdeteksi: ${isLMSFormat ? 'LMS/Moodle Export' : 'Standard Numbered'}`);
-  return isLMSFormat ? parseLMSFormat(text) : parseStandardFormat(text);
+  return parserHelpers.parseQuestions(text);
 }
 
 // ── FORMAT 1: Standard (1. Soal, A. Opsi) ──
@@ -661,68 +680,7 @@ function isAdminNoiseLine(line) {
 }
 
 function parseStandardFormat(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l && !isAdminNoiseLine(l));
-  const questions = [];
-  let current = null;
-
-  // Detect answer key section
-  let answerKeyStart = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/kunci\s*jawaban|answer\s*key|pembahasan|kunci\s*soal/i.test(lines[i])) {
-      answerKeyStart = i; break;
-    }
-  }
-  const answerKeys = {};
-  if (answerKeyStart > -1) {
-    for (let i = answerKeyStart; i < lines.length; i++) {
-      const m = lines[i].match(/^(\d+)[.)]\s*([A-Ea-e])\b/) ||
-                lines[i].match(/no\.?\s*(\d+)\s*[=:]\s*([A-Ea-e])\b/i);
-      if (m) answerKeys[parseInt(m[1])] = m[2].toUpperCase();
-    }
-    log(`🔑 Kunci jawaban: ${Object.keys(answerKeys).length} soal`);
-  }
-
-  const workLines = answerKeyStart > 0 ? lines.slice(0, answerKeyStart) : lines;
-
-  for (let i = 0; i < workLines.length; i++) {
-    const line = workLines[i];
-    const qMatch = line.match(/^(\d+)[.)]\s+(.+)/);
-    if (qMatch) {
-      const nextNum = parseInt(qMatch[1], 10);
-      if (current && nextNum <= current.num) {
-        current.text += ' ' + line;
-        continue;
-      }
-      if (current) questions.push(current);
-      current = { num: nextNum, text: qMatch[2], options: [], answer: answerKeys[nextNum] || '' };
-      continue;
-    }
-    if (!current) continue;
-    const optMatch = line.match(/^([A-Ea-e])[.)]\s+(.+)/);
-    if (optMatch) {
-      current.options.push({ key: optMatch[1].toUpperCase(), text: optMatch[2] });
-      continue;
-    }
-    if (current.options.length > 0) {
-      current.options[current.options.length-1].text += ' ' + line;
-    } else {
-      current.text += ' ' + line;
-    }
-  }
-  if (current) questions.push(current);
-  
-  // Post-process with normalize.js
-  for (const q of questions) {
-    q.text = stripMarkers(q.text);
-    for (const opt of q.options) {
-      if (hasCorrectMarker(opt.text)) {
-        q.answer = opt.key;
-      }
-      opt.text = stripMarkers(opt.text);
-    }
-  }
-
-  return questions.filter(q => q.options.length >= 2);
+  return parserHelpers.parseQuestions(text);
 }
 
 // ── FORMAT 2: LMS/Moodle Export (Question X, a. b. c. d., Correct answer: teks) ──
