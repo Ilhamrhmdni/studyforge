@@ -56,7 +56,7 @@ export async function onRequestPost(context) {
       title,
       subject,
       description: description || '',
-      duration: duration || 0,
+      duration: Math.max(1, parseInt(duration, 10) || 60),
       count: questions.length,
       questions: await prepareQuestionsForStorage(context.env, questions),
       creator_id: auth.user.id,

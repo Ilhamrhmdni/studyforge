@@ -112,7 +112,7 @@ export async function onRequestPost(context) {
     const subject = attempt.quiz_title || '';
 
     // Format opsi jawaban
-    const optionsText = options.map(o => `${o.key}. ${o.text}`).join('\n');
+    const optionsText = options.map(o => `${o.key || o.id || ''}. ${o.text}`).join('\n');
 
     // 8. Buat prompt AI
     const prompt = `Kamu adalah tutor ujian yang membantu mahasiswa belajar dari kesalahan mereka. 

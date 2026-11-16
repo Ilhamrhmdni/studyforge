@@ -116,8 +116,15 @@ Aturan penting:
         if (data.error) throw new Error(data.error.message);
         
         let text = data.candidates[0].content.parts[0].text.trim();
-        if (text.startsWith('```json')) text = text.replace(/```json\n?/, '').replace(/```\s*$/, '');
-        
+        const jsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (jsonMatch) {
+          text = jsonMatch[0];
+        } else if (text.startsWith('```json')) {
+          text = text.replace(/```json\n?/, '').replace(/```\s*$/, '');
+        } else if (text.startsWith('```')) {
+          text = text.replace(/```\n?/, '').replace(/```\s*$/, '');
+        }
+
         const qArray = JSON.parse(text);
         if (Array.isArray(qArray)) {
           allQuestions.push(...qArray);
@@ -130,6 +137,36 @@ Aturan penting:
       }
     }
     
+    // If workingModel failed on subsequent batch, try all models as fallback
+    if (!success && workingModel) {
+      for (const model of MODELS) {
+        if (model === workingModel) continue;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+        try {
+          const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error.message);
+          let text = data.candidates[0].content.parts[0].text.trim();
+          const jsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          if (jsonMatch) {
+            text = jsonMatch[0];
+          } else if (text.startsWith('```json')) {
+            text = text.replace(/```json\n?/, '').replace(/```\s*$/, '');
+          }
+          const qArray = JSON.parse(text);
+          if (Array.isArray(qArray)) {
+            allQuestions.push(...qArray);
+            success = true;
+            workingModel = model;
+            GEMINI_URL = url;
+            break;
+          }
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+    }
+
     if (!success) {
       console.warn(`Gagal memproses batch ${bi+1}:`, lastErr);
     }
@@ -294,6 +331,7 @@ function updateAns(qidx, key) {
 }
 function delQuestion(qidx) {
   currentQuestions.splice(qidx, 1);
+  currentQuestions.forEach((q, i) => { q.num = i + 1; });
   renderEditor();
 }
 
@@ -309,6 +347,7 @@ function addManualQuestion() {
     ],
     answer: 'A'
   });
+  currentQuestions.forEach((q, i) => { q.num = i + 1; });
   renderEditor();
 }
 
@@ -383,7 +422,7 @@ document.getElementById('btnSaveQuiz').addEventListener('click', async () => {
     });
 
     alert('Kuis berhasil disimpan ke Koleksi Pribadi!');
-    window.location.href = '/dashboard.html';
+    window.location.href = '/koleksi';
 
   } catch (err) {
     alert(`Error: ${err.message}`);

@@ -271,9 +271,9 @@ function renderSidebar() {
 
 function updateSidebar() {
   const total = quiz.questions.length;
-  const answered = Object.keys(answers).length;
+  const answered = Object.values(answers).filter(Boolean).length;
   const doubtful = doubtfulQuestions.size;
-  const remaining = total - answered;
+  const remaining = Math.max(0, total - answered);
 
   document.getElementById('sb-answered').textContent = String(answered);
   document.getElementById('sb-doubtful').textContent = String(doubtful);
@@ -304,7 +304,7 @@ function goTo(idx) {
 }
 
 function confirmSubmit() {
-  const answered = Object.keys(answers).length;
+  const answered = Object.values(answers).filter(Boolean).length;
   const total = quiz.questions.length;
   document.getElementById('submitModalText').innerHTML = `Kamu sudah menjawab <strong>${answered}</strong> dari <strong>${total}</strong> soal. Yakin ingin mengumpulkan?`;
   document.getElementById('submitModal').style.display = 'flex';
@@ -346,6 +346,9 @@ async function submitQuiz() {
     window.isSubmitting = false;
     document.getElementById('submitBtn').disabled = false;
     document.getElementById('submitBtn').textContent = '✅ Kumpulkan Jawaban';
+    if (timeLeft > 0) {
+      startTimer();
+    }
   }
 }
 

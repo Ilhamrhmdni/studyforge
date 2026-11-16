@@ -34,12 +34,13 @@ export async function onRequestPost(context) {
     const profile = await getProfile(context.env, user.id);
     const isAdmin = profile?.role === 'admin';
     const isOwner = quiz.creator_id === user.id;
-    const isNonPublicQuiz =
-      isDraftTitle(quiz.title) ||
-      quiz.is_hidden ||
-      quiz.visibility !== 'public';
+    const isPublicAndApproved =
+      !isDraftTitle(quiz.title) &&
+      !quiz.is_hidden &&
+      quiz.visibility === 'public' &&
+      (quiz.review_status === 'approved' || !quiz.review_status);
 
-    if (isNonPublicQuiz && !isAdmin && !isOwner) {
+    if (!isPublicAndApproved && !isAdmin && !isOwner) {
       return sendJson({ error: 'Quiz tidak ditemukan.' }, 404);
     }
 
@@ -55,8 +56,9 @@ export async function onRequestPost(context) {
     for (let index = 0; index < storedQuestions.length; index++) {
       const question = storedQuestions[index];
       const stableNum = Number.parseInt(question.num, 10) || index + 1;
-      const qid = `q-${stableNum}`;
-      const selected = answers[qid] ? String(answers[qid]) : null;
+      const qid = String(question.qid || `q-${stableNum}`);
+      const rawSelected = answers[qid] || answers[question.qid] || answers[`q-${stableNum}`] || answers[String(stableNum)] || null;
+      const selected = rawSelected ? String(rawSelected).trim().toUpperCase() : null;
       const correctAnswer = await resolveStoredAnswer(context.env, question);
       const isCorrect = !!selected && selected === correctAnswer;
       if (isCorrect) correct += 1;

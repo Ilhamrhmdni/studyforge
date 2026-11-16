@@ -1245,16 +1245,20 @@ footer span { color: var(--primary); }
   border-color: var(--success);
   color: #34d399;
 }
-.sdot.current {
-  background: var(--primary);
-  border-color: #60a5fa;
-  color: #fff;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
-}
 .sdot.doubtful {
   background: rgba(245, 158, 11, 0.18);
   border-color: var(--accent);
   color: #fbbf24;
+}
+.sdot.current {
+  background: var(--primary) !important;
+  border-color: #60a5fa !important;
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
+}
+.sdot.current.doubtful {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* Report Bug CSS */

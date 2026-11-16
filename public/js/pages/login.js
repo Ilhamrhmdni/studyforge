@@ -32,10 +32,10 @@ async function handleLogin(e) {
     btn.disabled = false;
     btn.textContent = 'Masuk';
   } else {
-    let redirect = sessionStorage.getItem('sf_redirect') || '/dashboard.html';
+    let redirect = sessionStorage.getItem('sf_redirect') || '/paket-soal';
     
     // Redirect admin ke admin panel jika tujuan awalnya dashboard
-    if (data.user && redirect === '/dashboard.html') {
+    if (data.user && (redirect === '/dashboard.html' || redirect === '/paket-soal')) {
       const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
       if (profile && profile.role === 'admin') {
         redirect = '/admin.html';
@@ -82,7 +82,18 @@ async function handleRegister(e) {
 
 window.onload = async () => {
   const user = await checkUserAuth();
-  if (user) window.location.href = '/dashboard.html';
+  if (user) {
+    window.location.href = '/paket-soal';
+    return;
+  }
+
+  // Otomatis buka tab daftar jika user membuka /daftar atau ada hash #register / parameter tab=register
+  const path = window.location.pathname.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  if (path.includes('/daftar') || search.includes('tab=register') || hash === '#register' || hash === '#daftar') {
+    switchTab('register');
+  }
 };
 
 // --- Auto-exports to window ---

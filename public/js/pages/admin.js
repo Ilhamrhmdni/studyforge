@@ -1200,9 +1200,10 @@ async function loadUGC() {
       <div class="quiz-list-row">
         <div class="name">${escapeHTML(q.title)} <span style="font-size:0.8rem; color:var(--text2); font-weight:normal;">(${q.count} soal)</span>
         <br><span style="font-size:0.8rem; color:var(--primary);">Oleh: ${escapeHTML(q.profiles?.full_name || 'Anonim')}</span></div>
-        <div style="display:flex;gap:0.5rem;">
-          <button class="btn btn-primary" onclick="approveUGC('${q.id}')">Setujui</button>
-          <button class="btn btn-outline" onclick="rejectUGC('${q.id}')">Tolak</button>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <a href="/quiz?id=${encodeURIComponent(q.id)}" target="_blank" class="btn btn-outline" style="text-decoration:none;padding:0.4rem 0.8rem;font-size:0.82rem;">Preview</a>
+          <button class="btn btn-primary" style="padding:0.4rem 0.8rem;font-size:0.82rem;" onclick="approveUGC('${q.id}')">Setujui</button>
+          <button class="btn btn-outline" style="padding:0.4rem 0.8rem;font-size:0.82rem;" onclick="rejectUGC('${q.id}')">Tolak</button>
         </div>
       </div>
     `).join('');

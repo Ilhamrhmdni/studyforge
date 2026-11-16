@@ -24,6 +24,9 @@ async function extractPdfText(file) {
             }
           }
 
+          const pageText = textContent.items.map((item) => item.str).join(' ');
+          fullText += `\n\n--- PAGE ${pageNumber} ---\n\n${pageText}`;
+
           if (hasImage) {
             const viewport = page.getViewport({ scale: 1.5 });
             const canvas = document.createElement('canvas');
@@ -32,9 +35,6 @@ async function extractPdfText(file) {
             canvas.width = viewport.width;
             await page.render({ canvasContext: context, viewport }).promise;
             pageImagesMap[pageNumber] = canvas.toDataURL('image/jpeg', 0.8);
-          } else {
-            const pageText = textContent.items.map((item) => item.str).join(' ');
-            fullText += `\n\n--- PAGE ${pageNumber} ---\n\n${pageText}`;
           }
         }
 

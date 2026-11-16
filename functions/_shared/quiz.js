@@ -94,11 +94,21 @@ export async function prepareQuestionsForStorage(env, questions) {
   for (let index = 0; index < (questions || []).length; index++) {
     const question = questions[index];
     const stableNum = Number.parseInt(question.num, 10) || index + 1;
+    let rawOptions = [];
+    if (Array.isArray(question.options)) {
+      rawOptions = question.options;
+    } else if (question.options && typeof question.options === 'object') {
+      rawOptions = Object.entries(question.options).map(([k, v]) => ({
+        key: k,
+        text: typeof v === 'object' && v !== null ? v.text || '' : String(v)
+      }));
+    }
+
     prepared.push({
       num: stableNum,
       text: question.text || '',
       image: question.image || null,
-      options: (question.options || []).map((option) => ({
+      options: rawOptions.map((option) => ({
         key: String(option.key || option.id || ''),
         text: option.text || ''
       })),
@@ -109,8 +119,11 @@ export async function prepareQuestionsForStorage(env, questions) {
 }
 
 export async function resolveStoredAnswer(env, question) {
-  if (question.answer_token) return decryptAnswer(env.QUIZ_ENCRYPTION_SECRET, question.answer_token);
-  return String(question.answer || '');
+  if (question.answer_token) {
+    const decrypted = await decryptAnswer(env.QUIZ_ENCRYPTION_SECRET, question.answer_token);
+    return String(decrypted || '').trim().toUpperCase();
+  }
+  return String(question.answer || '').trim().toUpperCase();
 }
 
 export async function getQuizById(env, id) {

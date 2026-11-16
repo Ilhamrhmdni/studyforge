@@ -1,7 +1,7 @@
 import { requireAdmin } from '../../_shared/auth.js';
 import { getServiceConfigError, supabaseFetch } from '../../_shared/supabase.js';
 import { readJson, sendJson } from '../../_shared/response.js';
-import { prepareQuestionsForStorage } from '../../_shared/quiz.js';
+import { isDraftTitle, prepareQuestionsForStorage } from '../../_shared/quiz.js';
 
 export async function onRequestPost(context) {
   try {
@@ -37,6 +37,11 @@ export async function onRequestPost(context) {
       duration,
       count: questions.length,
       created_at: new Date().toISOString(),
+      creator_id: auth.user.id,
+      source_type: 'official',
+      visibility: isDraftTitle(title) ? 'private' : 'public',
+      review_status: 'approved',
+      is_hidden: isDraftTitle(title),
       questions: await prepareQuestionsForStorage(context.env, questions)
     };
 

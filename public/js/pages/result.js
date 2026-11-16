@@ -96,13 +96,14 @@ window.onload = async () => {
         <p style="margin-bottom:0.8rem;font-weight:500;">${escapeHTML(a.question)}</p>
         <div style="display:flex;flex-direction:column;gap:0.4rem;">
           ${a.options.map((o) => {
+            const optKey = o.key || o.id || '';
             let style = '';
-            if (o.key === a.correctAnswer) style = 'color:var(--success);font-weight:600;';
-            if (o.key === a.userAnswer && o.key !== a.correctAnswer) style = 'color:var(--danger);text-decoration:line-through;';
-            return `<div style="${style};font-size:0.85rem;"><strong>${escapeHTML(o.key)}.</strong> ${escapeHTML(o.text)} ${o.key === a.correctAnswer ? ' ✓' : ''}${o.key === a.userAnswer && o.key !== a.correctAnswer ? ' ✗' : ''}</div>`;
+            if (optKey === a.correctAnswer) style = 'color:var(--success);font-weight:600;';
+            if (optKey === a.userAnswer && optKey !== a.correctAnswer) style = 'color:var(--danger);text-decoration:line-through;';
+            return `<div style="${style};font-size:0.85rem;"><strong>${escapeHTML(optKey)}.</strong> ${escapeHTML(o.text)} ${optKey === a.correctAnswer ? ' ✓' : ''}${optKey === a.userAnswer && optKey !== a.correctAnswer ? ' ✗' : ''}</div>`;
           }).join('')}
         </div>
-        ${!a.isCorrect ? `<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--success);">Jawaban benar: <strong>${escapeHTML(a.correctAnswer)}${(() => { const opt = a.options.find((o) => o.key === a.correctAnswer); return opt ? `. ${escapeHTML(opt.text)}` : ''; })()}</strong></div>` : ''}
+        ${!a.isCorrect ? `<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--success);">Jawaban benar: <strong>${escapeHTML(a.correctAnswer)}${(() => { const opt = a.options.find((o) => (o.key || o.id) === a.correctAnswer); return opt ? `. ${escapeHTML(opt.text)}` : ''; })()}</strong></div>` : ''}
         
         <!-- Tombol AI Pembahasan -->
         <div style="margin-top:1rem;">

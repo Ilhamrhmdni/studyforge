@@ -149,6 +149,11 @@ function renderCategoryPills(list) {
   const container = document.getElementById('categoryPills');
   if (!container) return;
 
+  if (!list || list.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
   const subjectCounts = {};
   list.forEach(q => {
     const subj = q.subject || 'Umum';
