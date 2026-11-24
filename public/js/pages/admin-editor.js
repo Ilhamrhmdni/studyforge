@@ -88,15 +88,10 @@ export async function runAiQuizAudit() {
           statusEl.innerHTML = `🤖 Mengaudit batch <strong>${batchNum}/${totalBatches}</strong> (${processed}/${total} soal)...`;
         }
       },
-      backendAuditFn: async (batch) => {
-        const res = await adminApiFetch('/api/admin/audit-quiz', {
-          method: 'POST',
-          body: JSON.stringify({ questions: batch })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        return data;
-      }
+      backendAuditFn: (batch) => adminApiFetch('/api/admin/audit-quiz', {
+        method: 'POST',
+        body: { questions: batch }
+      })
     });
 
     adminState.parsedQuestions = result.questions;
