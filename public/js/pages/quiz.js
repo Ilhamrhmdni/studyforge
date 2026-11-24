@@ -44,12 +44,8 @@ function loadQuizState() {
 }
 
 function clearQuizState() {
-  try {
-    const key = getQuizStateKey();
-    if (key) sessionStorage.removeItem(key);
-  } catch (e) {
-    console.warn('Gagal menghapus state quiz:', e);
-  }
+  const key = getQuizStateKey();
+  if (key) sessionStorage.removeItem(key);
 }
 
 function reorderById(items, orderedIds, pickId) {
@@ -91,8 +87,8 @@ function applyQuizState(savedState) {
 
   answers = savedState?.answers && typeof savedState.answers === 'object' ? savedState.answers : {};
   doubtfulQuestions = new Set(savedState?.doubtfulQuestions || []);
-  currentIdx = Math.min(Math.max(parseInt(savedState?.currentIdx, 10) || 0, 0), Math.max(quiz.questions.length - 1, 0));
-  timeLeft = Math.max(0, parseInt(savedState?.timeLeft, 10) || ((quiz.duration || 60) * 60));
+  currentIdx = Math.min(Math.max(Number.parseInt(savedState?.currentIdx, 10) || 0, 0), Math.max(quiz.questions.length - 1, 0));
+  timeLeft = Math.max(0, Number.parseInt(savedState?.timeLeft, 10) || ((quiz.duration || 60) * 60));
   return true;
 }
 
@@ -179,7 +175,7 @@ function startQuiz() {
 function startTimer() {
   const el = document.getElementById('timer');
   timerInterval = setInterval(() => {
-    if (timeLeft <= 0) { clearInterval(timerInterval); submitQuiz(); return; }
+    if (timeLeft <= 0) { clearInterval(timerInterval); void submitQuiz(); return; }
     timeLeft--;
     const m = Math.floor(timeLeft / 60);
     const s = timeLeft % 60;
@@ -391,7 +387,7 @@ function handleBugReportImage(file) {
 
   const reader = new FileReader();
   reader.onload = (event) => {
-    bugReportImageDataUrl = String(event.target?.result || '');
+    bugReportImageDataUrl = typeof event.target?.result === 'string' ? event.target.result : '';
     document.getElementById('bugReportPreviewImage').src = bugReportImageDataUrl;
     document.getElementById('bugReportPreview').style.display = bugReportImageDataUrl ? 'block' : 'none';
   };
@@ -461,17 +457,17 @@ window.addEventListener('beforeunload', () => {
 
 function handleQuizKeydown(e) {
   if (e.ctrlKey || e.altKey || e.metaKey) return;
-  const targetTag = (e.target && e.target.tagName) || '';
+  const targetTag = e.target?.tagName || '';
   if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') return;
 
   const bugModal = document.getElementById('bugReportModal');
   const submitModal = document.getElementById('submitModal');
-  if (bugModal && bugModal.style.display === 'flex') return;
-  if (submitModal && submitModal.style.display === 'flex') return;
+  if (bugModal?.style.display === 'flex') return;
+  if (submitModal?.style.display === 'flex') return;
 
-  if (!quiz || !quiz.questions || !quiz.questions[currentIdx]) return;
+  if (!quiz?.questions?.[currentIdx]) return;
   const q = quiz.questions[currentIdx];
-  const key = e.key ? e.key.toUpperCase() : '';
+  const key = e.key?.toUpperCase() ?? '';
 
   const keyToOptionIdx = {
     'A': 0, '1': 0,
@@ -481,9 +477,9 @@ function handleQuizKeydown(e) {
     'E': 4, '5': 4
   };
 
-  if (Object.prototype.hasOwnProperty.call(keyToOptionIdx, key)) {
+  if (Object.hasOwn(keyToOptionIdx, key)) {
     const optIdx = keyToOptionIdx[key];
-    if (q.options && q.options[optIdx]) {
+    if (q.options?.[optIdx]) {
       e.preventDefault();
       selectAnswer(q.qid, q.options[optIdx].id);
     }
@@ -509,7 +505,7 @@ function handleQuizKeydown(e) {
 
 window.addEventListener('keydown', handleQuizKeydown);
 
-init();
+void init();
 
 // --- Auto-exports to window ---
 window.submitQuiz = submitQuiz;
