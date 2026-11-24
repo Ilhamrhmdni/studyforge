@@ -368,7 +368,7 @@ function checkTextQuality(question, errors, warnings) {
     errors.push('Teks soal terlalu pendek atau kosong.');
     return;
   }
-  if (text.length > 1500) {
+  if (text.length > 1500 && question.aiAudit?.status !== 'ok') {
     warnings.push('Teks soal sangat panjang (> 1500 karakter), kemungkinan soal berikutnya ikut tergabung.');
   }
   if (/\b(?:catatan|sumber)\s*:|https?:\/\/|www\.|\bpage\s+\d+\s+of\s+\d+/i.test(text)) {

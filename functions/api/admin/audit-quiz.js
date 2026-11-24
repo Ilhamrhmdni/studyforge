@@ -143,7 +143,7 @@ export async function onRequestPost(context) {
     }
 
     try {
-      const cfResponse = await context.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+      const cfResponse = await context.env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', {
         messages,
         max_tokens: 4096,
         temperature: 0.1

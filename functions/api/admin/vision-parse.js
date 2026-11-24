@@ -82,8 +82,7 @@ export async function onRequestPost(context) {
     const groqRes = await runGroqWithPool(context.env, messages, {
       models: GROQ_VISION_MODELS,
       temperature: 0.1,
-      maxTokens: 6144,
-      responseFormat: { type: 'json_object' }
+      maxTokens: 4096
     });
 
     if (groqRes.ok) {
@@ -98,22 +97,35 @@ export async function onRequestPost(context) {
       return sendJson({ error: groqRes.error || 'Vision AI provider belum dikonfigurasi.' }, status);
     }
 
+    const firstPage = validPages[0];
+    const base64 = firstPage.imageDataUrl.split(',')[1] || '';
+    const imageBytes = Uint8Array.from(atob(base64), (c) => c.codePointAt(0) || 0);
+    const runCfVision = () => context.env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', {
+      prompt: buildVisionPrompt([firstPage.pageNum]),
+      image: [...imageBytes],
+      max_tokens: 4096
+    });
+
     try {
-      const firstPage = validPages[0];
-      const base64 = firstPage.imageDataUrl.split(',')[1] || '';
-      const imageBytes = Uint8Array.from(atob(base64), (c) => c.codePointAt(0) || 0);
-      const cfResponse = await context.env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', {
-        prompt: buildVisionPrompt([firstPage.pageNum]),
-        image: [...imageBytes],
-        max_tokens: 4096
-      });
+      let cfResponse;
+      try {
+        cfResponse = await runCfVision();
+      } catch (firstErr) {
+        if (String(firstErr?.message || '').includes('5016')) {
+          await context.env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', { prompt: 'agree' });
+          cfResponse = await runCfVision();
+        } else {
+          throw firstErr;
+        }
+      }
       const questions = extractQuestionsJson(cfResponse?.response);
       if (questions) {
         return sendJson({ questions, provider: 'cloudflare-vision' });
       }
-      return sendJson({ error: 'Respons Vision AI tidak berbentuk JSON valid.' }, 502);
+      return sendJson({ error: `Respons Vision AI tidak berbentuk JSON valid. (Groq: ${groqRes.error || '-'})` }, 502);
     } catch (cfErr) {
-      return sendJson({ error: cfErr?.message || groqRes.error || 'Vision AI gagal memproses halaman.' }, 502);
+      const groqInfo = groqRes.error ? `Groq: ${groqRes.error}; ` : '';
+      return sendJson({ error: `${groqInfo}CF Vision: ${cfErr?.message || 'gagal'}` }, 502);
     }
   } catch (error) {
     console.error('vision-parse error:', error);
