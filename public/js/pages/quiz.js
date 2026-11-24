@@ -133,12 +133,23 @@ async function init() {
     const payload = await response.json();
     if (!response.ok || !payload.quiz) throw new Error(payload.error || 'Quiz tidak ditemukan');
     quiz = payload.quiz;
-    applyQuizState(loadQuizState());
+    const savedState = loadQuizState();
+    const hadSavedState = Boolean(savedState);
+    applyQuizState(savedState);
 
     document.title = `${escapeHTML(quiz.title)} - StudyForge`;
     document.getElementById('quizNavInfo').textContent = escapeHTML(quiz.title);
     document.getElementById('sb-total').textContent = quiz.questions.length;
     document.getElementById('sb-remaining').textContent = quiz.questions.length;
+
+    // Jika state tersimpan dan waktu sudah habis (sesi sebelumnya expired),
+    // langsung submit tanpa mereset waktu ke penuh.
+    if (hadSavedState && timeLeft === 0) {
+      clearQuizState();
+      await submitQuiz();
+      return;
+    }
+
     if (!timeLeft) {
       timeLeft = (quiz.duration || 60) * 60;
     }
