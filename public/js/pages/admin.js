@@ -60,7 +60,9 @@ function initAdmin() {
   dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
-    handleFile(e.dataTransfer.files[0], updatePreview);
+    handleFile(e.dataTransfer.files[0], updatePreview).catch((err) => {
+      showToast(err?.message || 'Gagal memproses PDF.', 'error');
+    });
   });
 }
 
@@ -86,7 +88,7 @@ async function initAdminAuthSafe() {
   }
 }
 
-initAdminAuthSafe();
+initAdminAuthSafe().catch((err) => console.error('initAdminAuthSafe error:', err));
 
 // Expose handlers used by inline onclick/onchange attributes in admin.html
 Object.assign(window, {
