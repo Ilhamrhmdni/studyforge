@@ -51,6 +51,15 @@ function appendAuditLog(msg) {
   pre.scrollTop = pre.scrollHeight;
 }
 
+export function renumberQuestions() {
+  if (!adminState.parsedQuestions.length) return;
+  adminState.parsedQuestions.forEach((q, idx) => {
+    q.num = idx + 1;
+  });
+  updatePreview();
+  showToast(`Nomor soal dirapikan berurutan (1–${adminState.parsedQuestions.length}).`, 'success');
+}
+
 export async function runAiQuizAudit() {
   if (!adminState.parsedQuestions.length) {
     showToast('Belum ada soal untuk diperiksa.', 'warning');
@@ -157,7 +166,7 @@ export function buildQuizPreview(stats) {
     return `
     <div class="question-editor" id="qe-${qi}" style="border-left: 4px solid ${statusColor}; border-radius: 8px;">
       <div class="q-header">
-        <div class="q-num" style="background:${statusColor};color:${q.status === 'warning' ? '#000' : '#fff'}">${q.num}</div>
+        <input type="number" min="1" class="q-num" style="background:${statusColor};color:${q.status === 'warning' ? '#000' : '#fff'};border:none;text-align:center;" value="${q.num}" onchange="parsedQuestions[${qi}].num=Number.parseInt(this.value,10)||${q.num}; updatePreview();" title="Ubah nomor soal"/>
         <div style="flex:1;">
           <input class="form-input" value="${escapeHTML(q.text)}" oninput="parsedQuestions[${qi}].text=this.value" placeholder="Teks pertanyaan"/>
         </div>
