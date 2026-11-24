@@ -6,6 +6,60 @@ let currentQuizId = '';
 let currentUser = null;
 let bugReportImageDataUrl = '';
 
+// ---- Exam Mode constants ----
+const MIN_ANSWERED_RATIO = 0.5;
+
+function getAnsweredRatio() {
+  if (!quiz || !quiz.questions.length) return 0;
+  return Object.values(answers).filter(Boolean).length / quiz.questions.length;
+}
+
+function enterFullscreen() {
+  const el = /** @type {any} */ (document.documentElement);
+  void (el.requestFullscreen?.() ?? el.webkitRequestFullscreen?.() ??
+    el.mozRequestFullScreen?.() ?? el.msRequestFullscreen?.());
+}
+
+function exitFullscreenGraceful() {
+  const doc = /** @type {any} */ (document);
+  void (doc.exitFullscreen?.() ?? doc.webkitExitFullscreen?.() ??
+    doc.mozCancelFullScreen?.() ?? doc.msExitFullscreen?.());
+}
+
+function onFullscreenChange() {
+  const doc = /** @type {any} */ (document);
+  const isFs = Boolean(doc.fullscreenElement ?? doc.webkitFullscreenElement);
+  const banner = document.getElementById('fsWarningBanner');
+  if (!isFs && quiz && !window.isSubmitting) {
+    if (getAnsweredRatio() < MIN_ANSWERED_RATIO) {
+      enterFullscreen();
+      const minQ = Math.ceil(quiz.questions.length * MIN_ANSWERED_RATIO);
+      showToast(`Jawab minimal ${minQ} soal sebelum keluar mode ujian.`, 'warning');
+    } else {
+      if (banner) banner.style.display = 'block';
+    }
+  } else {
+    if (banner) banner.style.display = 'none';
+  }
+}
+
+function showExamSplash() {
+  document.getElementById('splashQuizTitle').textContent = quiz.title;
+  document.getElementById('splashTotalQ').textContent = String(quiz.questions.length);
+  document.getElementById('splashDuration').textContent = `${quiz.duration || 60} menit`;
+  document.getElementById('splashUser').textContent = userName;
+
+  document.getElementById('btnStartExam').addEventListener('click', () => {
+    document.getElementById('examSplash').style.display = 'none';
+    enterFullscreen();
+    startQuiz();
+  }, { once: true });
+
+  document.getElementById('fsWarningBanner').addEventListener('click', enterFullscreen);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+}
+
 function getQuizStateKey() {
   if (!currentQuizId || !currentUser) return '';
   return `quizState:${currentQuizId}:${currentUser.id}`;
@@ -150,7 +204,7 @@ async function init() {
       timeLeft = (quiz.duration || 60) * 60;
     }
 
-    startQuiz();
+    showExamSplash();
     updateBugReportMeta();
   } catch (e) {
     alert(`Gagal memuat quiz: ${e.message}`);
@@ -166,6 +220,7 @@ function startQuiz() {
   const startSeconds = timeLeft % 60;
   timerEl.textContent = `${String(startMinutes).padStart(2, '0')}:${String(startSeconds).padStart(2, '0')}`;
   if (timeLeft <= 300) timerEl.classList.add('danger');
+  else if (timeLeft <= 600) timerEl.classList.add('warning');
   startTimer();
   renderQuestion();
   renderSidebar();
@@ -180,7 +235,15 @@ function startTimer() {
     const m = Math.floor(timeLeft / 60);
     const s = timeLeft % 60;
     el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    if (timeLeft <= 300) el.classList.add('danger');
+    if (timeLeft <= 300) {
+      el.classList.remove('warning');
+      el.classList.add('danger');
+    } else if (timeLeft <= 600) {
+      el.classList.remove('danger');
+      el.classList.add('warning');
+    } else {
+      el.classList.remove('warning', 'danger');
+    }
     saveQuizState();
   }, 1000);
 }
@@ -346,6 +409,7 @@ async function submitQuiz() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || 'Gagal menyimpan hasil.');
     clearQuizState();
+    exitFullscreenGraceful();
     window.location.href = `/result?id=${payload.attemptId}`;
   } catch (e) {
     console.error('Failed to save result:', e);
@@ -535,3 +599,7 @@ window.goTo = goTo;
 window.toggleDoubt = toggleDoubt;
 window.toggleQuizSidebar = toggleQuizSidebar;
 window.handleQuizKeydown = handleQuizKeydown;
+window.enterFullscreen = enterFullscreen;
+window.exitFullscreenGraceful = exitFullscreenGraceful;
+window.showExamSplash = showExamSplash;
+window.getAnsweredRatio = getAnsweredRatio;

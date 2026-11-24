@@ -1323,3 +1323,77 @@ footer span { color: var(--primary); }
     justify-content: center;
   }
 }
+
+/* ==================== EXAM MODE ==================== */
+
+/* Splash Screen */
+.exam-splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.exam-splash-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  max-width: 520px; width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.exam-splash-icon { font-size: 3rem; margin-bottom: 1rem; }
+.exam-splash-card h2 {
+  font-size: 1.3rem; font-weight: 700; color: var(--text1);
+  margin-bottom: 0.25rem;
+}
+.exam-info-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.75rem; margin: 1.5rem 0;
+}
+.exam-info-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 0.75rem;
+}
+.exam-info-label { font-size: 0.75rem; color: var(--text3); display: block; margin-bottom: 0.25rem; }
+.exam-info-value { font-size: 1.1rem; font-weight: 700; color: var(--text1); }
+.exam-rules {
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 10px; padding: 1rem;
+  text-align: left; font-size: 0.85rem; color: var(--text2);
+  margin-bottom: 1.5rem;
+}
+.exam-rules ul { margin: 0.5rem 0 0 1rem; padding: 0; }
+.exam-rules li { margin-bottom: 0.4rem; }
+.btn-exam-start {
+  display: block; width: 100%;
+  padding: 0.9rem 2rem; font-size: 1rem;
+}
+.exam-cancel-link {
+  display: block; margin-top: 1rem;
+  font-size: 0.85rem; color: var(--text3);
+  text-decoration: none;
+}
+.exam-cancel-link:hover { color: var(--text2); text-decoration: underline; }
+
+/* Fullscreen Warning Banner */
+.fs-warning-banner {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 8888;
+  background: var(--warning); color: #000;
+  text-align: center; padding: 0.6rem 1rem;
+  font-size: 0.9rem; font-weight: 600;
+  cursor: pointer;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Timer urgency states */
+#timer.warning { color: var(--warning); animation: pulse 2s ease-in-out infinite; }
+#timer.danger  { color: var(--danger);  animation: pulse 1s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}

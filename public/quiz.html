@@ -29,6 +29,36 @@
     </div>
   </div>
 
+  <!-- Exam Splash Screen -->
+  <div id="examSplash" class="exam-splash">
+    <div class="exam-splash-card">
+      <div class="exam-splash-icon">📋</div>
+      <h2 id="splashQuizTitle">Memuat soal...</h2>
+      <div class="exam-info-grid">
+        <div class="exam-info-item"><span class="exam-info-label">Total Soal</span><span class="exam-info-value" id="splashTotalQ">—</span></div>
+        <div class="exam-info-item"><span class="exam-info-label">Waktu Ujian</span><span class="exam-info-value" id="splashDuration">—</span></div>
+        <div class="exam-info-item"><span class="exam-info-label">Peserta</span><span class="exam-info-value" id="splashUser">—</span></div>
+        <div class="exam-info-item"><span class="exam-info-label">Mode</span><span class="exam-info-value">🔒 Layar Penuh</span></div>
+      </div>
+      <div class="exam-rules">
+        <strong>Aturan Ujian:</strong>
+        <ul>
+          <li>Waktu berjalan begitu Anda menekan "Mulai"</li>
+          <li>Layar penuh aktif otomatis saat ujian dimulai</li>
+          <li>Tidak bisa keluar layar penuh sebelum menjawab 50% soal</li>
+          <li>Waktu habis &rarr; jawaban dikumpulkan otomatis</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary btn-exam-start" id="btnStartExam">✅ Saya Siap — Mulai Ujian</button>
+      <a href="/dashboard.html" class="exam-cancel-link">Batalkan &amp; Kembali ke Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Fullscreen Warning Banner -->
+  <div id="fsWarningBanner" class="fs-warning-banner" style="display:none;" role="alert">
+    ⚠️ Mode ujian tidak aktif. Klik di sini untuk kembali ke layar penuh.
+  </div>
+
   <div class="quiz-layout">
     <div class="quiz-main">
       <div class="question-card" id="questionCard" style="display:none;">
