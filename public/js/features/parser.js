@@ -209,7 +209,8 @@ function appendContinuation(line, current) {
 
 const STANDARD_QUESTION_REGEX = /^(?:(?:Soal|No\.?|Pertanyaan)\s*)?(\d+)(?:\s*\([a-z]\))?\s*[.):-]\s*(.*)/i;
 const STANDARD_OPTION_REGEX = /^[([]?([A-E])\s*[.):\]]\s*(.*)/i;
-const EXPLANATION_START_REGEX = /^(?:Cara\s*hitung|Pembahasan|Penjelasan|Keterangan|Catatan)\s*[:=-]/i;
+const INLINE_ANSWER_REGEX = /^(?:Jawaban(?:\s+yang\s+benar)?|Kunci(?:\s+jawaban)?|Answer)\s*[:=-]\s*(.*)/i;
+const EXPLANATION_START_REGEX = /^(?:Cara\s*hitung(?:\s*\/\s*pembahasan)?|Pembahasan|Penjelasan|Keterangan|Catatan)\s*[:=-]/i;
 
 function processStandardLine(line, state) {
   const questionMatch = /^\d+\.\d/.test(line) ? null : STANDARD_QUESTION_REGEX.exec(line);
@@ -229,6 +230,15 @@ function processStandardLine(line, state) {
 
   const current = state.current;
   if (!current) return;
+
+  const inlineAnswerMatch = INLINE_ANSWER_REGEX.exec(line);
+  if (inlineAnswerMatch) {
+    const ansLetter = /^([A-E])\b/i.exec(inlineAnswerMatch[1].trim());
+    if (ansLetter && !current.answer) {
+      current.answer = ansLetter[1].toUpperCase();
+    }
+    return;
+  }
 
   if (state.inExplanation || EXPLANATION_START_REGEX.test(line)) {
     state.inExplanation = true;
