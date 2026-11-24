@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
 <title>Kerjakan Soal - StudyForge</title>
-<link rel="stylesheet" href="/css/style.css"/>
+<link rel="stylesheet" href="/css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2" integrity="sha384-7i/4BYWz4Mn+lJfg2HWfEPfZQ7tmFKF3CTSKlXBpxWjNlLjcg+T6smpHG4gLmU1u" crossorigin="anonymous"></script>
 <script src="/js/core/site-config.js"></script>
 <script src="/js/core/auth.js"></script>
@@ -24,7 +24,7 @@
       <span class="quiz-autosave">Tersimpan di perangkat</span>
     </div>
     <div class="quiz-topbar-right">
-      <button class="btn btn-outline mobile-nav-btn" onclick="toggleQuizSidebar()">☰ Navigasi</button>
+      <button type="button" class="btn btn-outline mobile-nav-btn" onclick="toggleQuizSidebar()">☰ Navigasi</button>
       <div class="timer-box" id="timer">--:--</div>
     </div>
   </div>
@@ -49,7 +49,7 @@
           <li>Waktu habis &rarr; jawaban dikumpulkan otomatis</li>
         </ul>
       </div>
-      <button class="btn btn-primary btn-exam-start" id="btnStartExam">✅ Saya Siap — Mulai Ujian</button>
+      <button type="button" class="btn btn-primary btn-exam-start" id="btnStartExam">✅ Saya Siap — Mulai Ujian</button>
       <a href="/dashboard.html" class="exam-cancel-link">Batalkan &amp; Kembali ke Dashboard</a>
     </div>
   </div>
@@ -65,11 +65,11 @@
         <div class="question-num" id="questionNum"></div>
         <div class="question-text" id="questionText"></div>
         <div class="options-list" id="optionsList"></div>
-        
+
         <div class="quiz-bottom-actions quiz-nav-hidden" id="quizNav">
-          <button class="btn btn-outline" id="prevBtn" onclick="navigate(-1)">← Sebelumnya</button>
-          <button class="btn btn-secondary" id="doubtBtn" onclick="toggleDoubt()">Tandai Ragu-ragu</button>
-          <button class="btn btn-primary" id="nextBtn" onclick="navigate(1)">Selanjutnya →</button>
+          <button type="button" class="btn btn-outline" id="prevBtn" onclick="navigate(-1)">← Sebelumnya</button>
+          <button type="button" class="btn btn-secondary" id="doubtBtn" onclick="toggleDoubt()">Tandai Ragu-ragu</button>
+          <button type="button" class="btn btn-primary" id="nextBtn" onclick="navigate(1)">Selanjutnya →</button>
         </div>
 
         <div class="keyboard-helper">
@@ -81,16 +81,16 @@
     </div>
 
     <div class="quiz-sidebar-wrapper" id="quizSidebarWrapper">
-      <div class="quiz-sidebar-overlay" onclick="toggleQuizSidebar()"></div>
+      <button type="button" class="quiz-sidebar-overlay" aria-label="Tutup navigasi soal" onclick="toggleQuizSidebar()"></button>
       <div class="quiz-sidebar">
         <div class="quiz-sidebar-box">
           <div class="quiz-sidebar-header">
             <h4>📋 Navigasi Soal</h4>
-            <button class="mobile-close-btn" onclick="toggleQuizSidebar()">✕</button>
+            <button type="button" class="mobile-close-btn" onclick="toggleQuizSidebar()">✕</button>
           </div>
           <div class="sidebar-dots" id="sidebarDots"></div>
         </div>
-        
+
         <div class="quiz-sidebar-box">
           <h4>📊 Status</h4>
           <div class="quiz-status-list">
@@ -112,11 +112,11 @@
             </div>
           </div>
         </div>
-        
-        <button class="btn btn-success btn-submit-full" id="submitBtn" onclick="confirmSubmit()">
+
+        <button type="button" class="btn btn-success btn-submit-full" id="submitBtn" onclick="confirmSubmit()">
           ✅ Kumpulkan Jawaban
         </button>
-        <button class="btn btn-outline report-trigger" id="reportBugBtn" onclick="openBugReportModal()">
+        <button type="button" class="btn btn-outline report-trigger" id="reportBugBtn" onclick="openBugReportModal()">
           🐞 Laporkan Bug
         </button>
       </div>
@@ -129,8 +129,8 @@
     <h3>⚠️ Kumpulkan Jawaban?</h3>
     <p id="submitModalText">Kamu sudah menjawab <strong>0</strong> dari <strong>0</strong> soal. Yakin ingin mengumpulkan?</p>
     <div class="modal-actions">
-      <button class="btn btn-outline" onclick="document.getElementById('submitModal').style.display='none'">Batal</button>
-      <button class="btn btn-success" onclick="submitQuiz()">✅ Ya, Kumpulkan!</button>
+      <button type="button" class="btn btn-outline" onclick="document.getElementById('submitModal').style.display='none'">Batal</button>
+      <button type="button" class="btn btn-success" onclick="submitQuiz()">✅ Ya, Kumpulkan!</button>
     </div>
   </div>
 </div>
@@ -140,18 +140,18 @@
     <h3>🐞 Laporkan Bug</h3>
     <p class="bug-modal-note">Laporan akan dikirim memakai identitas akun yang sedang login. Setelah kirim, kamu bisa lanjut mengerjakan quiz.</p>
     <div class="form-group">
-      <label class="form-label">Deskripsi Bug</label>
+      <label class="form-label" for="bugReportMessage">Deskripsi Bug</label>
       <textarea class="form-input" id="bugReportMessage" rows="5" placeholder="Jelaskan bug yang kamu temukan. Contoh: opsi tidak bisa dipilih, timer berhenti, gambar soal tidak muncul."></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Screenshot Pendukung (opsional)</label>
-      <input class="form-input" id="bugReportImageInput" type="file" accept="image/*" onchange="handleBugReportImage(this.files[0])"/>
+      <label class="form-label" for="bugReportImageInput">Screenshot Pendukung (opsional)</label>
+      <input class="form-input" id="bugReportImageInput" type="file" accept="image/*" title="Upload screenshot pendukung" onchange="handleBugReportImage(this.files[0])">
       <div class="report-preview report-preview-hidden" id="bugReportPreview">
         <div class="report-preview-header">
           <strong class="preview-label">Preview gambar</strong>
           <button class="btn btn-outline btn-clear-preview" type="button" onclick="clearBugReportImage()">Hapus</button>
         </div>
-        <img id="bugReportPreviewImage" alt="Preview bug report"/>
+        <img id="bugReportPreviewImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Preview bug report">
       </div>
     </div>
     <div class="report-note" id="bugReportMeta"></div>
