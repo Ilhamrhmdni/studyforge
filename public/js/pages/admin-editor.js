@@ -3,6 +3,52 @@ import { adminState, adminApiFetch, getAdminConfig, adminLog } from './admin-sta
 
 let cropperInstance = null;
 let currentCropIndex = -1;
+let lastIssueCursor = -1;
+
+function getIssueIndices() {
+  return adminState.parsedQuestions
+    .map((q, qi) => ({ q, qi }))
+    .filter(({ q }) => q.status === 'error' || q.status === 'warning' || q.aiAudit?.status === 'flagged');
+}
+
+export function jumpToQuestion(qi) {
+  const card = document.getElementById(`qe-${qi}`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.style.boxShadow = '0 0 0 2px var(--primary), 0 0 20px rgba(92,156,252,0.35)';
+  setTimeout(() => {
+    card.style.boxShadow = '';
+  }, 1800);
+}
+
+export function jumpToNextIssue() {
+  const issues = getIssueIndices();
+  if (!issues.length) {
+    showToast('Tidak ada soal bermasalah!', 'success');
+    return;
+  }
+  const nextPos = issues.findIndex(({ qi }) => qi > lastIssueCursor);
+  const target = nextPos >= 0 ? issues[nextPos] : issues[0];
+  lastIssueCursor = target.qi;
+  jumpToQuestion(target.qi);
+}
+
+function renderIssueChipsHtml() {
+  const issues = getIssueIndices();
+  if (!issues.length) return '';
+  const chips = issues.slice(0, 25).map(({ q, qi }) => {
+    const icon = q.status === 'error' ? '❌' : '⚠️';
+    const border = q.status === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(245,158,11,0.45)';
+    return `<button type="button" onclick="jumpToQuestion(${qi})" style="background:rgba(255,255,255,0.04);border:1px solid ${border};color:var(--text);border-radius:999px;padding:0.2rem 0.55rem;font-size:0.75rem;cursor:pointer;">${icon} No. ${q.num}</button>`;
+  }).join('');
+  const extra = issues.length > 25 ? `<span style="font-size:0.75rem;color:var(--text3);">+${issues.length - 25} lainnya</span>` : '';
+  return `
+    <div style="flex-basis:100%;display:flex;align-items:center;gap:0.45rem;flex-wrap:wrap;padding-top:0.6rem;border-top:1px solid var(--border);">
+      <button type="button" onclick="jumpToNextIssue()" style="background:rgba(245,158,11,0.16);border:1px solid rgba(245,158,11,0.45);color:var(--warning);border-radius:6px;padding:0.28rem 0.65rem;font-size:0.78rem;font-weight:600;cursor:pointer;">🎯 Lompat ke Bermasalah (${issues.length})</button>
+      ${chips}${extra}
+    </div>
+  `;
+}
 
 function renderAiAuditBadge(aiAudit) {
   if (!aiAudit) return '';
@@ -149,6 +195,7 @@ export function buildQuizPreview(stats) {
       ${stats.missingNums.length ? `<div style="color:var(--danger)"><strong>Nomor Loncat/Hilang:</strong> ${stats.missingNums.join(', ')}</div>` : ''}
       ${stats.duplicateNums.length ? `<div style="color:var(--danger)"><strong>Nomor Duplikat:</strong> ${stats.duplicateNums.join(', ')}</div>` : ''}
       <div style="margin-left:auto;"><span style="color:var(--text2)">Kualitas Parsing:</span> <strong style="font-size:1.2rem;color:${stats.qualityScore >= 80 ? 'var(--success)' : 'var(--warning)'}">${stats.qualityScore}%</strong></div>
+      ${renderIssueChipsHtml()}
     `;
 
     const btnPublish = document.getElementById('btnPublish');
