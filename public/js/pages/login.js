@@ -136,6 +136,14 @@ window.onload = async () => {
   const hash = window.location.hash.toLowerCase();
   const isRecovery = search.includes('type=recovery') || hash.includes('type=recovery');
 
+  if (window.location.hash.includes('error_description=')) {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const errDesc = hashParams.get('error_description');
+    if (errDesc) {
+      showMsg(`Tautan tidak valid atau kedaluwarsa: ${errDesc}. Silakan minta tautan baru lewat "Lupa password?".`, true);
+    }
+  }
+
   const sb = initSupabase();
   sb.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') {

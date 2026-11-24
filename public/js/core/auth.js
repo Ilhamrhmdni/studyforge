@@ -1,6 +1,14 @@
 // ── AUTHENTICATION ENGINE ───────────────────────────────────────────────────
 // Handles Supabase Auth client initialization and session management.
 
+if (
+  typeof window !== 'undefined' &&
+  window.location.hash.includes('type=recovery') &&
+  !window.location.pathname.includes('/login')
+) {
+  window.location.replace(`/login${window.location.hash}`);
+}
+
 let supabaseClient = null;
 
 function initSupabase() {
