@@ -44,6 +44,7 @@ body {
   padding: 0 2rem; height: 64px;
   background: rgba(6,9,18,0.9);
   border-bottom: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   position: sticky; top: 0; z-index: 100;
 }
@@ -504,6 +505,7 @@ body {
   border-radius: 10px; padding: 0.8rem 1.2rem;
   font-size: 0.875rem; z-index: 9999;
   animation: slideUp 0.3s ease;
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
 @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
@@ -513,6 +515,7 @@ body {
 /* ── MODAL ── */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px); z-index: 200;
   display: flex; align-items: center; justify-content: center; padding: 1rem;
 }
@@ -584,7 +587,7 @@ body {
 .admin-box {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 1.8rem; margin-bottom: 2rem;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
 .admin-box h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.2rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.8rem; }
@@ -728,6 +731,7 @@ footer span { color: var(--primary); }
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   animation: float 6s ease-in-out infinite;
 }
@@ -926,6 +930,7 @@ footer span { color: var(--primary); }
     left: 0;
     width: 100%;
     background: rgba(6,9,18,0.95);
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 1rem;
@@ -1268,7 +1273,7 @@ footer span { color: var(--primary); }
 .report-note { font-size:0.8rem;color:var(--text2);margin-top:0.6rem;line-height:1.5; }
 
 /* Modal User CSS */
-.user-modal { position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center; }
+.user-modal { position:fixed;inset:0;background:rgba(0,0,0,0.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center; }
 .user-modal-box { background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:2.5rem;max-width:420px;width:90%;text-align:center; }
 .user-modal-box h2 { font-size:1.4rem;margin-bottom:0.5rem; }
 .user-modal-box p { color:var(--text2);margin-bottom:1.5rem;font-size:0.9rem; }
@@ -1316,6 +1321,7 @@ footer span { color: var(--primary); }
     position: fixed;
     bottom: 0; left: 0; right: 0;
     background: rgba(6,9,18,0.95);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-top: 1px solid var(--border);
     padding: 1rem;
