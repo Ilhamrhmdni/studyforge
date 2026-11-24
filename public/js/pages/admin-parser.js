@@ -1,6 +1,21 @@
 // PDF scanning, regex + Gemini Vision parsing, and automatic question image cropping.
 import { adminState, adminApiFetch, getAdminConfig, adminLog } from './admin-state.js';
 
+function isFontBold(page, styles, fontName) {
+  if (!fontName) return false;
+  const styleFamily = String(styles?.[fontName]?.fontFamily || '');
+  if (/bold|black|heavy/i.test(styleFamily)) return true;
+  try {
+    if (page.commonObjs && page.commonObjs.has(fontName)) {
+      const fontObj = page.commonObjs.get(fontName);
+      if (/bold|black|heavy/i.test(String(fontObj?.name || ''))) return true;
+    }
+  } catch {
+    // Ignore unresolved font objects
+  }
+  return false;
+}
+
 function clusterPageLines(items) {
   const sorted = items.slice().sort((a, b) => b.y - a.y || a.x - b.x);
   const buckets = [];
@@ -17,7 +32,27 @@ function clusterPageLines(items) {
 
   buckets.sort((a, b) => b.y - a.y);
   return buckets
-    .map((b) => b.items.sort((a, b2) => a.x - b2.x).map((t) => t.str).join(' ').trim())
+    .map((b) => {
+      b.items.sort((a, b2) => a.x - b2.x);
+      const lineText = b.items.map((t) => t.str).join(' ').trim();
+      if (!lineText) return '';
+
+      // Detect bold-formatted multiple-choice option lines (e.g. "a. Correct answer")
+      if (/^[([]?[A-Ea-e]\s*[.)\]]\s+\S/.test(lineText)) {
+        let boldChars = 0;
+        let totalChars = 0;
+        for (const t of b.items) {
+          const len = t.str.replace(/\s+/g, '').length;
+          totalChars += len;
+          if (t.isBold) boldChars += len;
+        }
+        if (totalChars > 0 && boldChars / totalChars >= 0.6) {
+          return `${lineText} [✓]`;
+        }
+      }
+
+      return lineText;
+    })
     .filter(Boolean);
 }
 
@@ -149,8 +184,7 @@ export async function handleFile(file, onQuestionsReady) {
 
   const imagePages = [];
   const textOnlyPages = [];
-  let textFullText = '';
-  let imageFullText = '';
+  let allPagesFullText = '';
 
   adminLog('🔍 Memindai halaman...');
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -168,16 +202,21 @@ export async function handleFile(file, onQuestionsReady) {
     const content = await page.getTextContent();
     adminState.pageTextItems[i] = content.items
       .filter((it) => it.str.trim())
-      .map((it) => ({ str: it.str.trim(), x: it.transform[4], y: it.transform[5] }));
+      .map((it) => ({
+        str: it.str.trim(),
+        x: it.transform[4],
+        y: it.transform[5],
+        isBold: isFontBold(page, content.styles, it.fontName)
+      }));
 
     const pageText = `${clusterPageLines(adminState.pageTextItems[i]).join('\n')}\n\n`;
+    allPagesFullText += pageText;
+
     const opList = await page.getOperatorList();
     if (hasEmbeddedImages(opList)) {
       imagePages.push(i);
-      imageFullText += pageText;
     } else {
       textOnlyPages.push(i);
-      textFullText += pageText;
     }
   }
 
@@ -185,10 +224,10 @@ export async function handleFile(file, onQuestionsReady) {
   adminLog(`🖼️ Halaman bergambar: ${imagePages.join(', ') || '-'}`);
 
   let regexQuestions = [];
-  if (textFullText.trim()) {
-    adminLog('🔍 Parsing halaman teks dengan regex...');
-    regexQuestions = parseQuestions(textFullText);
-    adminLog(`✅ Regex: ${regexQuestions.length} soal dari halaman teks`);
+  if (allPagesFullText.trim()) {
+    adminLog('🔍 Parsing seluruh halaman dengan regex...');
+    regexQuestions = parseQuestions(allPagesFullText);
+    adminLog(`✅ Regex: ${regexQuestions.length} soal terdeteksi`);
   }
 
   let geminiQuestions = [];
@@ -206,15 +245,10 @@ export async function handleFile(file, onQuestionsReady) {
         geminiQuestions = await parseWithGemini(imagePageMap, geminiKey, { onLog: adminLog });
         adminLog(`✅ Gemini: ${geminiQuestions.length} soal dari halaman bergambar`);
       } catch (e) {
-        adminLog(`⚠️ Gemini gagal: ${e.message}`);
-        adminLog('↩️ Fallback regex untuk halaman bergambar...');
-        geminiQuestions = parseQuestions(imageFullText);
-        adminLog(`⚠️ Fallback: ${geminiQuestions.length} soal (mungkin tidak sempurna)`);
+        adminLog(`⚠️ Gemini gagal: ${e.message} (tetap menggunakan hasil regex lengkap)`);
       }
     } else {
-      adminLog(`⚠️ ${imagePages.length} halaman punya gambar — isi Gemini API Key untuk hasil akurat!`);
-      geminiQuestions = parseQuestions(imageFullText);
-      adminLog(`📋 Regex fallback: ${geminiQuestions.length} soal`);
+      adminLog(`⚠️ ${imagePages.length} halaman punya gambar — isi Gemini API Key untuk deteksi gambar otomatis.`);
     }
   } else if (regexQuestions.length === 0 && textOnlyPages.length > 0) {
     if (geminiKey) {
