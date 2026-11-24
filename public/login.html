@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <title>Login - StudyForge</title>
-<link rel="stylesheet" href="/css/style.css"/>
+<link rel="stylesheet" href="/css/style.css">
 <style>
 .auth-container {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -35,20 +35,20 @@
     <p class="auth-header-subtitle">Platform Latihan Ujian Terbaik</p>
 
     <div class="auth-tabs">
-      <button class="auth-tab active" onclick="switchTab('login', this)">Masuk</button>
-      <button class="auth-tab" onclick="switchTab('register', this)">Daftar</button>
+      <button type="button" class="auth-tab active" onclick="switchTab('login', this)">Masuk</button>
+      <button type="button" class="auth-tab" onclick="switchTab('register', this)">Daftar</button>
     </div>
 
     <div class="form-msg" id="authMsg"></div>
 
     <form class="auth-form active" id="form-login" onsubmit="handleLogin(event)">
       <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-input" type="email" id="l_email" required placeholder="user@email.com"/>
+        <label class="form-label" for="l_email">Email</label>
+        <input class="form-input" type="email" id="l_email" required placeholder="user@email.com">
       </div>
       <div class="form-group">
-        <label class="form-label">Password</label>
-        <input class="form-input" type="password" id="l_password" required placeholder="••••••••"/>
+        <label class="form-label" for="l_password">Password</label>
+        <input class="form-input" type="password" id="l_password" required autocomplete="current-password" placeholder="••••••••">
       </div>
       <div class="forgot-link-wrap">
         <button type="button" onclick="switchTab('forgot')" class="btn-link">Lupa password?</button>
@@ -59,8 +59,8 @@
     <form class="auth-form" id="form-forgot" onsubmit="handleForgotPassword(event)">
       <p class="auth-form-desc">Masukkan email akun Anda. Kami akan mengirim tautan untuk mengatur ulang password.</p>
       <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-input" type="email" id="f_email" required placeholder="user@email.com"/>
+        <label class="form-label" for="f_email">Email</label>
+        <input class="form-input" type="email" id="f_email" required placeholder="user@email.com">
       </div>
       <button class="btn btn-primary btn-block" type="submit">Kirim Tautan Reset</button>
       <div class="auth-back-wrap">
@@ -71,32 +71,31 @@
     <form class="auth-form" id="form-reset" onsubmit="handleResetPassword(event)">
       <p class="auth-form-desc">Masukkan password baru untuk akun Anda.</p>
       <div class="form-group">
-        <label class="form-label">Password Baru</label>
-        <input class="form-input" type="password" id="new_password" required minlength="6" placeholder="Minimal 6 karakter"/>
+        <label class="form-label" for="new_password">Password Baru</label>
+        <input class="form-input" type="password" id="new_password" required minlength="6" autocomplete="new-password" placeholder="Minimal 6 karakter">
       </div>
       <div class="form-group">
-        <label class="form-label">Konfirmasi Password Baru</label>
-        <input class="form-input" type="password" id="confirm_password" required minlength="6" placeholder="Ulangi password baru"/>
+        <label class="form-label" for="confirm_password">Konfirmasi Password Baru</label>
+        <input class="form-input" type="password" id="confirm_password" required minlength="6" autocomplete="new-password" placeholder="Ulangi password baru">
       </div>
       <button class="btn btn-primary btn-block" type="submit">Simpan Password Baru</button>
     </form>
 
     <form class="auth-form" id="form-register" onsubmit="handleRegister(event)">
       <div class="form-group">
-        <label class="form-label">Nama Lengkap</label>
-        <input class="form-input" type="text" id="r_name" required placeholder="Budi Santoso"/>
+        <label class="form-label" for="r_name">Nama Lengkap</label>
+        <input class="form-input" type="text" id="r_name" required placeholder="Budi Santoso">
       </div>
       <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-input" type="email" id="r_email" required placeholder="user@email.com"/>
+        <label class="form-label" for="r_email">Email</label>
+        <input class="form-input" type="email" id="r_email" required placeholder="user@email.com">
       </div>
       <div class="form-group">
-        <label class="form-label">Password</label>
-        <input class="form-input" type="password" id="r_password" required minlength="6" placeholder="Minimal 6 karakter"/>
+        <label class="form-label" for="r_password">Password</label>
+        <input class="form-input" type="password" id="r_password" required minlength="6" autocomplete="new-password" placeholder="Minimal 6 karakter">
       </div>
       <button class="btn btn-primary btn-block" type="submit">Buat Akun</button>
     </form>
-    
     <div class="auth-footer">
       <a href="/" class="auth-footer-link">← Kembali ke Beranda</a>
     </div>
