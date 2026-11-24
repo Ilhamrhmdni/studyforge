@@ -66,6 +66,9 @@ body {
   font-weight: 600; cursor: pointer; text-decoration: none;
   transition: background 0.2s, transform 0.1s;
 }
+@media (prefers-reduced-motion: reduce) {
+  .nav-btn { transition: none; }
+}
 .nav-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
 
 /* ── HERO ── */
@@ -95,7 +98,7 @@ body {
 .btn {
   display: inline-flex; align-items: center; gap: 0.5rem;
   padding: 0.7rem 1.5rem; border-radius: 10px; font-weight: 600;
-  font-size: 0.9rem; cursor: pointer; transition: all 0.2s; text-decoration: none;
+  font-size: 0.9rem; cursor: pointer; transition: background 0.2s, transform 0.2s, box-shadow 0.2s; text-decoration: none;
   border: none; font-family: 'Inter', sans-serif;
 }
 .btn-primary { background: var(--primary); color: #fff; }
@@ -134,7 +137,7 @@ body {
 .card {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 1.5rem;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex; flex-direction: column; justify-content: space-between;
 }
 .card:hover {
@@ -188,7 +191,8 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 .hero-welcome { flex: 1; min-width: 260px; }
-.hero-badge {
+/* .hero-badge shared base is defined in HERO section above */
+.hero-welcome .hero-badge {
   display: inline-block; font-size: 0.72rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.06em;
   padding: 0.22rem 0.65rem; background: rgba(59, 130, 246, 0.15);
@@ -280,8 +284,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
-  font-family: inherit;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;  font-family: inherit;
 }
 .category-pill:hover {
   border-color: var(--primary);
@@ -321,7 +324,7 @@ body {
 .upload-area {
   border: 2px dashed var(--border); border-radius: var(--radius);
   padding: 3rem 2rem; text-align: center; cursor: pointer;
-  transition: all 0.2s; position: relative; background: rgba(14,21,38,0.5);
+  transition: border-color 0.2s, background 0.2s; position: relative; background: rgba(14,21,38,0.5);
 }
 .upload-area:hover, .upload-area.dragover {
   border-color: var(--primary); background: rgba(79,142,247,0.05);
@@ -419,7 +422,7 @@ body {
   display: flex; align-items: center; gap: 1rem;
   background: rgba(15, 23, 42, 0.7); border: 1.5px solid var(--border);
   border-radius: 12px; padding: 1rem 1.25rem; cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); text-align: left; color: var(--text);
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1); text-align: left; color: var(--text);
   font-size: 0.98rem; font-family: 'Inter', sans-serif; width: 100%; line-height: 1.55;
 }
 .option-btn:hover:not(:disabled) {
@@ -438,7 +441,7 @@ body {
   width: 32px; height: 32px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: all 0.2s; color: var(--text2);
+  flex-shrink: 0; transition: background 0.2s, border-color 0.2s, color 0.2s; color: var(--text2);
 }
 .option-btn.selected .option-key {
   background: var(--primary); border-color: var(--primary); color: #fff;
@@ -450,7 +453,7 @@ body {
 .quiz-nav-dots { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .dot {
   width: 10px; height: 10px; border-radius: 50%;
-  background: var(--text3); cursor: pointer; transition: all 0.2s;
+  background: var(--text3); cursor: pointer; transition: background 0.2s, transform 0.2s;
 }
 .dot.answered { background: var(--primary); }
 .dot.current { background: var(--accent); transform: scale(1.3); }
@@ -570,7 +573,7 @@ body {
 .sidebar-btn {
   background: transparent; border: none; color: var(--text2); text-align: left;
   padding: 0.8rem 1rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem;
-  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.8rem;
+  cursor: pointer; transition: background 0.2s, color 0.2s; display: flex; align-items: center; gap: 0.8rem;
 }
 .sidebar-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 .sidebar-btn.active {
@@ -667,7 +670,7 @@ footer span { color: var(--primary); }
   align-items: center;
   min-height: 80vh;
 }
-.hero-badge {
+.landing-page .hero-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
   background: rgba(99, 102, 241, 0.1);
@@ -688,6 +691,7 @@ footer span { color: var(--primary); }
 .hero-title .highlight {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .hero-subtitle {
@@ -979,7 +983,7 @@ footer span { color: var(--primary); }
 .landing-page .insight-mini-card p { font-size: 0.8rem; color: var(--text2); line-height: 1.4; }
 
 .landing-page .audience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
-.landing-page .audience-card { background: var(--card); border: 1px solid var(--border); padding: 2rem; border-radius: 16px; transition: all 0.2s; }
+.landing-page .audience-card { background: var(--card); border: 1px solid var(--border); padding: 2rem; border-radius: 16px; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; }
 .landing-page .audience-card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: var(--shadow); }
 .landing-page .audience-icon { font-size: 3rem; margin-bottom: 1.5rem; }
 .landing-page .audience-card h3 { font-size: 1.3rem; margin-bottom: 1rem; }
@@ -1238,7 +1242,7 @@ footer span { color: var(--primary); }
   border: 1.5px solid var(--border);
   background: rgba(15, 23, 42, 0.6);
   color: var(--text2);
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .sdot:hover {
   border-color: var(--primary);
@@ -1386,6 +1390,7 @@ footer span { color: var(--primary); }
 
 /* Fullscreen Warning Banner */
 .fs-warning-banner {
+  display: none;
   position: fixed; top: 0; left: 0; right: 0;
   z-index: 8888;
   background: var(--warning); color: #000;
@@ -1402,4 +1407,39 @@ footer span { color: var(--primary); }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.6; }
+}
+
+/* ── QUIZ UI UTILITY CLASSES ── */
+.quiz-card-hidden { display: none; }
+.quiz-nav-hidden { display: none; }
+.modal-hidden { display: none; }
+.report-preview-hidden { display: none; }
+.quiz-sidebar-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;
+}
+.btn-submit-full { width: 100%; justify-content: center; margin-bottom: 0.8rem; }
+.modal-bug-report { max-width: 620px; width: 92%; }
+.bug-modal-note { color: var(--text2); margin-bottom: 1rem; }
+.report-preview-header { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+.preview-label { font-size: 0.85rem; }
+.btn-clear-preview { padding: 0.35rem 0.8rem; font-size: 0.8rem; }
+
+/* ── REDUCED MOTION ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .landing-page { scroll-behavior: auto; }
+  .hero-card { animation: none; }
+  .question-card { animation: none; }
+  .toast { animation: none; }
+  .modal { animation: none; }
+  .loader { animation: none; }
+  #timer.warning, #timer.danger { animation: none; }
+  .fs-warning-banner { animation: none; }
 }

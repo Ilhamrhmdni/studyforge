@@ -55,18 +55,18 @@
   </div>
 
   <!-- Fullscreen Warning Banner -->
-  <div id="fsWarningBanner" class="fs-warning-banner" style="display:none;" role="alert">
+  <div id="fsWarningBanner" class="fs-warning-banner" role="alert">
     ⚠️ Mode ujian tidak aktif. Klik di sini untuk kembali ke layar penuh.
   </div>
 
   <div class="quiz-layout">
     <div class="quiz-main">
-      <div class="question-card" id="questionCard" style="display:none;">
+      <div class="question-card quiz-card-hidden" id="questionCard">
         <div class="question-num" id="questionNum"></div>
         <div class="question-text" id="questionText"></div>
         <div class="options-list" id="optionsList"></div>
         
-        <div class="quiz-bottom-actions" id="quizNav" style="display:none;">
+        <div class="quiz-bottom-actions quiz-nav-hidden" id="quizNav">
           <button class="btn btn-outline" id="prevBtn" onclick="navigate(-1)">← Sebelumnya</button>
           <button class="btn btn-secondary" id="doubtBtn" onclick="toggleDoubt()">Tandai Ragu-ragu</button>
           <button class="btn btn-primary" id="nextBtn" onclick="navigate(1)">Selanjutnya →</button>
@@ -84,7 +84,7 @@
       <div class="quiz-sidebar-overlay" onclick="toggleQuizSidebar()"></div>
       <div class="quiz-sidebar">
         <div class="quiz-sidebar-box">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+          <div class="quiz-sidebar-header">
             <h4>📋 Navigasi Soal</h4>
             <button class="mobile-close-btn" onclick="toggleQuizSidebar()">✕</button>
           </div>
@@ -113,7 +113,7 @@
           </div>
         </div>
         
-        <button class="btn btn-success" style="width:100%;justify-content:center;margin-bottom:0.8rem;" id="submitBtn" onclick="confirmSubmit()">
+        <button class="btn btn-success btn-submit-full" id="submitBtn" onclick="confirmSubmit()">
           ✅ Kumpulkan Jawaban
         </button>
         <button class="btn btn-outline report-trigger" id="reportBugBtn" onclick="openBugReportModal()">
@@ -124,7 +124,7 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="submitModal" style="display:none;">
+<div class="modal-overlay modal-hidden" id="submitModal">
   <div class="modal">
     <h3>⚠️ Kumpulkan Jawaban?</h3>
     <p id="submitModalText">Kamu sudah menjawab <strong>0</strong> dari <strong>0</strong> soal. Yakin ingin mengumpulkan?</p>
@@ -135,10 +135,10 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="bugReportModal" style="display:none;">
-  <div class="modal" style="max-width:620px;width:92%;">
+<div class="modal-overlay modal-hidden" id="bugReportModal">
+  <div class="modal modal-bug-report">
     <h3>🐞 Laporkan Bug</h3>
-    <p style="color:var(--text2);margin-bottom:1rem;">Laporan akan dikirim memakai identitas akun yang sedang login. Setelah kirim, kamu bisa lanjut mengerjakan quiz.</p>
+    <p class="bug-modal-note">Laporan akan dikirim memakai identitas akun yang sedang login. Setelah kirim, kamu bisa lanjut mengerjakan quiz.</p>
     <div class="form-group">
       <label class="form-label">Deskripsi Bug</label>
       <textarea class="form-input" id="bugReportMessage" rows="5" placeholder="Jelaskan bug yang kamu temukan. Contoh: opsi tidak bisa dipilih, timer berhenti, gambar soal tidak muncul."></textarea>
@@ -146,10 +146,10 @@
     <div class="form-group">
       <label class="form-label">Screenshot Pendukung (opsional)</label>
       <input class="form-input" id="bugReportImageInput" type="file" accept="image/*" onchange="handleBugReportImage(this.files[0])"/>
-      <div class="report-preview" id="bugReportPreview" style="display:none;">
-        <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;">
-          <strong style="font-size:0.85rem;">Preview gambar</strong>
-          <button class="btn btn-outline" type="button" style="padding:0.35rem 0.8rem;font-size:0.8rem;" onclick="clearBugReportImage()">Hapus</button>
+      <div class="report-preview report-preview-hidden" id="bugReportPreview">
+        <div class="report-preview-header">
+          <strong class="preview-label">Preview gambar</strong>
+          <button class="btn btn-outline btn-clear-preview" type="button" onclick="clearBugReportImage()">Hapus</button>
         </div>
         <img id="bugReportPreviewImage" alt="Preview bug report"/>
       </div>
