@@ -84,7 +84,8 @@
 .log-copy-btn { background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:0.25rem 0.6rem; cursor:pointer; font-size:0.75rem; }
 .log-copy-btn:hover { background:rgba(255,255,255,0.12); }
 .audit-log-wrap { background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1.5rem; }
-.audit-log-pre { margin:0; font-family:monospace; font-size:0.78rem; color:var(--text2); max-height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-word; user-select:all; }
+.audit-log-pre { margin:0; font-family:monospace; font-size:0.78rem; color:var(--text2); max-height:180px; overflow-y:auto; white-space:pre-wrap; overflow-wrap:anywhere; -webkit-user-select:all; user-select:all; }
+.upload-area-btn { width:100%; font:inherit; color:inherit; }
 .stat-box { background:var(--bg); padding:1rem; border-radius:8px; border:1px solid var(--border); text-align:center; }
 .stat-box-prob { background:rgba(239,68,68,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(239,68,68,0.2); text-align:center; }
 .stat-label { font-size:0.8rem; color:var(--text2); }
@@ -162,7 +163,7 @@
         <div class="grid-1">
           <div class="form-group">
             <label class="form-label" for="cfgGemini">🤖 Gemini API Key</label>
-            <input class="form-input" id="cfgGemini" type="password" autocomplete="off" placeholder="AIza...">
+            <input class="form-input" id="cfgGemini" type="password" autocomplete="new-password" placeholder="AIza...">
             <div class="input-hint">Gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="link-primary">aistudio.google.com</a></div>
           </div>
         </div>
@@ -175,11 +176,12 @@
     <div class="tab-content active" id="tab-upload">
       <div class="admin-box">
         <h3>📤 Upload File PDF &amp; Kunci Jawaban</h3>
-        <div class="upload-area" id="dropZone" role="button" tabindex="0" onclick="document.getElementById('fileInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fileInput').click();}">
+        <button type="button" class="upload-area upload-area-btn" id="dropZone" onclick="document.getElementById('fileInput').click()">
           <div class="upload-icon">📄</div>
           <h3>Drag &amp; Drop PDF di sini</h3>
           <p>atau klik untuk pilih file • Maksimal 20MB</p>
-        </div>
+        </button>
+        <label for="fileInput" class="is-hidden">Pilih file PDF soal</label>
         <input type="file" id="fileInput" class="is-hidden" accept=".pdf" title="Pilih file PDF soal" onchange="handleFile(this.files[0])">
 
         <div class="mt-1">

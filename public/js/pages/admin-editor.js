@@ -174,8 +174,8 @@ export function buildQuizPreview(stats) {
       </div>
       <div class="q-body">
         ${renderAiAuditBadge(q.aiAudit)}
-        ${q.warnings && q.warnings.length ? `<div style="background:rgba(245,158,11,0.1);color:var(--warning);padding:0.5rem;border-radius:6px;font-size:0.8rem;margin-bottom:0.8rem;">⚠️ ${q.warnings.join('<br>')}</div>` : ''}
-        ${q.errors && q.errors.length ? `<div style="background:rgba(239,68,68,0.1);color:var(--danger);padding:0.5rem;border-radius:6px;font-size:0.8rem;margin-bottom:0.8rem;">❌ ${q.errors.join('<br>')}</div>` : ''}
+        ${q.warnings?.length ? `<div style="background:rgba(245,158,11,0.1);color:var(--warning);padding:0.5rem;border-radius:6px;font-size:0.8rem;margin-bottom:0.8rem;">⚠️ ${q.warnings.join('<br>')}</div>` : ''}
+        ${q.errors?.length ? `<div style="background:rgba(239,68,68,0.1);color:var(--danger);padding:0.5rem;border-radius:6px;font-size:0.8rem;margin-bottom:0.8rem;">❌ ${q.errors.join('<br>')}</div>` : ''}
         ${q.image ? `
           <div style="margin-bottom:0.8rem;position:relative;display:inline-block;">
             <div style="font-size:0.75rem;color:var(--primary);margin-bottom:0.4rem;">🖼️ Gambar terlampir</div>
@@ -294,11 +294,11 @@ export function cancelPreview() {
 
 export function saveQuizDraft() {
   const title = document.getElementById('quizTitle').value.trim();
-  saveQuizData(`[DRAFT] ${title || 'Paket Soal Baru'}`, document.getElementById('btnDraft'));
+  return saveQuizData(`[DRAFT] ${title || 'Paket Soal Baru'}`, document.getElementById('btnDraft'));
 }
 
 export function publishQuiz() {
-  saveQuizData(document.getElementById('quizTitle').value.trim(), document.getElementById('btnPublish'));
+  return saveQuizData(document.getElementById('quizTitle').value.trim(), document.getElementById('btnPublish'));
 }
 
 export async function saveQuizData(finalTitle, btn) {
@@ -323,7 +323,7 @@ export async function saveQuizData(finalTitle, btn) {
         title: finalTitle,
         subject: subject || 'Umum',
         description: document.getElementById('quizDesc').value.trim(),
-        duration: parseInt(document.getElementById('quizDuration').value, 10) || 60,
+        duration: Number.parseInt(document.getElementById('quizDuration').value, 10) || 60,
         questions: adminState.parsedQuestions
       }
     });
