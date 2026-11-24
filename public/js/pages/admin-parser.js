@@ -212,38 +212,35 @@ async function scanSinglePage(pdf, pageNum) {
 }
 
 async function runGeminiStage(imagePages, textOnlyPages, regexQuestions, geminiKey) {
+  const backendVisionFn = (pages) => adminApiFetch('/api/admin/vision-parse', {
+    method: 'POST',
+    body: { pages }
+  });
+
   if (imagePages.length > 0) {
-    if (!geminiKey) {
-      adminLog(`⚠️ ${imagePages.length} halaman punya gambar — isi Gemini API Key untuk deteksi gambar otomatis.`);
-      return [];
-    }
-    adminLog(`🤖 Gemini memproses ${imagePages.length} halaman bergambar...`);
+    adminLog(`🤖 Vision AI memproses ${imagePages.length} halaman bergambar...`);
     const imagePageMap = {};
     imagePages.forEach((pg) => {
       imagePageMap[pg] = adminState.pageImages[pg];
     });
     try {
-      const qs = await parseWithGemini(imagePageMap, geminiKey, { onLog: adminLog });
-      adminLog(`✅ Gemini: ${qs.length} soal dari halaman bergambar`);
+      const qs = await parseWithGemini(imagePageMap, geminiKey, { onLog: adminLog, backendVisionFn });
+      adminLog(`✅ Vision AI: ${qs.length} soal dari halaman bergambar`);
       return qs;
     } catch (e) {
-      adminLog(`⚠️ Gemini gagal: ${e.message} (tetap menggunakan hasil regex lengkap)`);
+      adminLog(`⚠️ Vision AI gagal: ${e.message} (tetap menggunakan hasil regex lengkap)`);
       return [];
     }
   }
 
   if (regexQuestions.length === 0 && textOnlyPages.length > 0) {
-    if (!geminiKey) {
-      adminLog('⚠️ Regex tidak mendeteksi soal pada format PDF ini. Masukkan Gemini API Key di tab Konfigurasi untuk parsing otomatis.');
-      return [];
-    }
-    adminLog('⚠️ Regex mendeteksi 0 soal dari teks. Mencoba analisis visual AI Gemini...');
+    adminLog('⚠️ Regex mendeteksi 0 soal dari teks. Mencoba analisis visual Vision AI...');
     try {
-      const qs = await parseWithGemini(adminState.pageImages, geminiKey, { onLog: adminLog });
-      adminLog(`✅ Gemini Fallback: ${qs.length} soal berhasil diekstrak!`);
+      const qs = await parseWithGemini(adminState.pageImages, geminiKey, { onLog: adminLog, backendVisionFn });
+      adminLog(`✅ Vision AI Fallback: ${qs.length} soal berhasil diekstrak!`);
       return qs;
     } catch (e) {
-      adminLog(`❌ Gemini Fallback gagal: ${e.message}`);
+      adminLog(`❌ Vision AI Fallback gagal: ${e.message}`);
     }
   }
   return [];

@@ -1,8 +1,12 @@
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODELS = [
+export const GROQ_TEXT_MODELS = [
   'openai/gpt-oss-120b',
   'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instruct'
+  'llama-3.1-8b-instant'
+];
+export const GROQ_VISION_MODELS = [
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct'
 ];
 
 export function getGroqApiKeys(env) {
@@ -58,7 +62,11 @@ export async function runGroqWithPool(env, messages, options = {}) {
   const rotatedKeys = keys.map((_, idx) => keys[(startOffset + idx) % keys.length]);
   let lastError = 'Semua Groq API key gagal merespons.';
 
-  for (const model of GROQ_MODELS) {
+  const models = Array.isArray(options.models) && options.models.length > 0
+    ? options.models
+    : GROQ_TEXT_MODELS;
+
+  for (const model of models) {
     for (const key of rotatedKeys) {
       const result = await callSingleGroq(key, model, messages, options);
       if (result.ok) {

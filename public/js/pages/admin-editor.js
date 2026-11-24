@@ -112,9 +112,11 @@ async function executeTargetedAiAudit(targets, label) {
   }
 
   try {
+    const targetRefs = new Set(targets);
     const result = await auditQuizWithAI(targets, {
       geminiKey,
       rawPdfText: adminState.rawPdfText,
+      pageImagesMap: adminState.pageImages,
       onLog: appendAuditLog,
       backendAuditFn: (batch) => adminApiFetch('/api/admin/audit-quiz', {
         method: 'POST',
@@ -122,8 +124,19 @@ async function executeTargetedAiAudit(targets, label) {
       })
     });
 
-    const fixedByNum = new Map(result.questions.map((q) => [q.num, q]));
-    adminState.parsedQuestions = adminState.parsedQuestions.map((q) => fixedByNum.get(q.num) || q);
+    if (targets.length === 1 && result.questions.length > 1) {
+      const idx = adminState.parsedQuestions.indexOf(targets[0]);
+      if (idx >= 0) {
+        adminState.parsedQuestions.splice(idx, 1, ...result.questions);
+      }
+    } else {
+      const fixedByNum = new Map(result.questions.map((q) => [q.num, q]));
+      const extraSplits = result.questions.filter((q) => !targetRefs.has(q) && !fixedByNum.has(q.num));
+      adminState.parsedQuestions = adminState.parsedQuestions.map((q) => fixedByNum.get(q.num) || q);
+      if (extraSplits.length > 0) {
+        adminState.parsedQuestions.push(...extraSplits);
+      }
+    }
     updatePreview();
 
     if (statusEl) {
@@ -192,6 +205,7 @@ export async function runAiQuizAudit() {
     const result = await auditQuizWithAI(adminState.parsedQuestions, {
       geminiKey,
       rawPdfText: adminState.rawPdfText,
+      pageImagesMap: adminState.pageImages,
       onLog: appendAuditLog,
       onProgress: ({ batchNum, totalBatches, processed, total }) => {
         if (statusEl) {

@@ -185,8 +185,33 @@ async function runGeminiVisionBatch(batchPages, bi, state) {
   }
 }
 
+async function runBackendVisionBatch(batchPages, bi, state) {
+  if (!state.backendVisionFn || state.backendVisionUnavailable) return false;
+  const pagesPayload = await Promise.all(
+    batchPages.map(async (pg) => {
+      const b64 = await compressForGemini(state.pageImagesMap[pg], 900, 0.72);
+      return { pageNum: pg, imageDataUrl: `data:image/jpeg;base64,${b64}` };
+    })
+  );
+
+  try {
+    const res = await state.backendVisionFn(pagesPayload);
+    if (Array.isArray(res?.questions)) {
+      state.onLog(`✅ Batch ${bi + 1} via ${res.provider || 'vision-ai'} (${res.model || 'default'}): ${res.questions.length} soal diekstrak`);
+      state.allQuestions.push(...res.questions);
+      return true;
+    }
+  } catch (err) {
+    state.onLog(`⚠️ Backend Vision Batch ${bi + 1} (${err?.message || 'error'}) — mencoba fallback...`);
+    if (err?.status === 501 || err?.status === 401 || err?.status === 403) {
+      state.backendVisionUnavailable = true;
+    }
+  }
+  return false;
+}
+
 /**
- * Parse PDF page images in batches using Gemini Vision with automatic model fallback.
+ * Parse PDF page images in batches using Backend Vision AI (Groq/CF) first, then Gemini Vision fallback.
  */
 async function parseWithGemini(pageImagesMap, geminiKey, options = {}) {
   const onLog = typeof options.onLog === 'function' ? options.onLog : () => {};
@@ -224,10 +249,13 @@ Aturan penting:
     batches.push(pageNums.slice(i, i + BATCH_SIZE));
   }
 
-  onLog(`📦 Batching: ${pageNums.length} halaman → ${batches.length} request Gemini`);
+  const backendVisionFn = typeof options.backendVisionFn === 'function' ? options.backendVisionFn : null;
+  onLog(`📦 Batching: ${pageNums.length} halaman → ${batches.length} request Vision AI`);
   const state = {
     pageImagesMap,
-    geminiKey,
+    geminiKey: String(geminiKey || '').trim(),
+    backendVisionFn,
+    backendVisionUnavailable: false,
     buildPrompt,
     onLog,
     rethrowFatal: Boolean(options.rethrowFatal),
@@ -237,7 +265,13 @@ Aturan penting:
 
   await batches.reduce(
     (chain, batchPages, bi) => chain.then(async () => {
-      onLog(`🤖 Gemini batch ${bi + 1}/${batches.length}: halaman ${batchPages.join(', ')}...`);
+      onLog(`🤖 Vision batch ${bi + 1}/${batches.length}: halaman ${batchPages.join(', ')}...`);
+      const okBackend = await runBackendVisionBatch(batchPages, bi, state);
+      if (okBackend) return;
+      if (!state.geminiKey) {
+        onLog(`⚠️ Batch ${bi + 1}: Gemini API Key belum diisi, melewati fallback Gemini.`);
+        return;
+      }
       await runGeminiVisionBatch(batchPages, bi, state);
       if (bi < batches.length - 1) {
         onLog('⏱️ Jeda 20 detik antar batch (free tier limit)...');
@@ -459,6 +493,23 @@ function applyAuditItemToQuestion(question, item) {
     question.explanation = fixes.explanation.trim();
   }
 
+  if (Array.isArray(fixes.splitQuestions) && fixes.splitQuestions.length > 0) {
+    question._splitQuestions = fixes.splitQuestions
+      .filter((sq) => sq && typeof sq.text === 'string' && sq.text.trim().length >= 5)
+      .map((sq, idx) => ({
+        num: Number(sq.num) || (Number(question.num) + idx + 1),
+        text: sq.text.trim(),
+        options: mergeFixedOptions([], Array.isArray(sq.options) ? sq.options : []),
+        answer: typeof sq.answer === 'string' && /^[A-E]$/i.test(sq.answer.trim()) ? sq.answer.trim().toUpperCase() : '',
+        explanation: typeof sq.explanation === 'string' ? sq.explanation.trim() : '',
+        aiAudit: {
+          status: 'fixed',
+          reasoning: 'Dipecah otomatis oleh AI dari soal sebelumnya yang tergabung.',
+          issues: []
+        }
+      }));
+  }
+
   ensureUniqueDuplicateOptions(question);
 
   const status = ['ok', 'fixed', 'flagged'].includes(item.status) ? item.status : 'ok';
@@ -470,24 +521,48 @@ function applyAuditItemToQuestion(question, item) {
   return status;
 }
 
-function enrichBatchWithSource(batch, rawPdfText) {
-  if (!rawPdfText) return batch;
-  return batch.map((q) => {
+async function enrichBatchWithSource(batch, rawPdfText, pageImagesMap) {
+  const allowVision = batch.length <= 2;
+  return Promise.all(batch.map(async (q) => {
     const needsSource = Boolean(
       q.errors?.length || q.warnings?.length || !q.answer || (q.options?.length || 0) < 4
     );
-    if (!needsSource) return q;
-    const snippet = extractQuestionSourceSnippet(rawPdfText, q.num).slice(0, 900);
-    return snippet ? { ...q, rawSource: snippet } : q;
-  });
+    const snippet = rawPdfText && needsSource
+      ? extractQuestionSourceSnippet(rawPdfText, q.num).slice(0, 900)
+      : '';
+
+    let pageImage = '';
+    if (allowVision) {
+      const candidateImg = (typeof q.image === 'string' && q.image.startsWith('data:image/'))
+        ? q.image
+        : pageImagesMap?.[q.imgPage || q.pageNum] || '';
+      if (candidateImg && candidateImg.startsWith('data:image/')) {
+        try {
+          const b64 = await compressForGemini(candidateImg, 800, 0.65);
+          pageImage = `data:image/jpeg;base64,${b64}`;
+        } catch {
+          // Ignore image compression error.
+        }
+      }
+    }
+
+    if (!snippet && !pageImage) return q;
+    return {
+      ...q,
+      ...(snippet ? { rawSource: snippet } : {}),
+      ...(pageImage ? { pageImage } : {})
+    };
+  }));
 }
 
-async function processAuditBatch(batch, batchIdx, totalBatches, state) {
-  const processed = batchIdx * state.batchSize;
-  state.onProgress({ batchNum: batchIdx + 1, totalBatches, processed, total: state.total });
-  state.onLog(`🤖 Mengaudit batch ${batchIdx + 1}/${totalBatches} (soal ${batch[0].num}–${batch.at(-1).num})...`);
+async function processAuditBatch(batch, batchIdx, totalBatches, state, depth = 0) {
+  if (depth === 0) {
+    const processed = batchIdx * state.batchSize;
+    state.onProgress({ batchNum: batchIdx + 1, totalBatches, processed, total: state.total });
+    state.onLog(`🤖 Mengaudit batch ${batchIdx + 1}/${totalBatches} (soal ${batch[0].num}–${batch.at(-1).num})...`);
+  }
 
-  const enrichedBatch = enrichBatchWithSource(batch, state.rawPdfText);
+  const enrichedBatch = await enrichBatchWithSource(batch, state.rawPdfText, state.pageImagesMap);
   let batchResults = null;
   let batchError = '';
 
@@ -496,7 +571,8 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
       const backendRes = await state.backendAuditFn(enrichedBatch);
       if (Array.isArray(backendRes?.results)) {
         batchResults = backendRes.results;
-        state.onLog(`✅ Batch ${batchIdx + 1} via ${backendRes.provider || 'server'} (${backendRes.model || 'default'}): ${batchResults.length} hasil`);
+        const tag = depth > 0 ? ` (sub-batch ${batch.length} soal)` : '';
+        state.onLog(`✅ Batch ${batchIdx + 1}${tag} via ${backendRes.provider || 'server'} (${backendRes.model || 'default'}): ${batchResults.length} hasil`);
       }
     } catch (err) {
       batchError = err?.message || 'Backend AI tidak tersedia.';
@@ -520,6 +596,14 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
       batchError = err?.message || 'Gagal memproses batch audit AI.';
       state.onLog(`⚠️ Batch ${batchIdx + 1} gagal: ${batchError}`);
     }
+  }
+
+  if (!Array.isArray(batchResults) && batch.length > 1) {
+    const mid = Math.ceil(batch.length / 2);
+    state.onLog(`🔀 Memecah batch ${batchIdx + 1} (${batch.length} soal) menjadi ${mid} + ${batch.length - mid} soal agar lebih ringan...`);
+    await processAuditBatch(batch.slice(0, mid), batchIdx, totalBatches, state, depth + 1);
+    await processAuditBatch(batch.slice(mid), batchIdx, totalBatches, state, depth + 1);
+    return;
   }
 
   if (!Array.isArray(batchResults)) {
@@ -604,6 +688,7 @@ async function auditQuizWithAI(questions, options = {}) {
     geminiKey,
     batchSize,
     rawPdfText: String(options.rawPdfText || ''),
+    pageImagesMap: options.pageImagesMap || null,
     backendAuditFn,
     backendUnavailable: false,
     total: dedupedQuestions.length,
@@ -616,7 +701,13 @@ async function auditQuizWithAI(questions, options = {}) {
     Promise.resolve()
   );
 
-  const finalQuestions = dedupedQuestions.filter((q) => !q._removeByAi);
+  const finalQuestions = [];
+  for (const q of dedupedQuestions) {
+    if (q._removeByAi) continue;
+    const splits = Array.isArray(q._splitQuestions) ? q._splitQuestions : [];
+    delete q._splitQuestions;
+    finalQuestions.push(q, ...splits);
+  }
   ensureUniqueQuestionNumbers(finalQuestions, onLog);
 
   state.onProgress({

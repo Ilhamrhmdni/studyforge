@@ -182,9 +182,11 @@ function handleOptionMatch(line, optionMatch, current) {
   const optText = optionMatch[2].trim();
   const isColonSpeaker = /^[A-E]:\s/.test(line);
 
-  if (!isColonSpeaker && optKey === 'A' && current.options.length > 0 && current.options.every((o) => o._isColon)) {
-    const dialogueText = current.options.map((o) => `${o.key}: ${o.text}`).join(' ');
-    current.text = current.text ? `${current.text} ${dialogueText}` : dialogueText;
+  if (!isColonSpeaker && optKey === 'A' && current.options.length > 0 && current.options.every((o) => o._isColon || o.key !== 'A')) {
+    const stemText = current.options
+      .map((o) => (o._isColon ? `${o.key}: ${o.text}` : `${o.key}. ${o.text}`))
+      .join(' ');
+    current.text = current.text ? `${current.text} ${stemText}` : stemText;
     current.options = [];
   }
 
@@ -214,9 +216,11 @@ const EXPLANATION_START_REGEX = /^(?:Cara\s*hitung(?:\s*\/\s*pembahasan)?|Pembah
 
 function processStandardLine(line, state) {
   const questionMatch = /^\d+\.\d/.test(line) ? null : STANDARD_QUESTION_REGEX.exec(line);
-  if (questionMatch && (!state.current || state.current.options.length >= 2)) {
+  const matchedNum = questionMatch ? Number.parseInt(questionMatch[1], 10) : null;
+  const isSequentialNext = Boolean(state.current && matchedNum === state.current.num + 1 && matchedNum > 1);
+  if (questionMatch && (!state.current || state.current.options.length >= 2 || isSequentialNext)) {
     if (state.current) state.questions.push(state.current);
-    const nextNum = Number.parseInt(questionMatch[1], 10);
+    const nextNum = matchedNum;
     state.current = {
       num: nextNum,
       text: (questionMatch[2] || '').trim(),
