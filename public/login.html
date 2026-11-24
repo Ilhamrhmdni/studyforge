@@ -30,9 +30,9 @@
 
 <div class="auth-container">
   <div class="auth-box">
-    <div style="font-size:2.5rem; margin-bottom:1rem;">⚡</div>
-    <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">StudyForge</h1>
-    <p style="color:var(--text2); font-size:0.9rem; margin-bottom:2rem;">Platform Latihan Ujian Terbaik</p>
+    <div class="auth-header-icon">⚡</div>
+    <h1 class="auth-header-title">StudyForge</h1>
+    <p class="auth-header-subtitle">Platform Latihan Ujian Terbaik</p>
 
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="switchTab('login', this)">Masuk</button>
@@ -50,26 +50,26 @@
         <label class="form-label">Password</label>
         <input class="form-input" type="password" id="l_password" required placeholder="••••••••"/>
       </div>
-      <div style="text-align:right; margin-top:-0.5rem; margin-bottom:0.5rem;">
-        <button type="button" onclick="switchTab('forgot')" style="background:none; border:none; color:var(--primary); font-size:0.85rem; cursor:pointer; padding:0;">Lupa password?</button>
+      <div class="forgot-link-wrap">
+        <button type="button" onclick="switchTab('forgot')" class="btn-link">Lupa password?</button>
       </div>
-      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; margin-top:1rem;">Masuk</button>
+      <button class="btn btn-primary btn-block" type="submit">Masuk</button>
     </form>
 
     <form class="auth-form" id="form-forgot" onsubmit="handleForgotPassword(event)">
-      <p style="color:var(--text2); font-size:0.85rem; margin-bottom:1rem;">Masukkan email akun Anda. Kami akan mengirim tautan untuk mengatur ulang password.</p>
+      <p class="auth-form-desc">Masukkan email akun Anda. Kami akan mengirim tautan untuk mengatur ulang password.</p>
       <div class="form-group">
         <label class="form-label">Email</label>
         <input class="form-input" type="email" id="f_email" required placeholder="user@email.com"/>
       </div>
-      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; margin-top:1rem;">Kirim Tautan Reset</button>
-      <div style="text-align:center; margin-top:1rem;">
-        <button type="button" onclick="switchTab('login')" style="background:none; border:none; color:var(--text2); font-size:0.85rem; cursor:pointer;">← Kembali ke Masuk</button>
+      <button class="btn btn-primary btn-block" type="submit">Kirim Tautan Reset</button>
+      <div class="auth-back-wrap">
+        <button type="button" onclick="switchTab('login')" class="btn-link btn-link--muted">← Kembali ke Masuk</button>
       </div>
     </form>
 
     <form class="auth-form" id="form-reset" onsubmit="handleResetPassword(event)">
-      <p style="color:var(--text2); font-size:0.85rem; margin-bottom:1rem;">Masukkan password baru untuk akun Anda.</p>
+      <p class="auth-form-desc">Masukkan password baru untuk akun Anda.</p>
       <div class="form-group">
         <label class="form-label">Password Baru</label>
         <input class="form-input" type="password" id="new_password" required minlength="6" placeholder="Minimal 6 karakter"/>
@@ -78,7 +78,7 @@
         <label class="form-label">Konfirmasi Password Baru</label>
         <input class="form-input" type="password" id="confirm_password" required minlength="6" placeholder="Ulangi password baru"/>
       </div>
-      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; margin-top:1rem;">Simpan Password Baru</button>
+      <button class="btn btn-primary btn-block" type="submit">Simpan Password Baru</button>
     </form>
 
     <form class="auth-form" id="form-register" onsubmit="handleRegister(event)">
@@ -94,11 +94,11 @@
         <label class="form-label">Password</label>
         <input class="form-input" type="password" id="r_password" required minlength="6" placeholder="Minimal 6 karakter"/>
       </div>
-      <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; margin-top:1rem;">Buat Akun</button>
+      <button class="btn btn-primary btn-block" type="submit">Buat Akun</button>
     </form>
     
-    <div style="margin-top:2rem;">
-      <a href="/" style="color:var(--text2); font-size:0.85rem;">← Kembali ke Beranda</a>
+    <div class="auth-footer">
+      <a href="/" class="auth-footer-link">← Kembali ke Beranda</a>
     </div>
   </div>
 </div>

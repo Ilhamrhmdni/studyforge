@@ -1441,3 +1441,56 @@ footer span { color: var(--primary); }
   #timer.warning, #timer.danger { animation: none; }
   .fs-warning-banner { animation: none; }
 }
+
+
+/* ===== Auth Page ===== */
+.auth-header-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+.auth-header-title {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.auth-header-subtitle {
+  color: var(--text2);
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+.auth-form-desc {
+  color: var(--text2);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+.forgot-link-wrap {
+  text-align: right;
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+}
+.auth-back-wrap {
+  text-align: center;
+  margin-top: 1rem;
+}
+.auth-footer {
+  margin-top: 2rem;
+}
+.auth-footer-link {
+  color: var(--text2);
+  font-size: 0.85rem;
+}
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+}
+.btn-link--muted {
+  color: var(--text2);
+}
+.btn-block {
+  width: 100%;
+  justify-content: center;
+  margin-top: 1rem;
+}
