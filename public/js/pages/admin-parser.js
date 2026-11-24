@@ -285,6 +285,8 @@ export async function handleFile(file, onQuestionsReady) {
 
   adminLog(`📂 File: ${file.name}`);
   adminLog('⏳ Memproses PDF...');
+  const parseLogWrap = document.getElementById('parseLogWrap');
+  if (parseLogWrap) parseLogWrap.style.display = 'block';
   document.getElementById('parseLog').style.display = 'block';
   adminState.pageImages = {};
   adminState.pageCanvasEls = {};

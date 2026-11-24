@@ -427,6 +427,7 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
       const backendRes = await state.backendAuditFn(enrichedBatch);
       if (Array.isArray(backendRes?.results)) {
         batchResults = backendRes.results;
+        state.onLog(`✅ Batch ${batchIdx + 1} via ${backendRes.provider || 'server'} (${backendRes.model || 'default'}): ${batchResults.length} hasil`);
       }
     } catch (err) {
       batchError = err?.message || 'Backend AI tidak tersedia.';

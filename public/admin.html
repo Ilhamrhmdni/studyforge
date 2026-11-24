@@ -79,7 +79,12 @@
 .preview-title { margin:0; border:none; padding:0; }
 .preview-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
 .summary-bar { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:1rem; font-size:0.85rem; display:flex; gap:1.5rem; flex-wrap:wrap; }
-.audit-banner { background:rgba(92,156,252,0.08); border:1px solid rgba(92,156,252,0.28); border-radius:8px; padding:0.85rem 1rem; margin-bottom:1.5rem; font-size:0.85rem; }
+.audit-banner { background:rgba(92,156,252,0.08); border:1px solid rgba(92,156,252,0.28); border-radius:8px; padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.85rem; }
+.log-box-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; font-size:0.78rem; color:var(--text2); }
+.log-copy-btn { background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:0.25rem 0.6rem; cursor:pointer; font-size:0.75rem; }
+.log-copy-btn:hover { background:rgba(255,255,255,0.12); }
+.audit-log-wrap { background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1.5rem; }
+.audit-log-pre { margin:0; font-family:monospace; font-size:0.78rem; color:var(--text2); max-height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-word; user-select:all; }
 .stat-box { background:var(--bg); padding:1rem; border-radius:8px; border:1px solid var(--border); text-align:center; }
 .stat-box-prob { background:rgba(239,68,68,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(239,68,68,0.2); text-align:center; }
 .stat-label { font-size:0.8rem; color:var(--text2); }
@@ -182,7 +187,13 @@
           <input type="file" id="keyInput" accept=".txt" class="form-input key-input-file" title="Pilih file kunci jawaban txt">
         </div>
 
-        <div id="parseLog" class="parse-log is-hidden"></div>
+        <div id="parseLogWrap" class="mt-1 is-hidden">
+          <div class="log-box-head">
+            <span>📜 Log Parsing</span>
+            <button type="button" class="log-copy-btn" onclick="copyTextFromEl('parseLog')">📋 Copy Log</button>
+          </div>
+          <div id="parseLog" class="parse-log"></div>
+        </div>
       </div>
 
       <!-- QUIZ META -->
@@ -224,6 +235,14 @@
         <div id="parseSummary" class="summary-bar"></div>
 
         <div id="aiAuditStatus" class="audit-banner is-hidden"></div>
+
+        <div id="auditLogWrap" class="audit-log-wrap is-hidden">
+          <div class="log-box-head">
+            <span>📜 Log Audit AI</span>
+            <button type="button" class="log-copy-btn" onclick="copyTextFromEl('auditLogText')">📋 Copy Log</button>
+          </div>
+          <pre id="auditLogText" class="audit-log-pre"></pre>
+        </div>
 
         <div id="questionsList"></div>
       </div>

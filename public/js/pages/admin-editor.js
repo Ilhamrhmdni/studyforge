@@ -24,6 +24,33 @@ function renderAiAuditBadge(aiAudit) {
   return `<div style="background:${bg};color:${color};padding:0.45rem 0.65rem;border-radius:6px;font-size:0.78rem;margin-bottom:0.8rem;"><strong>${badge}</strong>${detail}</div>`;
 }
 
+export async function copyTextFromEl(elementId) {
+  const el = document.getElementById(elementId);
+  const text = (el?.innerText || el?.textContent || '').trim();
+  if (!text) {
+    showToast('Belum ada log untuk disalin.', 'warning');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Log berhasil disalin ke clipboard!', 'success');
+  } catch (err) {
+    console.warn('Clipboard write failed:', err?.message || err);
+    showToast('Gagal menyalin otomatis, blok teks log lalu tekan Ctrl+C.', 'warning');
+  }
+}
+
+function appendAuditLog(msg) {
+  adminLog(msg);
+  const wrap = document.getElementById('auditLogWrap');
+  const pre = document.getElementById('auditLogText');
+  if (!wrap || !pre) return;
+  wrap.style.display = 'block';
+  const time = new Date().toLocaleTimeString('id-ID', { hour12: false });
+  pre.textContent += `[${time}] ${msg}\n`;
+  pre.scrollTop = pre.scrollHeight;
+}
+
 export async function runAiQuizAudit() {
   if (!adminState.parsedQuestions.length) {
     showToast('Belum ada soal untuk diperiksa.', 'warning');
@@ -36,7 +63,11 @@ export async function runAiQuizAudit() {
 
   const btn = document.getElementById('btnAiAudit');
   const statusEl = document.getElementById('aiAuditStatus');
+  const logPre = document.getElementById('auditLogText');
   const { geminiKey } = getAdminConfig();
+
+  if (logPre) logPre.textContent = '';
+  appendAuditLog(`🚀 Memulai Audit AI (${adminState.parsedQuestions.length} soal)...`);
 
   if (btn) {
     btn.disabled = true;
@@ -44,14 +75,14 @@ export async function runAiQuizAudit() {
   }
   if (statusEl) {
     statusEl.style.display = 'block';
-    statusEl.innerHTML = '🤖 Menyiapkan audit AI per batch (10 soal/batch)...';
+    statusEl.innerHTML = '🤖 Menyiapkan audit AI per batch...';
   }
 
   try {
     const result = await auditQuizWithAI(adminState.parsedQuestions, {
       geminiKey,
       rawPdfText: adminState.rawPdfText,
-      onLog: adminLog,
+      onLog: appendAuditLog,
       onProgress: ({ batchNum, totalBatches, processed, total }) => {
         if (statusEl) {
           statusEl.innerHTML = `🤖 Mengaudit batch <strong>${batchNum}/${totalBatches}</strong> (${processed}/${total} soal)...`;
@@ -63,7 +94,7 @@ export async function runAiQuizAudit() {
           body: JSON.stringify({ questions: batch })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Gagal audit via server AI.');
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
         return data;
       }
     });
@@ -75,8 +106,10 @@ export async function runAiQuizAudit() {
       const { ok, fixed, flagged, total } = result.summary;
       statusEl.innerHTML = `✅ <strong>Audit AI selesai (${total} soal):</strong> ${ok} OK · <span style="color:var(--primary)">${fixed} diperbaiki otomatis</span> · <span style="color:var(--warning)">${flagged} perlu cek manual</span>`;
     }
+    appendAuditLog(`🏁 Selesai: ${result.summary.ok} OK, ${result.summary.fixed} diperbaiki, ${result.summary.flagged} perlu cek manual.`);
     showToast(`Audit AI selesai: ${result.summary.fixed} soal diperbaiki, ${result.summary.flagged} perlu cek.`, 'success');
   } catch (error) {
+    appendAuditLog(`❌ Audit AI gagal: ${error.message}`);
     if (statusEl) {
       statusEl.innerHTML = `❌ Audit AI gagal: ${escapeHTML(error.message)}`;
     }
