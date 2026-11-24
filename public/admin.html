@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<meta name="robots" content="noindex,nofollow"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
 <title>Admin — StudyForge</title>
-<link rel="stylesheet" href="/css/style.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css"/>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 <style>
 .tab-bar { display:flex; gap:0.5rem; margin-bottom:1.5rem; }
 .tab-btn {
   padding:0.5rem 1.2rem; border-radius:8px; border:1px solid var(--border);
   background:transparent; color:var(--text2); cursor:pointer; font-family:inherit;
-  font-size:0.875rem; font-weight:500; transition:all 0.2s;
+  font-size:0.875rem; font-weight:500;
+  transition:background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 .tab-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
 .tab-content { display:none; }
@@ -37,9 +38,7 @@
   color:var(--danger); padding:0.3rem 0.8rem; border-radius:6px;
   cursor:pointer; font-size:0.8rem;
 }
-</style>
-<style>
-/* ── Admin Login Screen ── */
+/* ── Admin Login & Modal ── */
 .admin-login {
   position:fixed; inset:0; z-index:999;
   background:var(--bg);
@@ -54,6 +53,50 @@
 .login-box h2 { font-size:1.3rem; margin-bottom:0.3rem; }
 .login-box p { color:var(--text2); font-size:0.875rem; margin-bottom:1.5rem; }
 .login-error { color:var(--danger); font-size:0.82rem; margin-top:0.5rem; min-height:1.2em; }
+.is-hidden { display:none; }
+.crop-overlay { z-index:1000; }
+.modal-box-lg { max-width:800px; width:95%; padding:1.5rem; }
+.modal-title { margin-top:0; margin-bottom:1rem; text-align:left; }
+.crop-stage { max-height:60vh; overflow:hidden; margin-bottom:1rem; border:1px solid var(--border); border-radius:8px; background:rgba(0,0,0,0.5); }
+.crop-img { max-width:100%; display:block; }
+.modal-actions { display:flex; gap:1rem; justify-content:flex-end; }
+.sidebar-footer { margin-top:auto; padding:1.5rem; text-align:center; }
+.btn-sidebar-link { width:100%; font-size:0.85rem; margin-bottom:0.5rem; justify-content:center; }
+.btn-logout { width:100%; font-size:0.85rem; margin-bottom:1rem; color:var(--danger); border-color:var(--danger); justify-content:center; }
+.copyright-text { font-size:0.7rem; color:var(--text3); }
+.sub-note { color:var(--text2); font-size:0.85rem; margin-bottom:1rem; }
+.grid-1 { display:grid; grid-template-columns:1fr; gap:1rem; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.grid-2-wide { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+.grid-4 { display:grid; grid-template-columns:repeat(4, 1fr); gap:1rem; margin-bottom:2rem; }
+.grid-5 { display:grid; grid-template-columns:repeat(5, 1fr); gap:1rem; margin-bottom:2rem; }
+.link-primary { color:var(--primary); }
+.mt-1 { margin-top:1rem; }
+.cfg-status { margin-left:1rem; font-size:0.85rem; color:var(--success); }
+.key-label { font-size:0.85rem; color:var(--text2); display:block; margin-bottom:0.5rem; }
+.key-input-file { padding:0.4rem; font-size:0.85rem; }
+.preview-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border); padding-bottom:1rem; flex-wrap:wrap; gap:1rem; }
+.preview-title { margin:0; border:none; padding:0; }
+.preview-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+.summary-bar { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:1rem; font-size:0.85rem; display:flex; gap:1.5rem; flex-wrap:wrap; }
+.audit-banner { background:rgba(92,156,252,0.08); border:1px solid rgba(92,156,252,0.28); border-radius:8px; padding:0.85rem 1rem; margin-bottom:1.5rem; font-size:0.85rem; }
+.stat-box { background:var(--bg); padding:1rem; border-radius:8px; border:1px solid var(--border); text-align:center; }
+.stat-box-prob { background:rgba(239,68,68,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(239,68,68,0.2); text-align:center; }
+.stat-label { font-size:0.8rem; color:var(--text2); }
+.stat-label-prob { font-size:0.8rem; color:var(--danger); }
+.stat-val { font-size:1.5rem; font-weight:bold; }
+.stat-primary { color:var(--primary); }
+.stat-success { color:var(--success); }
+.stat-accent { color:var(--accent); }
+.stat-danger { color:var(--danger); }
+.stat-text { color:var(--text); }
+.panel-title { margin-bottom:0.5rem; }
+.panel-box { background:var(--bg); padding:1rem; border-radius:8px; border:1px solid var(--border); font-size:0.85rem; color:var(--text2); }
+.table-wrap { overflow-x:auto; }
+.insight-table { width:100%; border-collapse:collapse; font-size:0.85rem; text-align:left; }
+.insight-row { border-bottom:1px solid var(--border); }
+.insight-th { padding:0.8rem; color:var(--text2); }
+.empty-state { text-align:center; padding:2rem; color:var(--text3); }
 </style>
 </head>
 <body>
@@ -69,15 +112,15 @@
 </div>
 
 <!-- ── CROP MODAL ── -->
-<div class="admin-login" id="cropModal" style="display:none; z-index: 1000;">
-  <div class="login-box" style="max-width:800px; width:95%; padding:1.5rem;">
-    <h3 style="margin-top:0;margin-bottom:1rem;text-align:left;">✂️ Crop Gambar</h3>
-    <div style="max-height:60vh; overflow:hidden; margin-bottom:1rem; border:1px solid var(--border); border-radius:8px; background:rgba(0,0,0,0.5);">
-      <img id="cropImageTarget" style="max-width:100%; display:block;" alt="Crop Area">
+<div class="admin-login crop-overlay is-hidden" id="cropModal">
+  <div class="login-box modal-box-lg">
+    <h3 class="modal-title">✂️ Crop Gambar</h3>
+    <div class="crop-stage">
+      <img id="cropImageTarget" class="crop-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Crop Area">
     </div>
-    <div style="display:flex; gap:1rem; justify-content:flex-end;">
-      <button class="btn btn-outline" onclick="closeCropModal()">Batal</button>
-      <button class="btn btn-primary" onclick="applyCrop()">Terapkan Crop</button>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" onclick="closeCropModal()">Batal</button>
+      <button type="button" class="btn btn-primary" onclick="applyCrop()">Terapkan Crop</button>
     </div>
   </div>
 </div>
@@ -89,100 +132,98 @@
       <p>StudyForge Management</p>
     </div>
     <nav class="sidebar-nav">
-      <button class="sidebar-btn active" onclick="switchTab('upload', this)">📤 Upload & Parse PDF</button>
-      <button class="sidebar-btn" onclick="switchTab('manage', this)">📋 Kelola Soal</button>
-      <button class="sidebar-btn" onclick="switchTab('ugc', this)">👥 User Submissions</button>
-      <button class="sidebar-btn" onclick="switchTab('analytics', this)">📈 Parser Intelligence</button>
-      <button class="sidebar-btn" onclick="switchTab('insight', this)">🧠 StudyForge Insight</button>
-      <button class="sidebar-btn" onclick="switchTab('results', this)">📊 Hasil Ujian</button>
-      <button class="sidebar-btn" onclick="switchTab('bug-reports', this)">🐞 Laporan Bug</button>
-      <button class="sidebar-btn" onclick="switchTab('config', this)">⚙️ Konfigurasi</button>
+      <button type="button" class="sidebar-btn active" onclick="switchTab('upload', this)">📤 Upload &amp; Parse PDF</button>
+      <button type="button" class="sidebar-btn" onclick="switchTab('manage', this)">📋 Kelola Soal</button>
+      <button type="button" class="sidebar-btn" onclick="switchTab('ugc', this)">👥 User Submissions</button>
+      <button type="button" class="sidebar-btn" onclick="switchTab('analytics', this)">📈 Parser Intelligence</button>
+      <button type="button" class="sidebar-btn" onclick="switchTab('insight', this)">🧠 StudyForge Insight</button>
+      <button type="button" class="sidebar-btn" onclick="switchTab('results', this)">📊 Hasil Ujian</button>
+      <button type="button" class="sidebar-btn" onclick="switchTab('bug-reports', this)">🐞 Laporan Bug</button>
+      <button type="button" class="sidebar-btn" onclick="switchTab('config', this)">⚙️ Konfigurasi</button>
     </nav>
-    <div style="margin-top:auto; padding:1.5rem; text-align:center;">
-      <a href="/" class="btn btn-outline" style="width:100%;font-size:0.85rem;margin-bottom:0.5rem;justify-content:center;">🏠 Beranda Utama</a>
-      <button class="btn btn-outline" id="logoutBtn" onclick="adminLogout()" style="display:none;width:100%;font-size:0.85rem;margin-bottom:1rem;color:var(--danger);border-color:var(--danger);justify-content:center;">🚪 Logout</button>
-      <p style="font-size:0.7rem;color:var(--text3);">© <script>document.write(new Date().getFullYear())</script> StudyForge</p>
+    <div class="sidebar-footer">
+      <a href="/" class="btn btn-outline btn-sidebar-link">🏠 Beranda Utama</a>
+      <button type="button" class="btn btn-outline btn-logout is-hidden" id="logoutBtn" onclick="adminLogout()">🚪 Logout</button>
+      <p class="copyright-text">© <script>document.write(new Date().getFullYear())</script> StudyForge</p>
     </div>
   </aside>
 
   <main class="admin-main">
-    
     <!-- TAB: CONFIG -->
     <div class="tab-content" id="tab-config">
       <div class="admin-box" id="configBox">
         <h3>⚙️ Konfigurasi Token</h3>
-        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem;">Disimpan hanya untuk sesi tab/browser ini. Digunakan untuk parsing soal PDF bergambar. Jangan gunakan komputer publik.</p>
-        <div style="display:grid;grid-template-columns:1fr;gap:1rem;">
+        <p class="sub-note">Disimpan hanya untuk sesi tab/browser ini. Digunakan untuk parsing soal PDF bergambar. Jangan gunakan komputer publik.</p>
+        <div class="grid-1">
           <div class="form-group">
-            <label class="form-label">🤖 Gemini API Key</label>
-            <input class="form-input" id="cfgGemini" type="password" placeholder="AIza..."/>
-            <div class="input-hint">Gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--primary)">aistudio.google.com</a></div>
+            <label class="form-label" for="cfgGemini">🤖 Gemini API Key</label>
+            <input class="form-input" id="cfgGemini" type="password" autocomplete="off" placeholder="AIza...">
+            <div class="input-hint">Gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="link-primary">aistudio.google.com</a></div>
           </div>
         </div>
-        <button class="btn btn-primary" style="margin-top:1rem;" onclick="saveConfig()">💾 Simpan Token</button>
-        <span id="cfgStatus" style="margin-left:1rem;font-size:0.85rem;color:var(--success);"></span>
+        <button type="button" class="btn btn-primary mt-1" onclick="saveConfig()">💾 Simpan Token</button>
+        <span id="cfgStatus" class="cfg-status"></span>
       </div>
     </div>
 
     <!-- TAB: UPLOAD -->
     <div class="tab-content active" id="tab-upload">
       <div class="admin-box">
-        <h3>📤 Upload File PDF & Kunci Jawaban</h3>
-        <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <h3>📤 Upload File PDF &amp; Kunci Jawaban</h3>
+        <div class="upload-area" id="dropZone" role="button" tabindex="0" onclick="document.getElementById('fileInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fileInput').click();}">
           <div class="upload-icon">📄</div>
-          <h3>Drag & Drop PDF di sini</h3>
+          <h3>Drag &amp; Drop PDF di sini</h3>
           <p>atau klik untuk pilih file • Maksimal 20MB</p>
-          <input type="file" id="fileInput" accept=".pdf" onchange="handleFile(this.files[0])"/>
-        </div>
-        
-        <div style="margin-top:1rem;">
-          <label style="font-size:0.85rem;color:var(--text2);display:block;margin-bottom:0.5rem;">Kunci Jawaban Terpisah (Opsional, format txt "1. A")</label>
-          <input type="file" id="keyInput" accept=".txt" class="form-input" style="padding:0.4rem;font-size:0.85rem;"/>
+          <input type="file" id="fileInput" accept=".pdf" title="Pilih file PDF soal" onchange="handleFile(this.files[0])">
         </div>
 
-        <div id="parseLog" class="parse-log" style="display:none;"></div>
+        <div class="mt-1">
+          <label class="key-label" for="keyInput">Kunci Jawaban Terpisah (Opsional, format txt "1. A")</label>
+          <input type="file" id="keyInput" accept=".txt" class="form-input key-input-file" title="Pilih file kunci jawaban txt">
+        </div>
+
+        <div id="parseLog" class="parse-log is-hidden"></div>
       </div>
 
       <!-- QUIZ META -->
-      <div class="admin-box" id="metaBox" style="display:none;">
+      <div class="admin-box is-hidden" id="metaBox">
         <h3>📝 Info Paket Soal</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Judul Paket Soal</label>
-            <input class="form-input" id="quizTitle" placeholder="contoh: Try Out Manajemen Set B"/>
+            <label class="form-label" for="quizTitle">Judul Paket Soal</label>
+            <input type="text" class="form-input" id="quizTitle" placeholder="contoh: Try Out Manajemen Set B">
           </div>
           <div class="form-group">
-            <label class="form-label">Mata Pelajaran / Mata Kuliah</label>
-            <input class="form-input" id="quizSubject" placeholder="contoh: Manajemen"/>
+            <label class="form-label" for="quizSubject">Mata Pelajaran / Mata Kuliah</label>
+            <input type="text" class="form-input" id="quizSubject" placeholder="contoh: Manajemen">
           </div>
           <div class="form-group">
-            <label class="form-label">Durasi (menit)</label>
-            <input class="form-input" id="quizDuration" type="number" value="60" min="5" max="300"/>
+            <label class="form-label" for="quizDuration">Durasi (menit)</label>
+            <input class="form-input" id="quizDuration" type="number" value="60" min="5" max="300">
           </div>
           <div class="form-group">
-            <label class="form-label">Deskripsi (opsional)</label>
-            <input class="form-input" id="quizDesc" placeholder="Deskripsi singkat paket soal"/>
+            <label class="form-label" for="quizDesc">Deskripsi (opsional)</label>
+            <input type="text" class="form-input" id="quizDesc" placeholder="Deskripsi singkat paket soal">
           </div>
         </div>
       </div>
 
       <!-- PREVIEW HASIL PARSING -->
-      <div class="admin-box" id="quizPreview" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:1rem;flex-wrap:wrap;gap:1rem;">
-          <h3 style="margin:0;border:none;padding:0;">👀 Preview Hasil Parsing</h3>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <button class="btn btn-outline" onclick="cancelPreview()">Batalkan</button>
-            <button class="btn btn-outline" id="btnAiAudit" onclick="runAiQuizAudit()">🤖 Audit & Koreksi AI</button>
-            <button class="btn btn-outline" onclick="addQuestion()">+ Tambah Soal</button>
-            <button class="btn btn-secondary" id="btnDraft" onclick="saveQuizDraft()">Simpan Draft</button>
-            <button class="btn btn-primary" id="btnPublish" onclick="publishQuiz()">🚀 Publish Paket</button>
+      <div class="admin-box is-hidden" id="quizPreview">
+        <div class="preview-head">
+          <h3 class="preview-title">👀 Preview Hasil Parsing</h3>
+          <div class="preview-actions">
+            <button type="button" class="btn btn-outline" onclick="cancelPreview()">Batalkan</button>
+            <button type="button" class="btn btn-outline" id="btnAiAudit" onclick="runAiQuizAudit()">🤖 Audit &amp; Koreksi AI</button>
+            <button type="button" class="btn btn-outline" onclick="addQuestion()">+ Tambah Soal</button>
+            <button type="button" class="btn btn-secondary" id="btnDraft" onclick="saveQuizDraft()">Simpan Draft</button>
+            <button type="button" class="btn btn-primary" id="btnPublish" onclick="publishQuiz()">🚀 Publish Paket</button>
           </div>
         </div>
-        
-        <div id="parseSummary" style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:0.85rem;display:flex;gap:1.5rem;flex-wrap:wrap;">
-        </div>
 
-        <div id="aiAuditStatus" style="display:none;background:rgba(92,156,252,0.08);border:1px solid rgba(92,156,252,0.28);border-radius:8px;padding:0.85rem 1rem;margin-bottom:1.5rem;font-size:0.85rem;"></div>
+        <div id="parseSummary" class="summary-bar"></div>
+
+        <div id="aiAuditStatus" class="audit-banner is-hidden"></div>
 
         <div id="questionsList"></div>
       </div>
@@ -192,44 +233,44 @@
     <div class="tab-content" id="tab-ugc">
       <div class="admin-box">
         <h3>👥 User Submissions</h3>
-        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem;">Daftar kuis yang diajukan oleh pengguna untuk menjadi kuis publik.</p>
-        <div id="ugcList"><div style="text-align:center;padding:2rem;color:var(--text3);">Memuat...</div></div>
+        <p class="sub-note">Daftar kuis yang diajukan oleh pengguna untuk menjadi kuis publik.</p>
+        <div id="ugcList"><div class="empty-state">Memuat...</div></div>
       </div>
     </div>
 
     <!-- TAB: PARSER ANALYTICS -->
     <div class="tab-content" id="tab-analytics">
       <div class="admin-box">
-        <h3>📈 Parser Intelligence & Analytics</h3>
-        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem;">Analisis performa AI dalam mengekstrak soal dari PDF.</p>
-        
-        <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:1rem;margin-bottom:2rem;" id="analyticsMetrics">
-          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--text2);">Total Job</div>
-            <div id="an_total" style="font-size:1.5rem;font-weight:bold;color:var(--primary);">0</div>
+        <h3>📈 Parser Intelligence &amp; Analytics</h3>
+        <p class="sub-note">Analisis performa AI dalam mengekstrak soal dari PDF.</p>
+
+        <div class="grid-4" id="analyticsMetrics">
+          <div class="stat-box">
+            <div class="stat-label">Total Job</div>
+            <div id="an_total" class="stat-val stat-primary">0</div>
           </div>
-          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--text2);">Berhasil Disimpan</div>
-            <div id="an_success" style="font-size:1.5rem;font-weight:bold;color:var(--success);">0</div>
+          <div class="stat-box">
+            <div class="stat-label">Berhasil Disimpan</div>
+            <div id="an_success" class="stat-val stat-success">0</div>
           </div>
-          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--text2);">Rata-rata Soal/Job</div>
-            <div id="an_avg" style="font-size:1.5rem;font-weight:bold;color:var(--accent);">0</div>
+          <div class="stat-box">
+            <div class="stat-label">Rata-rata Soal/Job</div>
+            <div id="an_avg" class="stat-val stat-accent">0</div>
           </div>
-          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--text2);">Gagal</div>
-            <div id="an_fail" style="font-size:1.5rem;font-weight:bold;color:var(--danger);">0</div>
+          <div class="stat-box">
+            <div class="stat-label">Gagal</div>
+            <div id="an_fail" class="stat-val stat-danger">0</div>
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+        <div class="grid-2-wide">
           <div>
-            <h4 style="margin-bottom:0.5rem;">Top Validation Errors</h4>
-            <div id="an_errors" style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);font-size:0.85rem;color:var(--text2);"></div>
+            <h4 class="panel-title">Top Validation Errors</h4>
+            <div id="an_errors" class="panel-box"></div>
           </div>
           <div>
-            <h4 style="margin-bottom:0.5rem;">User Feedback</h4>
-            <div id="an_feedback" style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);font-size:0.85rem;color:var(--text2);"></div>
+            <h4 class="panel-title">User Feedback</h4>
+            <div id="an_feedback" class="panel-box"></div>
           </div>
         </div>
       </div>
@@ -239,45 +280,45 @@
     <div class="tab-content" id="tab-insight">
       <div class="admin-box">
         <h3>🧠 StudyForge Insight</h3>
-        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem;">Analisis tingkat kesulitan soal berdasarkan riwayat pengerjaan user.</p>
-        
-        <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:1rem;margin-bottom:2rem;" id="insightMetrics">
-          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--text2);">Total Soal</div>
-            <div id="ins_total" style="font-size:1.5rem;font-weight:bold;color:var(--primary);">0</div>
+        <p class="sub-note">Analisis tingkat kesulitan soal berdasarkan riwayat pengerjaan user.</p>
+
+        <div class="grid-5" id="insightMetrics">
+          <div class="stat-box">
+            <div class="stat-label">Total Soal</div>
+            <div id="ins_total" class="stat-val stat-primary">0</div>
           </div>
-          <div style="background:rgba(239,68,68,0.05);padding:1rem;border-radius:8px;border:1px solid rgba(239,68,68,0.2);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--danger);">Bermasalah</div>
-            <div id="ins_prob" style="font-size:1.5rem;font-weight:bold;color:var(--danger);">0</div>
+          <div class="stat-box-prob">
+            <div class="stat-label-prob">Bermasalah</div>
+            <div id="ins_prob" class="stat-val stat-danger">0</div>
           </div>
-          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--text2);">Sulit</div>
-            <div id="ins_hard" style="font-size:1.5rem;font-weight:bold;color:var(--text);">0</div>
+          <div class="stat-box">
+            <div class="stat-label">Sulit</div>
+            <div id="ins_hard" class="stat-val stat-text">0</div>
           </div>
-          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--text2);">Sedang</div>
-            <div id="ins_med" style="font-size:1.5rem;font-weight:bold;color:var(--text);">0</div>
+          <div class="stat-box">
+            <div class="stat-label">Sedang</div>
+            <div id="ins_med" class="stat-val stat-text">0</div>
           </div>
-          <div style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);text-align:center;">
-            <div style="font-size:0.8rem;color:var(--text2);">Mudah</div>
-            <div id="ins_easy" style="font-size:1.5rem;font-weight:bold;color:var(--success);">0</div>
+          <div class="stat-box">
+            <div class="stat-label">Mudah</div>
+            <div id="ins_easy" class="stat-val stat-success">0</div>
           </div>
         </div>
 
-        <div style="overflow-x:auto;">
-          <table style="width:100%; border-collapse:collapse; font-size:0.85rem; text-align:left;">
+        <div class="table-wrap">
+          <table class="insight-table">
             <thead>
-              <tr style="border-bottom:1px solid var(--border);">
-                <th style="padding:0.8rem; color:var(--text2);">Paket Soal</th>
-                <th style="padding:0.8rem; color:var(--text2);">Mata Pelajaran</th>
-                <th style="padding:0.8rem; color:var(--text2);">No Soal</th>
-                <th style="padding:0.8rem; color:var(--text2);">Total Attempt</th>
-                <th style="padding:0.8rem; color:var(--text2);">Tingkat Benar</th>
-                <th style="padding:0.8rem; color:var(--text2);">Status</th>
+              <tr class="insight-row">
+                <th scope="col" class="insight-th">Paket Soal</th>
+                <th scope="col" class="insight-th">Mata Pelajaran</th>
+                <th scope="col" class="insight-th">No Soal</th>
+                <th scope="col" class="insight-th">Total Attempt</th>
+                <th scope="col" class="insight-th">Tingkat Benar</th>
+                <th scope="col" class="insight-th">Status</th>
               </tr>
             </thead>
             <tbody id="insightList">
-              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text3);">Memuat insight...</td></tr>
+              <tr><td colspan="6" class="empty-state">Memuat insight...</td></tr>
             </tbody>
           </table>
         </div>
@@ -288,7 +329,7 @@
     <div class="tab-content" id="tab-manage">
       <div class="admin-box">
         <h3>📋 Kelola Paket Soal</h3>
-        <div id="manageList"><div style="text-align:center;padding:2rem;color:var(--text3);">Memuat...</div></div>
+        <div id="manageList"><div class="empty-state">Memuat...</div></div>
       </div>
     </div>
 
@@ -296,14 +337,14 @@
     <div class="tab-content" id="tab-results">
       <div class="admin-box">
         <h3>📊 Hasil Ujian Peserta</h3>
-        <div id="resultsList"><div style="text-align:center;padding:2rem;color:var(--text3);">Memuat...</div></div>
+        <div id="resultsList"><div class="empty-state">Memuat...</div></div>
       </div>
     </div>
 
     <div class="tab-content" id="tab-bug-reports">
       <div class="admin-box">
         <h3>🐞 Laporan Bug User</h3>
-        <div id="bugReportsList"><div style="text-align:center;padding:2rem;color:var(--text3);">Memuat...</div></div>
+        <div id="bugReportsList"><div class="empty-state">Memuat...</div></div>
       </div>
     </div>
   </main>
