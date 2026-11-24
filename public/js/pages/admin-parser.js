@@ -68,7 +68,7 @@ function clusterPageLines(items) {
     .map((b) => {
       const lineText = joinBucketItems(b.items);
       if (!lineText) return '';
-      return isBoldOptionLine(lineText, b.items) ? `${lineText} [✓]` : lineText;
+      return isBoldOptionLine(lineText, b.items) ? `${lineText} ✓` : lineText;
     })
     .filter(Boolean);
 }
