@@ -1,56 +1,52 @@
 // Parser helpers for StudyForge admin PDF import flow.
 
+async function extractPdfPage(pdf, pageNumber) {
+  const page = await pdf.getPage(pageNumber);
+  const textContent = await page.getTextContent();
+  const ops = await page.getOperatorList();
+
+  let hasImage = false;
+  for (const fn of ops.fnArray) {
+    if (fn === pdfjsLib.OPS.paintImageXObject) {
+      hasImage = true;
+      break;
+    }
+  }
+
+  const pageText = textContent.items.map((item) => item.str).join(' ');
+  let imageDataUrl = null;
+  if (hasImage) {
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    await page.render({ canvasContext: context, viewport }).promise;
+    imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+  }
+
+  return { pageNumber, pageText, imageDataUrl };
+}
+
 async function extractPdfText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async function onLoad() {
-      try {
-        const buffer = /** @type {ArrayBuffer} */ (this.result);
-        const typedArray = new Uint8Array(buffer);
-        const pdf = await pdfjsLib.getDocument(typedArray).promise;
-        let fullText = '';
-        const pageImagesMap = {};
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument(new Uint8Array(buffer)).promise;
+  const pageNumbers = Array.from({ length: pdf.numPages }, (_, idx) => idx + 1);
+  const pages = await Promise.all(pageNumbers.map((num) => extractPdfPage(pdf, num)));
 
-        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-          const page = await pdf.getPage(pageNumber);
-          const textContent = await page.getTextContent();
-          const ops = await page.getOperatorList();
+  let fullText = '';
+  const pageImagesMap = {};
+  for (const p of pages) {
+    fullText += `\n\n--- PAGE ${p.pageNumber} ---\n\n${p.pageText}`;
+    if (p.imageDataUrl) pageImagesMap[p.pageNumber] = p.imageDataUrl;
+  }
 
-          let hasImage = false;
-          for (let index = 0; index < ops.fnArray.length; index++) {
-            if (ops.fnArray[index] === pdfjsLib.OPS.paintImageXObject) {
-              hasImage = true;
-              break;
-            }
-          }
-
-          const pageText = textContent.items.map((item) => item.str).join(' ');
-          fullText += `\n\n--- PAGE ${pageNumber} ---\n\n${pageText}`;
-
-          if (hasImage) {
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            await page.render({ canvasContext: context, viewport }).promise;
-            pageImagesMap[pageNumber] = canvas.toDataURL('image/jpeg', 0.8);
-          }
-        }
-
-        resolve({ fullText, pageImagesMap, numPages: pdf.numPages });
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  });
+  return { fullText, pageImagesMap, numPages: pdf.numPages };
 }
 
 async function generateQuizDescription(questionsText, geminiKey) {
-  const model = 'gemini-2.0-flash'; // using stable model for text
+  const model = 'gemini-2.0-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
-  
   const prompt = `Buatkan deskripsi singkat (maksimal 2 kalimat) yang menarik untuk paket soal berikut. Fokus pada topik utama. JANGAN beri awalan seperti "Deskripsi:" atau tanda kutip, langsung tuliskan kalimatnya.\n\nContoh cuplikan soal:\n${questionsText.substring(0, 1500)}`;
 
   try {
@@ -65,7 +61,8 @@ async function generateQuizDescription(questionsText, geminiKey) {
     const data = await res.json();
     if (!res.ok) return '';
     return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-  } catch (e) {
+  } catch (err) {
+    console.warn('generateQuizDescription failed:', err?.message);
     return '';
   }
 }
@@ -74,7 +71,7 @@ function normalizePdfText(text) {
   if (typeof normalizeText === 'function') {
     return normalizeText(text);
   }
-  return String(text || '').replace(/[ \t]{2,}/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
+  return String(text || '').replaceAll(/[ \t]{2,}/g, ' ').replaceAll(/[ \t]*\n[ \t]*/g, '\n').trim();
 }
 
 function parseAnswerKey(text) {
@@ -83,9 +80,9 @@ function parseAnswerKey(text) {
   const regex = /^(?:no\s*)?(\d+)[.\s:]*(?:jawaban\s*:\s*)?([A-E])/i;
 
   for (const line of lines) {
-    const match = line.trim().match(regex);
+    const match = regex.exec(line.trim());
     if (match) {
-      answerMap[parseInt(match[1], 10)] = match[2].toUpperCase();
+      answerMap[Number.parseInt(match[1], 10)] = match[2].toUpperCase();
     }
   }
 
@@ -117,213 +114,191 @@ function parseQuestions(text, answerMap = {}) {
     : parseQuestionsStandard(lines, answerMap);
 }
 
-function finalizeParsedQuestions(questions) {
-  for (const question of questions) {
-    if (typeof stripMarkers === 'function') {
-      question.text = stripMarkers(question.text);
-    }
+function resolveQuestionAnswer(question) {
+  const clean = typeof stripMarkers === 'function' ? stripMarkers : (s) => s;
+  question.text = clean(question.text);
 
-    for (const option of question.options) {
-      delete option._isColon;
-      if (typeof hasCorrectMarker === 'function' && hasCorrectMarker(option.text) && !question.answer) {
-        question.answer = option.key;
-      }
-      if (typeof stripMarkers === 'function') {
-        option.text = stripMarkers(option.text);
-      }
+  for (const option of question.options) {
+    delete option._isColon;
+    if (typeof hasCorrectMarker === 'function' && hasCorrectMarker(option.text) && !question.answer) {
+      question.answer = option.key;
     }
-
-    if (question.explanation && typeof stripMarkers === 'function') {
-      question.explanation = stripMarkers(question.explanation);
-    }
-
-    if (question._correctText && typeof normalizeForCompare === 'function') {
-      const normalizedCorrectText = normalizeForCompare(question._correctText);
-      for (const option of question.options) {
-        const normalizedOptionText = normalizeForCompare(option.text);
-        if (
-          normalizedOptionText.includes(normalizedCorrectText) ||
-          normalizedCorrectText.includes(normalizedOptionText)
-        ) {
-          question.answer = option.key;
-          break;
-        }
-      }
-    }
-
-    delete question._correctText;
+    option.text = clean(option.text);
   }
 
+  if (question.explanation) {
+    question.explanation = clean(question.explanation);
+  }
+
+  if (question._correctText && typeof normalizeForCompare === 'function') {
+    const normalizedCorrectText = normalizeForCompare(question._correctText);
+    const matched = question.options.find((option) => {
+      const normalizedOpt = normalizeForCompare(option.text);
+      return normalizedOpt.includes(normalizedCorrectText) || normalizedCorrectText.includes(normalizedOpt);
+    });
+    if (matched) question.answer = matched.key;
+  }
+
+  delete question._correctText;
+}
+
+function finalizeParsedQuestions(questions) {
+  for (const question of questions) {
+    resolveQuestionAnswer(question);
+  }
   return questions.filter((question) => question.text.length > 5 && question.options.length >= 2);
 }
 
-function parseQuestionsStandard(lines, answerMap = {}) {
-  let answerKeyStart = -1;
-  const mergedAnswerMap = { ...answerMap };
+function extractTrailingAnswerKey(lines, initialMap) {
+  const mergedAnswerMap = { ...initialMap };
+  const headerRegex = /^(?:daftar\s+)?(?:kunci\s*jawaban|answer\s*key|kunci\s*soal|pembahasan\s*soal)\b/i;
+  const numAnsRegex = /^(\d+)[.)]\s*([A-E])\b/i;
+  const noAnsRegex = /no\.?\s*(\d+)\s*[=:]\s*([A-E])\b/i;
 
-  // Only scan for an answer key section if it's placed after the opening header/title (index >= 5)
   for (let index = 5; index < lines.length; index++) {
-    if (/^(?:daftar\s+)?(?:kunci\s*jawaban|answer\s*key|kunci\s*soal|pembahasan\s*soal)\b/i.test(lines[index])) {
-      let foundKeys = 0;
-      for (let j = index; j < lines.length; j++) {
-        const match = lines[j].match(/^(\d+)[.)]\s*([A-Ea-e])\b/) ||
-          lines[j].match(/no\.?\s*(\d+)\s*[=:]\s*([A-Ea-e])\b/i);
-        if (match) {
-          foundKeys++;
-          mergedAnswerMap[parseInt(match[1], 10)] = match[2].toUpperCase();
-        }
-      }
-      if (foundKeys >= 2) {
-        answerKeyStart = index;
-        break;
+    if (!headerRegex.test(lines[index])) continue;
+    let foundKeys = 0;
+    for (let j = index; j < lines.length; j++) {
+      const match = numAnsRegex.exec(lines[j]) || noAnsRegex.exec(lines[j]);
+      if (match) {
+        foundKeys++;
+        mergedAnswerMap[Number.parseInt(match[1], 10)] = match[2].toUpperCase();
       }
     }
+    if (foundKeys >= 2) {
+      return { workLines: lines.slice(0, index), mergedAnswerMap };
+    }
+  }
+  return { workLines: lines, mergedAnswerMap };
+}
+
+function handleOptionMatch(line, optionMatch, current) {
+  const optKey = optionMatch[1].toUpperCase();
+  const optText = optionMatch[2].trim();
+  const isColonSpeaker = /^[A-E]:\s/.test(line);
+
+  if (!isColonSpeaker && optKey === 'A' && current.options.length > 0 && current.options.every((o) => o._isColon)) {
+    const dialogueText = current.options.map((o) => `${o.key}: ${o.text}`).join(' ');
+    current.text = current.text ? `${current.text} ${dialogueText}` : dialogueText;
+    current.options = [];
   }
 
-  const workLines = answerKeyStart > 0 ? lines.slice(0, answerKeyStart) : lines;
+  if (isColonSpeaker && current.options.some((o) => o.key === optKey)) {
+    const dialogueText = current.options.map((o) => `${o.key}: ${o.text}`).join(' ');
+    current.text = current.text ? `${current.text} ${dialogueText} ${line}` : `${dialogueText} ${line}`;
+    current.options = [];
+    return;
+  }
+
+  current.options.push({ key: optKey, text: optText, _isColon: isColonSpeaker });
+}
+
+function appendContinuation(line, current) {
+  const lastOption = current.options.at(-1);
+  if (lastOption) {
+    lastOption.text += ` ${line}`;
+  } else {
+    current.text = current.text ? `${current.text} ${line}` : line;
+  }
+}
+
+function parseQuestionsStandard(lines, answerMap = {}) {
+  const { workLines, mergedAnswerMap } = extractTrailingAnswerKey(lines, answerMap);
   const questions = [];
   let current = null;
   let inExplanation = false;
 
-  const questionRegex = /^(?:(?:Soal|No\.?|Pertanyaan)\s*)?(\d+)(?:\s*\([a-z]\))?\s*(?:[.):-](?!\d)|\))\s*(.*)/i;
-  const optionRegex = /^[([]?([A-Ea-e])\s*(?:[.):-](?!\d)|\)|\])\s*(.*)/;
+  const questionRegex = /^(?:(?:Soal|No\.?|Pertanyaan)\s*)?(\d+)(?:\s*\([a-z]\))?\s*[.):-]\s*(.*)/i;
+  const optionRegex = /^[([]?([A-E])\s*[.):\]]\s*(.*)/i;
   const explanationRegex = /^(?:Cara\s*hitung|Pembahasan|Penjelasan|Keterangan|Catatan)\s*[:=-]/i;
 
   for (const line of workLines) {
-    const questionMatch = line.match(questionRegex);
-    if (questionMatch) {
-      const nextNum = parseInt(questionMatch[1], 10);
-      const questionText = (questionMatch[2] || '').trim();
-
-      if (current && current.options.length >= 2) {
-        questions.push(current);
-        current = {
-          num: nextNum,
-          text: questionText,
-          options: [],
-          answer: mergedAnswerMap[nextNum] || '',
-          explanation: ''
-        };
-        inExplanation = false;
-        continue;
-      }
-
-      if (!current) {
-        current = {
-          num: nextNum,
-          text: questionText,
-          options: [],
-          answer: mergedAnswerMap[nextNum] || '',
-          explanation: ''
-        };
-        inExplanation = false;
-        continue;
-      }
+    const isDecimalStart = /^\d+\.\d/.test(line);
+    const questionMatch = isDecimalStart ? null : questionRegex.exec(line);
+    if (questionMatch && (!current || current.options.length >= 2)) {
+      if (current) questions.push(current);
+      const nextNum = Number.parseInt(questionMatch[1], 10);
+      current = {
+        num: nextNum,
+        text: (questionMatch[2] || '').trim(),
+        options: [],
+        answer: mergedAnswerMap[nextNum] || '',
+        explanation: ''
+      };
+      inExplanation = false;
+      continue;
     }
 
     if (!current) continue;
 
-    if (explanationRegex.test(line)) {
+    if (explanationRegex.test(line) || inExplanation) {
       inExplanation = true;
       current.explanation = current.explanation ? `${current.explanation} ${line}` : line;
       continue;
     }
 
-    if (inExplanation) {
-      current.explanation = current.explanation ? `${current.explanation} ${line}` : line;
-      continue;
-    }
-
-    const optionMatch = line.match(optionRegex);
+    const optionMatch = optionRegex.exec(line);
     if (optionMatch) {
-      const optKey = optionMatch[1].toUpperCase();
-      const optText = optionMatch[2].trim();
-      const isColonSpeaker = /^[A-E]:\s/.test(line);
-
-      // If we hit a real option (e.g. "a.") after dialogue lines ("A:", "B:"), move dialogue back to question text
-      if (!isColonSpeaker && optKey === 'A' && current.options.length > 0 && current.options.every((o) => o._isColon)) {
-        const dialogueText = current.options.map((o) => `${o.key}: ${o.text}`).join(' ');
-        current.text = current.text ? `${current.text} ${dialogueText}` : dialogueText;
-        current.options = [];
-      }
-
-      // If this colon speaker key already exists (e.g. second "A:" in a dialogue), flush previous colon lines to text first
-      if (isColonSpeaker && current.options.some((o) => o.key === optKey)) {
-        const dialogueText = current.options.map((o) => `${o.key}: ${o.text}`).join(' ');
-        current.text = current.text ? `${current.text} ${dialogueText} ${line}` : `${dialogueText} ${line}`;
-        current.options = [];
-        continue;
-      }
-
-      current.options.push({ key: optKey, text: optText, _isColon: isColonSpeaker });
+      handleOptionMatch(line, optionMatch, current);
       continue;
     }
 
-    if (current.options.length > 0) {
-      const lastOption = current.options[current.options.length - 1];
-      if (lastOption) {
-        lastOption.text += ` ${line}`;
-      }
-    } else {
-      current.text = current.text ? `${current.text} ${line}` : line;
-    }
+    appendContinuation(line, current);
   }
 
   if (current) questions.push(current);
   return finalizeParsedQuestions(questions);
 }
 
+const LMS_META_PATTERNS = [
+  /^(?:Correct|Incorrect|Partially\s+correct|Not\s+answered|Finish\s+review)/i,
+  /^(?:Mark\s+[\d.]+|Score\s+[\d.]+|Flag|Question\s+\d+\s*$)/i,
+  /^(?:Started\s+on|State:|Completed\s+on|Time\s+taken|Grade|Maximum|Question\s+text)/i,
+  /^(?:out\s+of\s+[\d.]+|[\d.]+\s+out\s+of)/i
+];
+
+function isLmsMetaLine(line) {
+  return LMS_META_PATTERNS.some((rx) => rx.test(line));
+}
+
 function parseQuestionsLMS(lines, answerMap = {}) {
   const questions = [];
   let current = null;
   let skipMeta = false;
-
-  const isMetaLine = (line) =>
-    /^(Correct|Incorrect|Partially\s+correct|Mark\s+[\d.]+|Flag|Question\s+\d+\s*$|Not\s+answered|Score\s+[\d.]+|Finish\s+review|Started\s+on|State:|Completed\s+on|Time\s+taken|Grade|Maximum|Question\s+text)/i.test(line) ||
-    /^(out\s+of\s+[\d.]+|[\d.]+\s+out\s+of)/i.test(line);
+  const questionHeaderRegex = /^Question\s+(\d+)\s*$/i;
+  const correctLineRegex = /^(?:The\s+correct\s+answer\s+is|Correct\s+answer|Jawaban\s+yang\s+benar)[:\s]/i;
+  const optionRegex = /^[([]?([A-E])\s*[.):\]]\s*(.*)/i;
 
   for (const line of lines) {
-    const questionMatch = line.match(/^Question\s+(\d+)\s*$/i);
+    const questionMatch = questionHeaderRegex.exec(line);
     if (questionMatch) {
       if (current && current.options.length >= 2) questions.push(current);
-      const num = parseInt(questionMatch[1], 10);
-      current = {
-        num,
-        text: '',
-        options: [],
-        answer: answerMap[num] || '',
-        _correctText: ''
-      };
+      const num = Number.parseInt(questionMatch[1], 10);
+      current = { num, text: '', options: [], answer: answerMap[num] || '', _correctText: '' };
       skipMeta = true;
       continue;
     }
 
     if (!current) continue;
-    if (isMetaLine(line)) {
+    if (isLmsMetaLine(line)) {
       skipMeta = false;
       continue;
     }
-
-    if (/^(The\s+correct\s+answer\s+is|Correct\s+answer|Jawaban\s+yang\s+benar)[:\s]/i.test(line)) {
-      current._correctText = line.replace(/^(The\s+correct\s+answer\s+is[:\s]|Correct\s+answer[:\s]|Jawaban\s+yang\s+benar[:\s])/i, '').trim().toLowerCase();
+    if (correctLineRegex.test(line)) {
+      current._correctText = line.replace(correctLineRegex, '').trim().toLowerCase();
       continue;
     }
 
-    const optionMatch = line.match(/^[([]?([A-Ea-e])\s*(?:[.):-](?!\d)|\)|\])\s*(.*)/);
+    const optionMatch = optionRegex.exec(line);
     if (optionMatch) {
       current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
       continue;
     }
 
-    if (current.options.length > 0) {
-      const lastOption = current.options[current.options.length - 1];
-      if (lastOption) {
-        lastOption.text += ` ${line}`;
-      }
-      continue;
-    }
-
-    if (!skipMeta && line.length > 3) {
+    const lastOption = current.options.at(-1);
+    if (lastOption) {
+      lastOption.text += ` ${line}`;
+    } else if (!skipMeta && line.length > 3) {
       current.text += `${current.text ? ' ' : ''}${line}`;
     }
   }
@@ -348,7 +323,7 @@ function validateParsedQuiz(questions) {
   const missingNums = [];
   if (questions.length > 0) {
     const min = questions[0].num;
-    const max = questions[questions.length - 1].num;
+    const max = questions.at(-1).num;
     for (let num = min; num <= max; num++) {
       if (!seenNums.has(num)) missingNums.push(num);
     }
@@ -363,7 +338,9 @@ function validateParsedQuiz(questions) {
 
     if (question.options.length > 0 && question.options.length < 4) question.warnings.push('Opsi jawaban kurang dari 4.');
     if (!question.answer) question.warnings.push('Jawaban benar belum diatur.');
-    else if (!question.options.find((option) => option.key === question.answer)) question.warnings.push(`Kunci jawaban (${question.answer}) tidak ada di opsi.`);
+    else if (!question.options.some((option) => option.key === question.answer)) {
+      question.warnings.push(`Kunci jawaban (${question.answer}) tidak ada di opsi.`);
+    }
 
     if (duplicates.includes(question.num)) question.errors.push('Nomor soal duplikat. Perbaiki sebelum publish agar jawaban tidak tertukar.');
 
@@ -405,3 +382,11 @@ function validateParsedQuiz(questions) {
     }
   };
 }
+
+// --- Auto-exports to window ---
+window.extractPdfText = extractPdfText;
+window.generateQuizDescription = generateQuizDescription;
+window.normalizePdfText = normalizePdfText;
+window.parseAnswerKey = parseAnswerKey;
+window.parseQuestions = parseQuestions;
+window.validateParsedQuiz = validateParsedQuiz;
