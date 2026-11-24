@@ -59,6 +59,7 @@ export default [
         mergeQuestionPair: 'writable',
         mergeQuestionsByNumber: 'writable',
         parseWithGemini: 'writable',
+        auditQuizWithAI: 'writable',
         generateQuizDescription: 'writable',
         extractPdfText: 'writable',
         normalizePdfText: 'writable',

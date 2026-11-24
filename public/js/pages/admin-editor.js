@@ -1,8 +1,92 @@
 // Quiz editor, validation summary, Cropper.js modal, and save/publish actions.
-import { adminState, adminApiFetch } from './admin-state.js';
+import { adminState, adminApiFetch, getAdminConfig, adminLog } from './admin-state.js';
 
 let cropperInstance = null;
 let currentCropIndex = -1;
+
+function renderAiAuditBadge(aiAudit) {
+  if (!aiAudit) return '';
+  let badge = '✅ Lolos Audit AI';
+  let bg = 'rgba(34,197,94,0.1)';
+  let color = 'var(--success)';
+
+  if (aiAudit.status === 'fixed') {
+    badge = '🤖 Diperbaiki AI';
+    bg = 'rgba(92,156,252,0.12)';
+    color = 'var(--primary)';
+  } else if (aiAudit.status === 'flagged') {
+    badge = '⚠️ AI Menandai Perlu Cek';
+    bg = 'rgba(245,158,11,0.12)';
+    color = 'var(--warning)';
+  }
+
+  const detail = aiAudit.reasoning ? ` — ${escapeHTML(aiAudit.reasoning)}` : '';
+  return `<div style="background:${bg};color:${color};padding:0.45rem 0.65rem;border-radius:6px;font-size:0.78rem;margin-bottom:0.8rem;"><strong>${badge}</strong>${detail}</div>`;
+}
+
+export async function runAiQuizAudit() {
+  if (!adminState.parsedQuestions.length) {
+    showToast('Belum ada soal untuk diperiksa.', 'warning');
+    return;
+  }
+  if (typeof auditQuizWithAI !== 'function') {
+    showToast('Modul audit AI belum termuat.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnAiAudit');
+  const statusEl = document.getElementById('aiAuditStatus');
+  const { geminiKey } = getAdminConfig();
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Mengaudit...';
+  }
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '🤖 Menyiapkan audit AI per batch (10 soal/batch)...';
+  }
+
+  try {
+    const result = await auditQuizWithAI(adminState.parsedQuestions, {
+      geminiKey,
+      onLog: adminLog,
+      onProgress: ({ batchNum, totalBatches, processed, total }) => {
+        if (statusEl) {
+          statusEl.innerHTML = `🤖 Mengaudit batch <strong>${batchNum}/${totalBatches}</strong> (${processed}/${total} soal)...`;
+        }
+      },
+      backendAuditFn: async (batch) => {
+        const res = await adminApiFetch('/api/admin/audit-quiz', {
+          method: 'POST',
+          body: JSON.stringify({ questions: batch })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal audit via server AI.');
+        return data;
+      }
+    });
+
+    adminState.parsedQuestions = result.questions;
+    updatePreview();
+
+    if (statusEl) {
+      const { ok, fixed, flagged, total } = result.summary;
+      statusEl.innerHTML = `✅ <strong>Audit AI selesai (${total} soal):</strong> ${ok} OK · <span style="color:var(--primary)">${fixed} diperbaiki otomatis</span> · <span style="color:var(--warning)">${flagged} perlu cek manual</span>`;
+    }
+    showToast(`Audit AI selesai: ${result.summary.fixed} soal diperbaiki, ${result.summary.flagged} perlu cek.`, 'success');
+  } catch (error) {
+    if (statusEl) {
+      statusEl.innerHTML = `❌ Audit AI gagal: ${escapeHTML(error.message)}`;
+    }
+    showToast(error.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🤖 Audit & Koreksi AI';
+    }
+  }
+}
 
 export function updatePreview() {
   if (typeof validateParsedQuiz === 'function') {
@@ -55,6 +139,7 @@ export function buildQuizPreview(stats) {
         <button class="q-del-btn" onclick="deleteQuestion(${qi})">🗑️</button>
       </div>
       <div class="q-body">
+        ${renderAiAuditBadge(q.aiAudit)}
         ${q.warnings && q.warnings.length ? `<div style="background:rgba(245,158,11,0.1);color:var(--warning);padding:0.5rem;border-radius:6px;font-size:0.8rem;margin-bottom:0.8rem;">⚠️ ${q.warnings.join('<br>')}</div>` : ''}
         ${q.errors && q.errors.length ? `<div style="background:rgba(239,68,68,0.1);color:var(--danger);padding:0.5rem;border-radius:6px;font-size:0.8rem;margin-bottom:0.8rem;">❌ ${q.errors.join('<br>')}</div>` : ''}
         ${q.image ? `

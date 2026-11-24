@@ -170,16 +170,19 @@
       <div class="admin-box" id="quizPreview" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:1rem;flex-wrap:wrap;gap:1rem;">
           <h3 style="margin:0;border:none;padding:0;">👀 Preview Hasil Parsing</h3>
-          <div style="display:flex;gap:0.5rem;">
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
             <button class="btn btn-outline" onclick="cancelPreview()">Batalkan</button>
+            <button class="btn btn-outline" id="btnAiAudit" onclick="runAiQuizAudit()">🤖 Audit & Koreksi AI</button>
             <button class="btn btn-outline" onclick="addQuestion()">+ Tambah Soal</button>
             <button class="btn btn-secondary" id="btnDraft" onclick="saveQuizDraft()">Simpan Draft</button>
             <button class="btn btn-primary" id="btnPublish" onclick="publishQuiz()">🚀 Publish Paket</button>
           </div>
         </div>
         
-        <div id="parseSummary" style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1.5rem;font-size:0.85rem;display:flex;gap:1.5rem;flex-wrap:wrap;">
+        <div id="parseSummary" style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:0.85rem;display:flex;gap:1.5rem;flex-wrap:wrap;">
         </div>
+
+        <div id="aiAuditStatus" style="display:none;background:rgba(92,156,252,0.08);border:1px solid rgba(92,156,252,0.28);border-radius:8px;padding:0.85rem 1rem;margin-bottom:1.5rem;font-size:0.85rem;"></div>
 
         <div id="questionsList"></div>
       </div>

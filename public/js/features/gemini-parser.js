@@ -228,6 +228,190 @@ Aturan penting:
   return mergeQuestionsByNumber(allQuestions);
 }
 
+function buildQuizAuditPrompt(batch) {
+  const compact = batch.map((q) => ({
+    num: q.num,
+    text: q.text,
+    options: q.options,
+    answer: q.answer || '',
+    explanation: q.explanation || '',
+    detectedIssues: [...(q.errors || []), ...(q.warnings || [])]
+  }));
+
+  return `Kamu adalah auditor kualitas soal pilihan ganda (MCQ) StudyForge.
+Periksa batch soal hasil parsing PDF berikut.
+Untuk setiap soal:
+1. Isi "reasoning" terlebih dahulu (maksimal 2 kalimat): cek keutuhan kalimat soal, kebersihan opsi (tidak ada metadata bocor/duplikat/OCR rusak), dan kesesuaian kunci jawaban.
+2. Tentukan "status":
+   - "ok": soal, opsi, dan kunci jawaban sudah bersih dan valid.
+   - "fixed": ada perbaikan aman yang kamu terapkan di "fixes" (misalnya merapikan spasi/typo OCR, menghapus metadata bocor, memperbaiki kunci jawaban yang kosong/salah jika sangat jelas).
+   - "flagged": soal butuh tinjauan manual admin (misalnya butuh gambar yang hilang, opsi terpotong parah, atau jawaban ambigu).
+3. Isi "issues" (array string, kosong [] jika tidak ada masalah).
+4. Isi "fixes" (object, hanya sertakan field yang diperbaiki: "text", "options", "answer", "explanation").
+
+Kembalikan HANYA JSON array valid:
+[{"num": 1, "reasoning": "...", "status": "ok", "issues": [], "fixes": {}}]
+
+Data batch:
+${JSON.stringify(compact)}`;
+}
+
+function parseJsonArraySafe(rawText) {
+  const raw = String(rawText || '').trim();
+  try {
+    const direct = JSON.parse(raw);
+    if (Array.isArray(direct)) return direct;
+  } catch {
+    // Fallback to regex bracket extraction below if wrapped in markdown.
+  }
+  const match = /\[[\s\S]*\]/.exec(raw);
+  if (!match) return null;
+  try {
+    const extracted = JSON.parse(match[0]);
+    return Array.isArray(extracted) ? extracted : null;
+  } catch {
+    return null;
+  }
+}
+
+async function callGeminiAuditModel(model, geminiKey, promptText) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json'
+      }
+    })
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) {
+    const errMsg = data.error?.message || String(res.status);
+    const friendly = formatGeminiError(errMsg);
+    if (friendly !== errMsg) throw new Error(friendly);
+    return { ok: false, retryable: errMsg.includes('not found') || errMsg.includes('limit: 0'), errMsg };
+  }
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return { ok: true, raw };
+}
+
+async function requestGeminiAuditBatch(batch, geminiKey, preferredModel, onLog) {
+  const candidates = preferredModel
+    ? [preferredModel, ...GEMINI_MODELS.filter((m) => m !== preferredModel)]
+    : GEMINI_MODELS;
+  const promptText = buildQuizAuditPrompt(batch);
+
+  for (const model of candidates) {
+    const first = await callGeminiAuditModel(model, geminiKey, promptText);
+    if (!first.ok) {
+      if (first.retryable) continue;
+      onLog(`⚠️ Audit Gemini (${model}): ${first.errMsg.substring(0, 80)}`);
+      continue;
+    }
+
+    const parsed = parseJsonArraySafe(first.raw);
+    if (parsed) return { results: parsed, model };
+
+    // Single JSON repair retry per LLM-as-a-Judge self-correction pattern.
+    const repairPrompt = `Perbaiki JSON berikut agar menjadi JSON array valid sesuai skema [{"num":1,"reasoning":"...","status":"ok","issues":[],"fixes":{}}] tanpa mengubah isi audit:\n${first.raw.slice(0, 6000)}`;
+    const repaired = await callGeminiAuditModel(model, geminiKey, repairPrompt);
+    const repairedParsed = repaired.ok ? parseJsonArraySafe(repaired.raw) : null;
+    if (repairedParsed) return { results: repairedParsed, model };
+  }
+  return null;
+}
+
+function applyAuditItemToQuestion(question, item) {
+  if (!item || typeof item !== 'object') return 'ok';
+  const fixes = item.fixes && typeof item.fixes === 'object' ? item.fixes : {};
+
+  if (typeof fixes.text === 'string' && fixes.text.trim().length >= 5) {
+    question.text = fixes.text.trim();
+  }
+  if (Array.isArray(fixes.options) && fixes.options.length >= 2) {
+    question.options = fixes.options
+      .filter((opt) => opt && opt.key && typeof opt.text === 'string')
+      .map((opt) => ({ key: String(opt.key).trim().toUpperCase(), text: opt.text.trim() }));
+  }
+  if (typeof fixes.answer === 'string' && /^[A-E]$/i.test(fixes.answer.trim())) {
+    question.answer = fixes.answer.trim().toUpperCase();
+  }
+  if (typeof fixes.explanation === 'string' && fixes.explanation.trim()) {
+    question.explanation = fixes.explanation.trim();
+  }
+
+  const status = ['ok', 'fixed', 'flagged'].includes(item.status) ? item.status : 'ok';
+  question.aiAudit = {
+    status,
+    reasoning: typeof item.reasoning === 'string' ? item.reasoning.trim() : '',
+    issues: Array.isArray(item.issues) ? item.issues.map(String) : []
+  };
+  return status;
+}
+
+/**
+ * Audit and auto-correct parsed questions in batches of 10 using Gemini or Cloudflare AI fallback.
+ */
+async function auditQuizWithAI(questions, options = {}) {
+  const BATCH_SIZE = 10;
+  const onLog = typeof options.onLog === 'function' ? options.onLog : () => {};
+  const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {};
+  const geminiKey = String(options.geminiKey || '').trim();
+  const backendAuditFn = typeof options.backendAuditFn === 'function' ? options.backendAuditFn : null;
+
+  const summary = { total: questions.length, ok: 0, fixed: 0, flagged: 0 };
+  let workingModel = null;
+
+  for (let i = 0; i < questions.length; i += BATCH_SIZE) {
+    const batch = questions.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(questions.length / BATCH_SIZE);
+    onProgress({ batchNum, totalBatches, processed: i, total: questions.length });
+    onLog(`🤖 Mengaudit batch ${batchNum}/${totalBatches} (soal ${batch[0].num}–${batch.at(-1).num})...`);
+
+    let batchResults = null;
+    if (geminiKey) {
+      const geminiOut = await requestGeminiAuditBatch(batch, geminiKey, workingModel, onLog);
+      if (geminiOut) {
+        workingModel = geminiOut.model;
+        batchResults = geminiOut.results;
+      }
+    } else if (backendAuditFn) {
+      const backendRes = await backendAuditFn(batch);
+      if (Array.isArray(backendRes?.results)) batchResults = backendRes.results;
+    } else {
+      throw new Error('Tidak ada penyedia AI yang tersedia untuk audit.');
+    }
+
+    if (!Array.isArray(batchResults)) {
+      batch.forEach((q) => {
+        q.aiAudit = { status: 'flagged', reasoning: 'Gagal memproses batch audit AI.', issues: ['Batch audit gagal'] };
+        summary.flagged++;
+      });
+      continue;
+    }
+
+    const byNum = new Map(batchResults.map((item) => [Number(item?.num), item]));
+    batch.forEach((q) => {
+      const status = applyAuditItemToQuestion(q, byNum.get(Number(q.num)));
+      summary[status] = (summary[status] || 0) + 1;
+    });
+  }
+
+  onProgress({
+    batchNum: Math.ceil(questions.length / BATCH_SIZE),
+    totalBatches: Math.ceil(questions.length / BATCH_SIZE),
+    processed: questions.length,
+    total: questions.length
+  });
+
+  return { questions, summary };
+}
+
 window.compressForGemini = compressForGemini;
 window.formatGeminiError = formatGeminiError;
 window.getQuestionQualityScore = getQuestionQualityScore;
@@ -235,3 +419,4 @@ window.shouldMergeQuestionPair = shouldMergeQuestionPair;
 window.mergeQuestionPair = mergeQuestionPair;
 window.mergeQuestionsByNumber = mergeQuestionsByNumber;
 window.parseWithGemini = parseWithGemini;
+window.auditQuizWithAI = auditQuizWithAI;

@@ -13,6 +13,7 @@ import {
   deleteQuestion,
   addQuestion,
   cancelPreview,
+  runAiQuizAudit,
   saveQuizDraft,
   publishQuiz,
   saveQuizData
@@ -107,6 +108,7 @@ Object.assign(window, {
   deleteQuestion,
   addQuestion,
   cancelPreview,
+  runAiQuizAudit,
   saveQuizDraft,
   publishQuiz,
   saveQuizData,

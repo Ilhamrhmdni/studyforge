@@ -326,6 +326,60 @@ function parseQuestionsLMS(lines, answerMap = {}) {
   return finalizeParsedQuestions(state.questions);
 }
 
+function checkOptionIntegrity(question, errors, warnings) {
+  const options = Array.isArray(question.options) ? question.options : [];
+  if (options.length === 0) {
+    errors.push('Soal tidak memiliki opsi jawaban.');
+    return;
+  }
+  if (options.length < 4) warnings.push('Opsi jawaban kurang dari 4.');
+  if (options.length > 5) warnings.push('Opsi jawaban berlebih (> 5), kemungkinan soal berikutnya ikut terbaca.');
+
+  const normalizedSet = new Set();
+  let hasEmpty = false;
+  let hasDuplicate = false;
+  let sequenceBroken = false;
+
+  options.forEach((opt, idx) => {
+    const optText = (opt?.text || '').trim().toLowerCase();
+    if (!optText) hasEmpty = true;
+    else if (normalizedSet.has(optText)) hasDuplicate = true;
+    else normalizedSet.add(optText);
+
+    const expectedKey = String.fromCodePoint(65 + idx);
+    if (opt?.key && opt.key !== expectedKey) sequenceBroken = true;
+  });
+
+  if (hasEmpty) warnings.push('Ada opsi jawaban yang kosong.');
+  if (hasDuplicate) warnings.push('Ada opsi jawaban yang duplikat.');
+  if (sequenceBroken) {
+    const keys = options.map((opt) => opt.key || '?').join(', ');
+    warnings.push(`Urutan opsi melompat (${keys}), kemungkinan ada opsi yang gagal terbaca.`);
+  }
+}
+
+function checkTextQuality(question, errors, warnings) {
+  const text = (question.text || '').trim();
+  if (!text || text.length < 5) {
+    errors.push('Teks soal terlalu pendek atau kosong.');
+    return;
+  }
+  if (text.length > 1500) {
+    warnings.push('Teks soal sangat panjang (> 1500 karakter), kemungkinan soal berikutnya ikut tergabung.');
+  }
+  if (/\b(?:catatan|sumber)\s*:|https?:\/\/|www\.|\bpage\s+\d+\s+of\s+\d+/i.test(text)) {
+    warnings.push('Teks mengandung metadata atau URL bocor yang perlu dibersihkan.');
+  }
+
+  const lowText = text.toLowerCase();
+  if ((lowText.includes('gambar di bawah') || lowText.includes('perhatikan gambar')) && !question.image) {
+    warnings.push('Soal mungkin membutuhkan gambar yang hilang.');
+  }
+  if (lowText.includes('tabel berikut')) {
+    warnings.push('Soal mungkin mengandung tabel yang gagal terekstrak.');
+  }
+}
+
 function validateParsedQuiz(questions) {
   let validCount = 0;
   let warningCount = 0;
@@ -352,23 +406,16 @@ function validateParsedQuiz(questions) {
     question.errors = [];
     question.warnings = [];
 
-    if (!question.text || question.text.length < 5) question.errors.push('Teks soal terlalu pendek atau kosong.');
-    if (question.options.length === 0) question.errors.push('Soal tidak memiliki opsi jawaban.');
+    checkTextQuality(question, question.errors, question.warnings);
+    checkOptionIntegrity(question, question.errors, question.warnings);
 
-    if (question.options.length > 0 && question.options.length < 4) question.warnings.push('Opsi jawaban kurang dari 4.');
     if (!question.answer) question.warnings.push('Jawaban benar belum diatur.');
     else if (!question.options.some((option) => option.key === question.answer)) {
       question.warnings.push(`Kunci jawaban (${question.answer}) tidak ada di opsi.`);
     }
 
-    if (duplicates.includes(question.num)) question.errors.push('Nomor soal duplikat. Perbaiki sebelum publish agar jawaban tidak tertukar.');
-
-    const lowText = question.text.toLowerCase();
-    if ((lowText.includes('gambar di bawah') || lowText.includes('perhatikan gambar')) && !question.image) {
-      question.warnings.push('Soal mungkin membutuhkan gambar yang hilang.');
-    }
-    if (lowText.includes('tabel berikut')) {
-      question.warnings.push('Soal mungkin mengandung tabel yang gagal terekstrak.');
+    if (duplicates.includes(question.num)) {
+      question.errors.push('Nomor soal duplikat. Perbaiki sebelum publish agar jawaban tidak tertukar.');
     }
 
     if (question.errors.length > 0) {
