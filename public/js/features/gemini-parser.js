@@ -388,7 +388,7 @@ function mergeFixedOptions(existingOptions, fixedOptions) {
   ));
 }
 
-function buildDistinctDistractor(rawText, usedNorms) {
+function buildDistinctOptionText(rawText, usedNorms) {
   const numMatch = /(\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?/.exec(rawText);
   if (numMatch) {
     const rawNum = numMatch[1];
@@ -396,8 +396,8 @@ function buildDistinctDistractor(rawText, usedNorms) {
     const baseVal = Number.parseInt(rawNum.replaceAll('.', ''), 10);
     if (!Number.isNaN(baseVal) && baseVal > 0) {
       const step = Math.max(1, Math.round(baseVal * 0.1));
-      for (const mult of [1, -1, 2, -2, 3]) {
-        const candidateVal = Math.max(1, baseVal + (step * mult));
+      for (const factor of [1, -1, 2, -2, 3]) {
+        const candidateVal = Math.max(1, baseVal + (step * factor));
         const formatted = hasThousandsDots
           ? candidateVal.toLocaleString('id-ID')
           : String(candidateVal);
@@ -432,7 +432,7 @@ function ensureUniqueDuplicateOptions(question) {
   question.options = question.options.map((opt, idx) => {
     const norm = (opt?.text || '').trim().toLowerCase();
     if (!norm || seen.get(norm) === idx) return opt;
-    const replacement = buildDistinctDistractor(opt.text, usedNorms);
+    const replacement = buildDistinctOptionText(opt.text, usedNorms);
     usedNorms.add(replacement.trim().toLowerCase());
     return { ...opt, text: replacement };
   });
