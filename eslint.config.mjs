@@ -50,7 +50,15 @@ export default [
         logoutUser: 'writable',
         updateNavForUser: 'writable',
         getAccessToken: 'writable',
+        apiFetch: 'writable',
         showToast: 'writable',
+        compressForGemini: 'writable',
+        formatGeminiError: 'writable',
+        getQuestionQualityScore: 'writable',
+        shouldMergeQuestionPair: 'writable',
+        mergeQuestionPair: 'writable',
+        mergeQuestionsByNumber: 'writable',
+        parseWithGemini: 'writable',
         generateQuizDescription: 'writable',
         extractPdfText: 'writable',
         normalizePdfText: 'writable',
@@ -63,6 +71,12 @@ export default [
       'no-unused-vars': 'off',
       'no-redeclare': 'off',
       'no-undef': 'error'
+    }
+  },
+  {
+    files: ['public/js/pages/admin*.js'],
+    languageOptions: {
+      sourceType: 'module'
     }
   },
   {

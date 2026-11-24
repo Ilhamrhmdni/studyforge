@@ -164,7 +164,7 @@ function renderCategoryPills(list) {
   let html = `<button class="category-pill ${_selectedCategory === 'Semua' ? 'active' : ''}" data-category="Semua" onclick="selectCategory('Semua')">Semua (${list.length})</button>`;
   subjects.forEach(subj => {
     const active = _selectedCategory === subj ? 'active' : '';
-    html += `<button class="category-pill ${active}" data-category="${escapeHTML(subj)}" onclick="selectCategory('${escapeHTML(subj)}')">${escapeHTML(subj)} (${subjectCounts[subj]})</button>`;
+    html += `<button class="category-pill ${active}" data-category="${escapeHTML(subj)}" onclick="selectCategory(this.dataset.category)">${escapeHTML(subj)} (${subjectCounts[subj]})</button>`;
   });
 
   container.innerHTML = html;
@@ -251,23 +251,17 @@ function filterQuizzes() {
 
 async function submitReview(quizId) {
   if (!confirm('Ajukan kuis ini ke Admin agar bisa diakses semua orang?')) return;
-  const token = await getAccessToken();
-  fetch('/api/user/submit-review', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ quiz_id: quizId })
-  }).then(r => r.json()).then(res => {
-    if (res.error) return alert(res.error);
+  try {
+    await apiFetch('/api/user/submit-review', {
+      method: 'POST',
+      body: { quiz_id: quizId },
+      requireAuth: true
+    });
     alert('Berhasil diajukan!');
     loadPrivateQuizzes();
-  });
-}
-
-function escapeHTML(str) {
-  if (!str) return '';
-  return str.replace(/[&<>'"]/g, tag => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-  }[tag]));
+  } catch (e) {
+    alert(e.message || 'Gagal mengajukan review.');
+  }
 }
 
 setupDashboard();

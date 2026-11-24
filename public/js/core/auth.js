@@ -104,6 +104,44 @@ async function updateNavForUser() {
   }
 }
 
+async function apiFetch(path, options = {}) {
+  const token = await getAccessToken();
+  if (options.requireAuth && !token) {
+    throw new Error('Sesi login tidak ditemukan.');
+  }
+
+  const hasBody = options.body !== undefined;
+  const bodyPayload = hasBody && typeof options.body !== 'string'
+    ? JSON.stringify(options.body)
+    : options.body;
+
+  const response = await fetch(path, {
+    method: options.method || 'GET',
+    headers: {
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {})
+    },
+    body: bodyPayload
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.error) {
+    const error = new Error(payload.error || `Request gagal (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+function showToast(msg, type = '') {
+  const toast = document.createElement('div');
+  toast.className = type ? `toast ${type}` : 'toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
 // --- Auto-exports to window ---
 window.initSupabase = initSupabase;
 window.updateNavForUser = updateNavForUser;
@@ -111,3 +149,5 @@ window.logoutUser = logoutUser;
 window.checkUserAuth = checkUserAuth;
 window.requireAuth = requireAuth;
 window.getAccessToken = getAccessToken;
+window.apiFetch = apiFetch;
+window.showToast = showToast;

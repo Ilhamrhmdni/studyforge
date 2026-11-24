@@ -38,13 +38,6 @@ async function loadPreviewQuizzes(isLoggedIn = false) {
   }
 }
 
-function escapeHTML(str) {
-  if (!str) return '';
-  return str.replace(/[&<>'"]/g, tag => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-  }[tag]));
-}
-
 // Cek apakah user udah login
 async function setupLandingPage() {
   const user = await checkUserAuth();
@@ -92,5 +85,4 @@ setupLandingPage();
 
 // --- Auto-exports to window ---
 window.setupLandingPage = setupLandingPage;
-window.escapeHTML = escapeHTML;
 window.loadPreviewQuizzes = loadPreviewQuizzes;

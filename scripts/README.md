@@ -4,14 +4,14 @@ Folder ini memuat berbagai *script* yang dieksekusi sekali (one-off scripts) unt
 
 ## Daftar Script
 
-*   ix_quiz_data.mjs: Script untuk memperbaiki data *quiz* yang *corrupt* atau perlu migrasi struktur JSON.
-*   list_models.mjs: Mengecek daftar model AI (Gemini) yang tersedia dan memastikan koneksi API key bekerja dengan baik.
-*   push_admin.js: Script utilitas untuk memberikan role admin ke akun user secara manual tanpa lewat antarmuka Supabase.
-*   migrate_secure_quizzes.mjs: Melakukan *batch upload/migration* kuis dengan proteksi keamanan dan kebijakan privasi.
+* `fix_quiz_data.mjs`: Script untuk memperbaiki data *quiz* yang *corrupt* atau perlu migrasi struktur JSON.
+* `list_models.mjs`: Mengecek daftar model AI (Gemini) yang tersedia dan memastikan koneksi API key bekerja dengan baik.
+* `push_admin.js`: Script utilitas untuk memberikan role admin ke akun user secara manual tanpa lewat antarmuka Supabase.
+* `migrate_secure_quizzes.mjs`: Melakukan *batch upload/migration* kuis dengan proteksi keamanan dan kebijakan privasi.
 
 ### Cara Menjalankan
-Pastikan Anda sudah menjalankan 
-pm install dan mengatur *environment variables* yang tepat sebelum mengeksekusi script ini dengan Node.js.
-``bash
+Pastikan Anda sudah menjalankan `npm install` dan mengatur *environment variables* yang tepat sebelum mengeksekusi script ini dengan Node.js:
+
+```bash
 node scripts/nama_script.mjs
-``
+```

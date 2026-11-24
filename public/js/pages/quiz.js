@@ -352,14 +352,6 @@ async function submitQuiz() {
   }
 }
 
-function showToast(msg, type = '') {
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
-}
-
 function updateBugReportMeta() {
   const meta = document.getElementById('bugReportMeta');
   if (!meta || !quiz) return;
@@ -511,7 +503,6 @@ init();
 // --- Auto-exports to window ---
 window.submitQuiz = submitQuiz;
 window.shuffleArray = shuffleArray;
-window.showToast = showToast;
 window.updateBugReportMeta = updateBugReportMeta;
 window.applyQuizState = applyQuizState;
 window.renderQuestion = renderQuestion;

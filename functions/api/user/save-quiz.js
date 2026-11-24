@@ -53,6 +53,7 @@ export async function onRequestPost(context) {
 
     // Insert Quiz
     const quizData = {
+      id: `quiz-${Date.now()}`,
       title,
       subject,
       description: description || '',

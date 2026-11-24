@@ -35,7 +35,8 @@ async function handleLogin(e) {
     let redirect = sessionStorage.getItem('sf_redirect') || '/paket-soal';
     
     // Redirect admin ke admin panel jika tujuan awalnya dashboard
-    if (data.user && (redirect === '/dashboard.html' || redirect === '/paket-soal')) {
+    const redirectPath = new URL(redirect, window.location.origin).pathname;
+    if (data.user && (redirectPath === '/dashboard.html' || redirectPath === '/paket-soal')) {
       const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
       if (profile && profile.role === 'admin') {
         redirect = '/admin.html';
