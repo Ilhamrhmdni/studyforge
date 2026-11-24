@@ -86,6 +86,9 @@
 .audit-log-wrap { background:rgba(0,0,0,0.35); border:1px solid var(--border); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1.5rem; }
 .audit-log-pre { margin:0; font-family:monospace; font-size:0.78rem; color:var(--text2); max-height:180px; overflow-y:auto; white-space:pre-wrap; overflow-wrap:anywhere; -webkit-user-select:all; user-select:all; }
 .upload-area-btn { width:100%; font:inherit; color:inherit; }
+.dropzone-icon { display:block; font-size:2.5rem; margin-bottom:0.5rem; }
+.dropzone-title { display:block; font-size:1.1rem; font-weight:700; margin-bottom:0.35rem; }
+.dropzone-sub { display:block; font-size:0.875rem; color:var(--text2); }
 .stat-box { background:var(--bg); padding:1rem; border-radius:8px; border:1px solid var(--border); text-align:center; }
 .stat-box-prob { background:rgba(239,68,68,0.05); padding:1rem; border-radius:8px; border:1px solid rgba(239,68,68,0.2); text-align:center; }
 .stat-label { font-size:0.8rem; color:var(--text2); }
@@ -177,9 +180,9 @@
       <div class="admin-box">
         <h3>📤 Upload File PDF &amp; Kunci Jawaban</h3>
         <button type="button" class="upload-area upload-area-btn" id="dropZone" onclick="document.getElementById('fileInput').click()">
-          <div class="upload-icon">📄</div>
-          <h3>Drag &amp; Drop PDF di sini</h3>
-          <p>atau klik untuk pilih file • Maksimal 20MB</p>
+          <span class="dropzone-icon">📄</span>
+          <span class="dropzone-title">Drag &amp; Drop PDF di sini</span>
+          <span class="dropzone-sub">atau klik untuk pilih file • Maksimal 20MB</span>
         </button>
         <label for="fileInput" class="is-hidden">Pilih file PDF soal</label>
         <input type="file" id="fileInput" class="is-hidden" accept=".pdf" title="Pilih file PDF soal" onchange="handleFile(this.files[0])">
