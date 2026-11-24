@@ -57,7 +57,7 @@ export function renumberQuestions() {
     q.num = idx + 1;
   });
   updatePreview();
-  showToast(`Nomor soal dirapikan berurutan (1–${adminState.parsedQuestions.length}).`, 'success');
+  showToast(`Nomor soal diurutkan ulang (1–${adminState.parsedQuestions.length}).`, 'success');
 }
 
 export async function runAiQuizAudit() {
