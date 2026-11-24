@@ -124,6 +124,7 @@ function finalizeParsedQuestions(questions) {
     }
 
     for (const option of question.options) {
+      delete option._isColon;
       if (typeof hasCorrectMarker === 'function' && hasCorrectMarker(option.text) && !question.answer) {
         question.answer = option.key;
       }
@@ -235,7 +236,26 @@ function parseQuestionsStandard(lines, answerMap = {}) {
 
     const optionMatch = line.match(optionRegex);
     if (optionMatch) {
-      current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
+      const optKey = optionMatch[1].toUpperCase();
+      const optText = optionMatch[2].trim();
+      const isColonSpeaker = /^[A-E]:\s/.test(line);
+
+      // If we hit a real option (e.g. "a.") after dialogue lines ("A:", "B:"), move dialogue back to question text
+      if (!isColonSpeaker && optKey === 'A' && current.options.length > 0 && current.options.every((o) => o._isColon)) {
+        const dialogueText = current.options.map((o) => `${o.key}: ${o.text}`).join(' ');
+        current.text = current.text ? `${current.text} ${dialogueText}` : dialogueText;
+        current.options = [];
+      }
+
+      // If this colon speaker key already exists (e.g. second "A:" in a dialogue), flush previous colon lines to text first
+      if (isColonSpeaker && current.options.some((o) => o.key === optKey)) {
+        const dialogueText = current.options.map((o) => `${o.key}: ${o.text}`).join(' ');
+        current.text = current.text ? `${current.text} ${dialogueText} ${line}` : `${dialogueText} ${line}`;
+        current.options = [];
+        continue;
+      }
+
+      current.options.push({ key: optKey, text: optText, _isColon: isColonSpeaker });
       continue;
     }
 

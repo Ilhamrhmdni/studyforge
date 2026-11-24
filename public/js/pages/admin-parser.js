@@ -34,7 +34,23 @@ function clusterPageLines(items) {
   return buckets
     .map((b) => {
       b.items.sort((a, b2) => a.x - b2.x);
-      const lineText = b.items.map((t) => t.str).join(' ').trim();
+      let lineText = '';
+      for (let i = 0; i < b.items.length; i++) {
+        const curr = b.items[i];
+        if (i === 0) {
+          lineText = curr.str;
+          continue;
+        }
+        const prev = b.items[i - 1];
+        // Fix PDF kerning split on leading question numbers (e.g. "3" + "7." -> "37.")
+        const isSplitQuestionNum =
+          i === 1 &&
+          /^\d+$/.test(prev.str) &&
+          /^\d+[.)]?$/.test(curr.str) &&
+          curr.x - prev.x < 25;
+        lineText += isSplitQuestionNum ? curr.str : ` ${curr.str}`;
+      }
+      lineText = lineText.trim();
       if (!lineText) return '';
 
       // Detect bold-formatted multiple-choice option lines (e.g. "a. Correct answer")
