@@ -422,8 +422,21 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
   let batchResults = null;
   let batchError = '';
 
-  try {
-    if (state.geminiKey) {
+  if (state.backendAuditFn && !state.backendUnavailable) {
+    try {
+      const backendRes = await state.backendAuditFn(enrichedBatch);
+      if (Array.isArray(backendRes?.results)) {
+        batchResults = backendRes.results;
+      }
+    } catch (err) {
+      batchError = err?.message || 'Backend AI tidak tersedia.';
+      state.backendUnavailable = true;
+      state.onLog(`⚠️ Backend AI (${batchError}) — mencoba fallback...`);
+    }
+  }
+
+  if (!batchResults && state.geminiKey) {
+    try {
       const geminiOut = await requestGeminiAuditBatch(enrichedBatch, state.geminiKey, state.workingModel, state.onLog);
       if (geminiOut) {
         state.workingModel = geminiOut.model;
@@ -431,15 +444,10 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
       } else {
         batchError = 'Gemini gagal mengembalikan JSON audit (kemungkinan rate limit).';
       }
-    } else if (state.backendAuditFn) {
-      const backendRes = await state.backendAuditFn(enrichedBatch);
-      if (Array.isArray(backendRes?.results)) batchResults = backendRes.results;
-    } else {
-      throw new Error('Tidak ada penyedia AI yang tersedia untuk audit.');
+    } catch (err) {
+      batchError = err?.message || 'Gagal memproses batch audit AI.';
+      state.onLog(`⚠️ Batch ${batchIdx + 1} gagal: ${batchError}`);
     }
-  } catch (err) {
-    batchError = err?.message || 'Gagal memproses batch audit AI.';
-    state.onLog(`⚠️ Batch ${batchIdx + 1} gagal: ${batchError}`);
   }
 
   if (!Array.isArray(batchResults)) {
@@ -458,11 +466,12 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
 }
 
 /**
- * Audit and auto-correct parsed questions in batches using Gemini or Cloudflare AI fallback.
+ * Audit and auto-correct parsed questions in batches using Groq/CF backend first, then Gemini fallback.
  */
 async function auditQuizWithAI(questions, options = {}) {
   const geminiKey = String(options.geminiKey || '').trim();
-  const batchSize = geminiKey ? 8 : 5;
+  const backendAuditFn = typeof options.backendAuditFn === 'function' ? options.backendAuditFn : null;
+  const batchSize = backendAuditFn ? 6 : 8;
   const batches = [];
   for (let i = 0; i < questions.length; i += batchSize) {
     batches.push(questions.slice(i, i + batchSize));
@@ -474,7 +483,8 @@ async function auditQuizWithAI(questions, options = {}) {
     geminiKey,
     batchSize,
     rawPdfText: String(options.rawPdfText || ''),
-    backendAuditFn: typeof options.backendAuditFn === 'function' ? options.backendAuditFn : null,
+    backendAuditFn,
+    backendUnavailable: false,
     total: questions.length,
     summary: { total: questions.length, ok: 0, fixed: 0, flagged: 0 },
     workingModel: null

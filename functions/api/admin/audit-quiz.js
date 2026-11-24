@@ -1,6 +1,7 @@
 import { requireAdmin } from '../../_shared/auth.js';
 import { getServiceConfigError } from '../../_shared/supabase.js';
 import { sendJson } from '../../_shared/response.js';
+import { runGroqWithPool } from '../../_shared/groq.js';
 
 function buildAuditPrompt(questions) {
   const compact = questions.map((q) => ({
@@ -31,12 +32,15 @@ ${JSON.stringify(compact)}`;
 }
 
 function extractJsonArray(rawText) {
-  const match = /\[[\s\S]*\]/.exec(String(rawText || ''));
-  if (!match) return null;
+  const raw = String(rawText || '').trim();
+  const start = raw.indexOf('[');
+  const end = raw.lastIndexOf(']');
+  if (start === -1 || end <= start) return null;
   try {
-    const parsed = JSON.parse(match[0]);
+    const parsed = JSON.parse(raw.slice(start, end + 1));
     return Array.isArray(parsed) ? parsed : null;
-  } catch {
+  } catch (err) {
+    console.warn('audit-quiz JSON parse failed:', err?.message || err);
     return null;
   }
 }
@@ -48,10 +52,6 @@ export async function onRequestPost(context) {
 
     const auth = await requireAdmin(context);
     if (!auth.ok) return sendJson({ error: auth.message }, auth.status);
-
-    if (!context.env.AI) {
-      return sendJson({ error: 'Cloudflare AI binding belum dikonfigurasi dan Gemini key belum diisi.' }, 501);
-    }
 
     let body;
     try {
@@ -65,24 +65,42 @@ export async function onRequestPost(context) {
       return sendJson({ error: 'Daftar soal tidak boleh kosong.' }, 400);
     }
 
-    const response = await context.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-      messages: [
-        {
-          role: 'system',
-          content: 'Kamu adalah auditor soal ujian StudyForge. Selalu balas dengan JSON array valid saja.'
-        },
-        { role: 'user', content: buildAuditPrompt(questions) }
-      ],
+    const messages = [
+      {
+        role: 'system',
+        content: 'Kamu adalah auditor soal ujian StudyForge. Selalu balas dengan JSON array valid saja.'
+      },
+      { role: 'user', content: buildAuditPrompt(questions) }
+    ];
+
+    // 1. Prefer Groq multi-key pool if configured.
+    const groqRes = await runGroqWithPool(context.env, messages, { temperature: 0.1, maxTokens: 4096 });
+    if (groqRes.ok) {
+      const results = extractJsonArray(groqRes.content);
+      if (results) {
+        return sendJson({ results, provider: 'groq', model: groqRes.model });
+      }
+      return sendJson({ error: 'Respons Groq tidak berbentuk JSON valid.' }, 502);
+    }
+
+    // 2. Fallback to Cloudflare Workers AI if Groq is not configured or unavailable.
+    if (!context.env.AI) {
+      const status = groqRes.configured ? 502 : 501;
+      return sendJson({ error: groqRes.error || 'AI provider belum dikonfigurasi.' }, status);
+    }
+
+    const cfResponse = await context.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+      messages,
       max_tokens: 4096,
       temperature: 0.1
     });
 
-    const results = extractJsonArray(response?.response);
+    const results = extractJsonArray(cfResponse?.response);
     if (!results) {
       return sendJson({ error: 'Respons AI tidak berbentuk JSON valid.' }, 502);
     }
 
-    return sendJson({ results });
+    return sendJson({ results, provider: 'cloudflare-ai' });
   } catch (error) {
     console.error('audit-quiz error:', error);
     return sendJson({ error: 'Terjadi kesalahan server saat mengaudit soal.' }, 500);
