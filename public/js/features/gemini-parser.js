@@ -280,15 +280,17 @@ Periksa batch soal hasil parsing PDF berikut.
 Untuk setiap soal:
 1. Isi "reasoning" terlebih dahulu (maksimal 2 kalimat): cek keutuhan kalimat soal, kebersihan opsi (tidak ada metadata bocor/duplikat/OCR rusak), dan kesesuaian kunci jawaban.
 2. Jika field "rawSource" tersedia, itu adalah kutipan teks asli dari PDF. Bandingkan hasil parsing dengan "rawSource" untuk memulihkan kata/kalimat yang terpotong, opsi yang hilang, atau kunci jawaban yang terlewat di PDF.
-3. Tentukan "status":
+3. Jika terdapat dua atau lebih opsi jawaban yang sama/duplikat: cek "rawSource" untuk memulihkan opsi asli; jika tidak tersedia, pertahankan opsi yang merupakan jawaban benar dan ubah opsi duplikat lainnya menjadi pengecoh yang relevan dan berbeda agar semua opsi unik (set status "fixed").
+4. Pastikan tidak ada soal duplikat dalam batch ini; jika ada soal yang jelas duplikat dari soal lain di batch ini, set "remove": true pada soal ganda tersebut.
+5. Tentukan "status":
    - "ok": soal, opsi, dan kunci jawaban sudah bersih dan valid.
-   - "fixed": ada perbaikan aman yang kamu terapkan di "fixes" (misalnya memulihkan teks/opsi dari rawSource, merapikan spasi/typo OCR, menghapus metadata bocor, memperbaiki kunci jawaban yang kosong/salah jika sangat jelas).
+   - "fixed": ada perbaikan aman yang kamu terapkan di "fixes" (memulihkan teks/opsi dari rawSource, mengganti opsi duplikat, merapikan spasi/typo OCR, menghapus metadata bocor, atau memperbaiki kunci jawaban yang jelas).
    - "flagged": soal butuh tinjauan manual admin (misalnya butuh gambar yang hilang, opsi terpotong parah, atau jawaban ambigu).
-4. Isi "issues" (array string, kosong [] jika tidak ada masalah).
-5. Isi "fixes" (object, hanya sertakan field yang diperbaiki: "text", "options", "answer", "explanation").
+6. Isi "issues" (array string, kosong [] jika tidak ada masalah).
+7. Isi "fixes" (object, hanya sertakan field yang diperbaiki: "text", "options", "answer", "explanation").
 
 Kembalikan HANYA JSON array valid:
-[{"num": 1, "reasoning": "...", "status": "ok", "issues": [], "fixes": {}}]
+[{"num": 1, "reasoning": "...", "status": "ok", "remove": false, "issues": [], "fixes": {}}]
 
 Data batch:
 ${JSON.stringify(compact)}`;
@@ -375,6 +377,10 @@ async function requestGeminiAuditBatch(batch, geminiKey, preferredModel, onLog) 
 
 function applyAuditItemToQuestion(question, item) {
   if (!item || typeof item !== 'object') return 'ok';
+  if (item.remove === true) {
+    question._removeByAi = true;
+    return 'removed';
+  }
   const fixes = item.fixes && typeof item.fixes === 'object' ? item.fixes : {};
 
   if (typeof fixes.text === 'string' && fixes.text.trim().length >= 5) {
@@ -466,28 +472,77 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
   });
 }
 
+function dedupeQuestionsByContent(questions) {
+  const normalize = typeof normalizeForCompare === 'function'
+    ? normalizeForCompare
+    : (s) => String(s || '').trim().toLowerCase();
+  const unique = [];
+  let removed = 0;
+
+  for (const question of questions) {
+    const qNorm = normalize(question?.text || '');
+    const dupIdx = unique.findIndex((item) => {
+      const iNorm = normalize(item?.text || '');
+      if (!qNorm || !iNorm) return false;
+      if (qNorm === iNorm) return true;
+      return qNorm.length >= 60 && iNorm.length >= 60 && qNorm.slice(0, 80) === iNorm.slice(0, 80);
+    });
+
+    if (dupIdx >= 0) {
+      unique[dupIdx] = mergeQuestionPair(unique[dupIdx], question);
+      removed++;
+    } else {
+      unique.push(question);
+    }
+  }
+  return { unique, removed };
+}
+
+function ensureUniqueQuestionNumbers(questions, onLog) {
+  const seen = new Set();
+  let hasDupNum = false;
+  for (const q of questions) {
+    if (seen.has(q.num)) {
+      hasDupNum = true;
+      break;
+    }
+    seen.add(q.num);
+  }
+  if (!hasDupNum) return;
+  questions.forEach((q, idx) => {
+    q.num = idx + 1;
+  });
+  onLog(`🔢 Nomor soal duplikat diurutkan ulang otomatis (1–${questions.length}).`);
+}
+
 /**
  * Audit and auto-correct parsed questions in batches using Groq/CF backend first, then Gemini fallback.
  */
 async function auditQuizWithAI(questions, options = {}) {
+  const onLog = typeof options.onLog === 'function' ? options.onLog : () => {};
+  const { unique: dedupedQuestions, removed: preRemoved } = dedupeQuestionsByContent(questions);
+  if (preRemoved > 0) {
+    onLog(`🧹 Menghapus ${preRemoved} soal duplikat sebelum audit AI.`);
+  }
+
   const geminiKey = String(options.geminiKey || '').trim();
   const backendAuditFn = typeof options.backendAuditFn === 'function' ? options.backendAuditFn : null;
   const batchSize = backendAuditFn ? 6 : 8;
   const batches = [];
-  for (let i = 0; i < questions.length; i += batchSize) {
-    batches.push(questions.slice(i, i + batchSize));
+  for (let i = 0; i < dedupedQuestions.length; i += batchSize) {
+    batches.push(dedupedQuestions.slice(i, i + batchSize));
   }
 
   const state = {
-    onLog: typeof options.onLog === 'function' ? options.onLog : () => {},
+    onLog,
     onProgress: typeof options.onProgress === 'function' ? options.onProgress : () => {},
     geminiKey,
     batchSize,
     rawPdfText: String(options.rawPdfText || ''),
     backendAuditFn,
     backendUnavailable: false,
-    total: questions.length,
-    summary: { total: questions.length, ok: 0, fixed: 0, flagged: 0 },
+    total: dedupedQuestions.length,
+    summary: { total: dedupedQuestions.length, ok: 0, fixed: 0, flagged: 0, removed: preRemoved },
     workingModel: null
   };
 
@@ -496,14 +551,18 @@ async function auditQuizWithAI(questions, options = {}) {
     Promise.resolve()
   );
 
+  const finalQuestions = dedupedQuestions.filter((q) => !q._removeByAi);
+  ensureUniqueQuestionNumbers(finalQuestions, onLog);
+
   state.onProgress({
     batchNum: batches.length,
     totalBatches: batches.length,
-    processed: questions.length,
-    total: questions.length
+    processed: finalQuestions.length,
+    total: finalQuestions.length
   });
 
-  return { questions, summary: state.summary };
+  state.summary.total = finalQuestions.length;
+  return { questions: finalQuestions, summary: state.summary };
 }
 
 window.compressForGemini = compressForGemini;

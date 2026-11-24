@@ -153,10 +153,11 @@ export async function runAiQuizAudit() {
     updatePreview();
 
     if (statusEl) {
-      const { ok, fixed, flagged, total } = result.summary;
-      statusEl.innerHTML = `✅ <strong>Audit AI selesai (${total} soal):</strong> ${ok} OK · <span style="color:var(--primary)">${fixed} diperbaiki otomatis</span> · <span style="color:var(--warning)">${flagged} perlu cek manual</span>`;
+      const { ok, fixed, flagged, removed = 0, total } = result.summary;
+      const removedBadge = removed > 0 ? ` · <span style="color:var(--text2)">${removed} duplikat dihapus</span>` : '';
+      statusEl.innerHTML = `✅ <strong>Audit AI selesai (${total} soal):</strong> ${ok} OK · <span style="color:var(--primary)">${fixed} diperbaiki otomatis</span> · <span style="color:var(--warning)">${flagged} perlu cek manual</span>${removedBadge}`;
     }
-    appendAuditLog(`🏁 Selesai: ${result.summary.ok} OK, ${result.summary.fixed} diperbaiki, ${result.summary.flagged} perlu cek manual.`);
+    appendAuditLog(`🏁 Selesai: ${result.summary.ok} OK, ${result.summary.fixed} diperbaiki, ${result.summary.flagged} perlu cek manual, ${result.summary.removed || 0} duplikat dihapus.`);
     showToast(`Audit AI selesai: ${result.summary.fixed} soal diperbaiki, ${result.summary.flagged} perlu cek.`, 'success');
   } catch (error) {
     appendAuditLog(`❌ Audit AI gagal: ${error.message}`);
