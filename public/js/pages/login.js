@@ -81,7 +81,73 @@ async function handleRegister(e) {
   }
 }
 
+async function handleForgotPassword(e) {
+  e.preventDefault();
+  const email = document.getElementById('f_email').value.trim();
+  const btn = e.target.querySelector('button[type="submit"]');
+
+  btn.disabled = true;
+  btn.textContent = 'Mengirim...';
+
+  const sb = initSupabase();
+  const redirectTo = `${window.location.origin}/login?type=recovery`;
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+
+  btn.disabled = false;
+  btn.textContent = 'Kirim Tautan Reset';
+
+  if (error) {
+    showMsg(error.message, true);
+  } else {
+    showMsg('Tautan reset password sudah dikirim ke email Anda. Cek inbox atau folder spam.');
+  }
+}
+
+async function handleResetPassword(e) {
+  e.preventDefault();
+  const newPassword = document.getElementById('new_password').value;
+  const confirmPassword = document.getElementById('confirm_password').value;
+  const btn = e.target.querySelector('button[type="submit"]');
+
+  if (newPassword !== confirmPassword) {
+    showMsg('Konfirmasi password tidak cocok.', true);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+
+  const sb = initSupabase();
+  const { error } = await sb.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    showMsg(error.message, true);
+    btn.disabled = false;
+    btn.textContent = 'Simpan Password Baru';
+  } else {
+    showMsg('Password berhasil diubah! Mengalihkan...');
+    setTimeout(() => { window.location.href = '/paket-soal'; }, 1200);
+  }
+}
+
 window.onload = async () => {
+  const path = window.location.pathname.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  const isRecovery = search.includes('type=recovery') || hash.includes('type=recovery');
+
+  const sb = initSupabase();
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      switchTab('reset');
+    }
+  });
+
+  if (isRecovery) {
+    switchTab('reset');
+    return;
+  }
+
   const user = await checkUserAuth();
   if (user) {
     window.location.href = '/paket-soal';
@@ -89,9 +155,6 @@ window.onload = async () => {
   }
 
   // Otomatis buka tab daftar jika user membuka /daftar atau ada hash #register / parameter tab=register
-  const path = window.location.pathname.toLowerCase();
-  const search = window.location.search.toLowerCase();
-  const hash = window.location.hash.toLowerCase();
   if (path.includes('/daftar') || search.includes('tab=register') || hash === '#register' || hash === '#daftar') {
     switchTab('register');
   }
@@ -101,4 +164,6 @@ window.onload = async () => {
 window.handleRegister = handleRegister;
 window.switchTab = switchTab;
 window.handleLogin = handleLogin;
+window.handleForgotPassword = handleForgotPassword;
+window.handleResetPassword = handleResetPassword;
 window.showMsg = showMsg;
