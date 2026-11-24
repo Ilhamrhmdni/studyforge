@@ -71,7 +71,12 @@ function normalizePdfText(text) {
   if (typeof normalizeText === 'function') {
     return normalizeText(text);
   }
-  return String(text || '').replaceAll(/[ \t]{2,}/g, ' ').replaceAll(/[ \t]*\n[ \t]*/g, '\n').trim();
+  return String(text || '')
+    .replaceAll(/[ \t]{2,}/g, ' ')
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n')
+    .trim();
 }
 
 function parseAnswerKey(text) {
@@ -202,52 +207,54 @@ function appendContinuation(line, current) {
   }
 }
 
-function parseQuestionsStandard(lines, answerMap = {}) {
-  const { workLines, mergedAnswerMap } = extractTrailingAnswerKey(lines, answerMap);
-  const questions = [];
-  let current = null;
-  let inExplanation = false;
+const STANDARD_QUESTION_REGEX = /^(?:(?:Soal|No\.?|Pertanyaan)\s*)?(\d+)(?:\s*\([a-z]\))?\s*[.):-]\s*(.*)/i;
+const STANDARD_OPTION_REGEX = /^[([]?([A-E])\s*[.):\]]\s*(.*)/i;
+const EXPLANATION_START_REGEX = /^(?:Cara\s*hitung|Pembahasan|Penjelasan|Keterangan|Catatan)\s*[:=-]/i;
 
-  const questionRegex = /^(?:(?:Soal|No\.?|Pertanyaan)\s*)?(\d+)(?:\s*\([a-z]\))?\s*[.):-]\s*(.*)/i;
-  const optionRegex = /^[([]?([A-E])\s*[.):\]]\s*(.*)/i;
-  const explanationRegex = /^(?:Cara\s*hitung|Pembahasan|Penjelasan|Keterangan|Catatan)\s*[:=-]/i;
-
-  for (const line of workLines) {
-    const isDecimalStart = /^\d+\.\d/.test(line);
-    const questionMatch = isDecimalStart ? null : questionRegex.exec(line);
-    if (questionMatch && (!current || current.options.length >= 2)) {
-      if (current) questions.push(current);
-      const nextNum = Number.parseInt(questionMatch[1], 10);
-      current = {
-        num: nextNum,
-        text: (questionMatch[2] || '').trim(),
-        options: [],
-        answer: mergedAnswerMap[nextNum] || '',
-        explanation: ''
-      };
-      inExplanation = false;
-      continue;
-    }
-
-    if (!current) continue;
-
-    if (explanationRegex.test(line) || inExplanation) {
-      inExplanation = true;
-      current.explanation = current.explanation ? `${current.explanation} ${line}` : line;
-      continue;
-    }
-
-    const optionMatch = optionRegex.exec(line);
-    if (optionMatch) {
-      handleOptionMatch(line, optionMatch, current);
-      continue;
-    }
-
-    appendContinuation(line, current);
+function processStandardLine(line, state) {
+  const questionMatch = /^\d+\.\d/.test(line) ? null : STANDARD_QUESTION_REGEX.exec(line);
+  if (questionMatch && (!state.current || state.current.options.length >= 2)) {
+    if (state.current) state.questions.push(state.current);
+    const nextNum = Number.parseInt(questionMatch[1], 10);
+    state.current = {
+      num: nextNum,
+      text: (questionMatch[2] || '').trim(),
+      options: [],
+      answer: state.mergedAnswerMap[nextNum] || '',
+      explanation: ''
+    };
+    state.inExplanation = false;
+    return;
   }
 
-  if (current) questions.push(current);
-  return finalizeParsedQuestions(questions);
+  const current = state.current;
+  if (!current) return;
+
+  if (state.inExplanation || EXPLANATION_START_REGEX.test(line)) {
+    state.inExplanation = true;
+    current.explanation = current.explanation ? `${current.explanation} ${line}` : line;
+    return;
+  }
+
+  const optionMatch = STANDARD_OPTION_REGEX.exec(line);
+  if (optionMatch) {
+    handleOptionMatch(line, optionMatch, current);
+    return;
+  }
+
+  appendContinuation(line, current);
+}
+
+function parseQuestionsStandard(lines, answerMap = {}) {
+  const { workLines, mergedAnswerMap } = extractTrailingAnswerKey(lines, answerMap);
+  const state = { questions: [], current: null, inExplanation: false, mergedAnswerMap };
+
+  for (const line of workLines) {
+    processStandardLine(line, state);
+  }
+
+  if (state.current) state.questions.push(state.current);
+  return finalizeParsedQuestions(state.questions);
 }
 
 const LMS_META_PATTERNS = [
@@ -256,55 +263,57 @@ const LMS_META_PATTERNS = [
   /^(?:Started\s+on|State:|Completed\s+on|Time\s+taken|Grade|Maximum|Question\s+text)/i,
   /^(?:out\s+of\s+[\d.]+|[\d.]+\s+out\s+of)/i
 ];
+const LMS_QUESTION_HEADER_REGEX = /^Question\s+(\d+)\s*$/i;
+const LMS_CORRECT_LINE_REGEX = /^(?:The\s+correct\s+answer\s+is|Correct\s+answer|Jawaban\s+yang\s+benar)[:\s]/i;
 
 function isLmsMetaLine(line) {
   return LMS_META_PATTERNS.some((rx) => rx.test(line));
 }
 
-function parseQuestionsLMS(lines, answerMap = {}) {
-  const questions = [];
-  let current = null;
-  let skipMeta = false;
-  const questionHeaderRegex = /^Question\s+(\d+)\s*$/i;
-  const correctLineRegex = /^(?:The\s+correct\s+answer\s+is|Correct\s+answer|Jawaban\s+yang\s+benar)[:\s]/i;
-  const optionRegex = /^[([]?([A-E])\s*[.):\]]\s*(.*)/i;
-
-  for (const line of lines) {
-    const questionMatch = questionHeaderRegex.exec(line);
-    if (questionMatch) {
-      if (current && current.options.length >= 2) questions.push(current);
-      const num = Number.parseInt(questionMatch[1], 10);
-      current = { num, text: '', options: [], answer: answerMap[num] || '', _correctText: '' };
-      skipMeta = true;
-      continue;
-    }
-
-    if (!current) continue;
-    if (isLmsMetaLine(line)) {
-      skipMeta = false;
-      continue;
-    }
-    if (correctLineRegex.test(line)) {
-      current._correctText = line.replace(correctLineRegex, '').trim().toLowerCase();
-      continue;
-    }
-
-    const optionMatch = optionRegex.exec(line);
-    if (optionMatch) {
-      current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
-      continue;
-    }
-
-    const lastOption = current.options.at(-1);
-    if (lastOption) {
-      lastOption.text += ` ${line}`;
-    } else if (!skipMeta && line.length > 3) {
-      current.text += `${current.text ? ' ' : ''}${line}`;
-    }
+function processLmsLine(line, state) {
+  const questionMatch = LMS_QUESTION_HEADER_REGEX.exec(line);
+  if (questionMatch) {
+    if (state.current && state.current.options.length >= 2) state.questions.push(state.current);
+    const num = Number.parseInt(questionMatch[1], 10);
+    state.current = { num, text: '', options: [], answer: state.answerMap[num] || '', _correctText: '' };
+    state.skipMeta = true;
+    return;
   }
 
-  if (current && current.options.length >= 2) questions.push(current);
-  return finalizeParsedQuestions(questions);
+  const current = state.current;
+  if (!current) return;
+  if (isLmsMetaLine(line)) {
+    state.skipMeta = false;
+    return;
+  }
+  if (LMS_CORRECT_LINE_REGEX.test(line)) {
+    current._correctText = line.replace(LMS_CORRECT_LINE_REGEX, '').trim().toLowerCase();
+    return;
+  }
+
+  const optionMatch = STANDARD_OPTION_REGEX.exec(line);
+  if (optionMatch) {
+    current.options.push({ key: optionMatch[1].toUpperCase(), text: optionMatch[2].trim() });
+    return;
+  }
+
+  const lastOption = current.options.at(-1);
+  if (lastOption) {
+    lastOption.text += ` ${line}`;
+  } else if (!state.skipMeta && line.length > 3) {
+    current.text += `${current.text ? ' ' : ''}${line}`;
+  }
+}
+
+function parseQuestionsLMS(lines, answerMap = {}) {
+  const state = { questions: [], current: null, skipMeta: false, answerMap };
+
+  for (const line of lines) {
+    processLmsLine(line, state);
+  }
+
+  if (state.current && state.current.options.length >= 2) state.questions.push(state.current);
+  return finalizeParsedQuestions(state.questions);
 }
 
 function validateParsedQuiz(questions) {
