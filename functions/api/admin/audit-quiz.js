@@ -9,17 +9,19 @@ function buildAuditPrompt(questions) {
     options: q.options,
     answer: q.answer || '',
     explanation: q.explanation || '',
-    issues: [...(q.errors || []), ...(q.warnings || [])]
+    issues: [...(q.errors || []), ...(q.warnings || [])],
+    ...(q.rawSource ? { rawSource: q.rawSource } : {})
   }));
 
   return `Audit dan perbaiki hasil parsing soal pilihan ganda berikut.
 Tugas per soal:
 1. Tulis "reasoning" singkat terlebih dahulu untuk mengecek apakah teks soal utuh, opsi lengkap tanpa teks bocor/duplikat, dan kunci jawaban sesuai.
-2. Tentukan "status":
+2. Jika ada "rawSource" (kutipan teks asli PDF), bandingkan hasil parsing dengan "rawSource" untuk memulihkan kata/kalimat yang terpotong, opsi yang hilang, atau kunci jawaban yang terlewat.
+3. Tentukan "status":
    - "ok" jika soal, opsi, dan kunci jawaban sudah bersih & benar.
-   - "fixed" jika kamu memperbaiki teks OCR/spasi, menghapus metadata bocor, atau melengkapi/memperbaiki kunci jawaban yang jelas.
+   - "fixed" jika kamu memperbaiki teks OCR/spasi, memulihkan teks/opsi dari rawSource, menghapus metadata bocor, atau melengkapi kunci jawaban yang jelas.
    - "flagged" jika soal rusak parah/butuh gambar/kurang opsi dan tidak bisa diperbaiki otomatis.
-3. Jika ada perbaikan, isi "fixes" hanya untuk field yang berubah: { "text"?, "options"?: [{"key":"A","text":"..."}], "answer"?, "explanation"? }. Jangan mengubah arti soal.
+4. Jika ada perbaikan, isi "fixes" hanya untuk field yang berubah: { "text"?, "options"?: [{"key":"A","text":"..."}], "answer"?, "explanation"? }. Jangan mengubah arti soal.
 
 Kembalikan HANYA JSON array valid tanpa markdown atau teks tambahan:
 [{"num":1,"reasoning":"...","status":"ok","issues":[],"fixes":{}}]

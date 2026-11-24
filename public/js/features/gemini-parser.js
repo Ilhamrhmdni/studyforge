@@ -228,6 +228,20 @@ Aturan penting:
   return mergeQuestionsByNumber(allQuestions);
 }
 
+function extractQuestionSourceSnippet(rawPdfText, num) {
+  if (!rawPdfText || !num) return '';
+  const startRegex = new RegExp(`(?:^|\\n)\\s*${num}\\s*[.)]\\s`, 'm');
+  const startMatch = startRegex.exec(rawPdfText);
+  if (!startMatch) return '';
+
+  const startIdx = Math.max(0, startMatch.index);
+  const nextRegex = new RegExp(`(?:^|\\n)\\s*${num + 1}\\s*[.)]\\s`, 'm');
+  const tail = rawPdfText.slice(startIdx);
+  const nextMatch = nextRegex.exec(tail.slice(10));
+  const endIdx = nextMatch ? nextMatch.index + 10 : Math.min(tail.length, 1400);
+  return tail.slice(0, Math.min(endIdx, 1400)).trim();
+}
+
 function buildQuizAuditPrompt(batch) {
   const compact = batch.map((q) => ({
     num: q.num,
@@ -235,19 +249,21 @@ function buildQuizAuditPrompt(batch) {
     options: q.options,
     answer: q.answer || '',
     explanation: q.explanation || '',
-    detectedIssues: [...(q.errors || []), ...(q.warnings || [])]
+    detectedIssues: [...(q.errors || []), ...(q.warnings || [])],
+    ...(q.rawSource ? { rawSource: q.rawSource } : {})
   }));
 
   return `Kamu adalah auditor kualitas soal pilihan ganda (MCQ) StudyForge.
 Periksa batch soal hasil parsing PDF berikut.
 Untuk setiap soal:
 1. Isi "reasoning" terlebih dahulu (maksimal 2 kalimat): cek keutuhan kalimat soal, kebersihan opsi (tidak ada metadata bocor/duplikat/OCR rusak), dan kesesuaian kunci jawaban.
-2. Tentukan "status":
+2. Jika field "rawSource" tersedia, itu adalah kutipan teks asli dari PDF. Bandingkan hasil parsing dengan "rawSource" untuk memulihkan kata/kalimat yang terpotong, opsi yang hilang, atau kunci jawaban yang terlewat di PDF.
+3. Tentukan "status":
    - "ok": soal, opsi, dan kunci jawaban sudah bersih dan valid.
-   - "fixed": ada perbaikan aman yang kamu terapkan di "fixes" (misalnya merapikan spasi/typo OCR, menghapus metadata bocor, memperbaiki kunci jawaban yang kosong/salah jika sangat jelas).
+   - "fixed": ada perbaikan aman yang kamu terapkan di "fixes" (misalnya memulihkan teks/opsi dari rawSource, merapikan spasi/typo OCR, menghapus metadata bocor, memperbaiki kunci jawaban yang kosong/salah jika sangat jelas).
    - "flagged": soal butuh tinjauan manual admin (misalnya butuh gambar yang hilang, opsi terpotong parah, atau jawaban ambigu).
-3. Isi "issues" (array string, kosong [] jika tidak ada masalah).
-4. Isi "fixes" (object, hanya sertakan field yang diperbaiki: "text", "options", "answer", "explanation").
+4. Isi "issues" (array string, kosong [] jika tidak ada masalah).
+5. Isi "fixes" (object, hanya sertakan field yang diperbaiki: "text", "options", "answer", "explanation").
 
 Kembalikan HANYA JSON array valid:
 [{"num": 1, "reasoning": "...", "status": "ok", "issues": [], "fixes": {}}]
@@ -361,6 +377,7 @@ async function auditQuizWithAI(questions, options = {}) {
   const onLog = typeof options.onLog === 'function' ? options.onLog : () => {};
   const onProgress = typeof options.onProgress === 'function' ? options.onProgress : () => {};
   const geminiKey = String(options.geminiKey || '').trim();
+  const rawPdfText = String(options.rawPdfText || '');
   const backendAuditFn = typeof options.backendAuditFn === 'function' ? options.backendAuditFn : null;
 
   const summary = { total: questions.length, ok: 0, fixed: 0, flagged: 0 };
@@ -368,6 +385,9 @@ async function auditQuizWithAI(questions, options = {}) {
 
   for (let i = 0; i < questions.length; i += BATCH_SIZE) {
     const batch = questions.slice(i, i + BATCH_SIZE);
+    const enrichedBatch = rawPdfText
+      ? batch.map((q) => ({ ...q, rawSource: extractQuestionSourceSnippet(rawPdfText, q.num) }))
+      : batch;
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
     const totalBatches = Math.ceil(questions.length / BATCH_SIZE);
     onProgress({ batchNum, totalBatches, processed: i, total: questions.length });
@@ -375,13 +395,13 @@ async function auditQuizWithAI(questions, options = {}) {
 
     let batchResults = null;
     if (geminiKey) {
-      const geminiOut = await requestGeminiAuditBatch(batch, geminiKey, workingModel, onLog);
+      const geminiOut = await requestGeminiAuditBatch(enrichedBatch, geminiKey, workingModel, onLog);
       if (geminiOut) {
         workingModel = geminiOut.model;
         batchResults = geminiOut.results;
       }
     } else if (backendAuditFn) {
-      const backendRes = await backendAuditFn(batch);
+      const backendRes = await backendAuditFn(enrichedBatch);
       if (Array.isArray(backendRes?.results)) batchResults = backendRes.results;
     } else {
       throw new Error('Tidak ada penyedia AI yang tersedia untuk audit.');

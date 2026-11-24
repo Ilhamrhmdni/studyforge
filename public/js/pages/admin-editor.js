@@ -50,6 +50,7 @@ export async function runAiQuizAudit() {
   try {
     const result = await auditQuizWithAI(adminState.parsedQuestions, {
       geminiKey,
+      rawPdfText: adminState.rawPdfText,
       onLog: adminLog,
       onProgress: ({ batchNum, totalBatches, processed, total }) => {
         if (statusEl) {

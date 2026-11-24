@@ -2,6 +2,7 @@
 
 export const adminState = {
   parsedQuestions: [],
+  rawPdfText: '',
   pageImages: {},
   pageCanvasEls: {},
   pageTextItems: {},

@@ -308,6 +308,7 @@ export async function handleFile(file, onQuestionsReady) {
     if (res.hasImage) imagePages.push(res.pageNum);
     else textOnlyPages.push(res.pageNum);
   }
+  adminState.rawPdfText = allPagesFullText;
 
   adminLog(`📝 Halaman teks saja: ${textOnlyPages.join(', ') || '-'}`);
   adminLog(`🖼️ Halaman bergambar: ${imagePages.join(', ') || '-'}`);
