@@ -62,6 +62,7 @@ export async function onRequestPost(context) {
     }
 
     const pageNums = validPages.map((p) => Number(p.pageNum));
+    /** @type {any[]} */
     const userContent = [{ type: 'text', text: buildVisionPrompt(pageNums) }];
     for (const page of validPages) {
       userContent.push(
