@@ -1,6 +1,7 @@
 import { requireAdmin } from '../../_shared/auth.js';
 import { getServiceConfigError } from '../../_shared/supabase.js';
 import { sendJson } from '../../_shared/response.js';
+import { runGroqWithPool } from '../../_shared/groq.js';
 
 export async function onRequestPost(context) {
   try {
@@ -12,12 +13,7 @@ export async function onRequestPost(context) {
     const auth = await requireAdmin(context);
     if (!auth.ok) return sendJson({ error: auth.message }, auth.status);
 
-    // 3. Pastikan AI binding tersedia
-    if (!context.env.AI) {
-      return sendJson({ error: 'Cloudflare AI binding belum dikonfigurasi.' }, 501);
-    }
-
-    // 4. Parse request body
+    // 3. Parse request body
     let body;
     try {
       body = await context.request.json();
@@ -30,18 +26,25 @@ export async function onRequestPost(context) {
       return sendJson({ error: 'Teks terlalu pendek (minimal 10 karakter).' }, 400);
     }
 
-    // 5. Generate deskripsi dengan CF AI
+    // 4. Generate deskripsi via Groq pool, fallback ke CF AI
     const prompt = `Buatkan deskripsi singkat (maksimal 2 kalimat) yang menarik untuk paket soal berikut. Fokus pada topik utamanya. Jangan menggunakan awalan seperti "Deskripsi:" atau tanda kutip. Langsung tulis kalimatnya saja.\n\nSoal:\n${text.substring(0, 1500)}`;
+    const messages = [
+      { role: 'system', content: 'Kamu adalah asisten AI untuk platform edukasi StudyForge. Tugasmu membuat deskripsi singkat dan menarik untuk paket soal.' },
+      { role: 'user', content: prompt }
+    ];
 
-    const response = await context.env.AI.run('@cf/meta/llama-3-8b-instruct', {
-      messages: [
-        { role: 'system', content: 'Kamu adalah asisten AI untuk platform edukasi StudyForge. Tugasmu membuat deskripsi singkat dan menarik untuk paket soal.' },
-        { role: 'user', content: prompt }
-      ]
-    });
+    const groqRes = await runGroqWithPool(context.env, messages, { temperature: 0.3, maxTokens: 256 });
+    if (groqRes.ok) {
+      return sendJson({ description: groqRes.content.trim(), provider: 'groq' });
+    }
 
+    if (!context.env.AI) {
+      return sendJson({ error: groqRes.error || 'AI provider belum dikonfigurasi.' }, groqRes.configured ? 502 : 501);
+    }
+
+    const response = await context.env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', { messages });
     const description = response?.response?.trim() || '';
-    return sendJson({ description });
+    return sendJson({ description, provider: 'cloudflare-ai' });
 
   } catch (error) {
     console.error('generate-description error:', error);

@@ -1,6 +1,7 @@
 import { requireUser } from '../../_shared/auth.js';
 import { sendJson } from '../../_shared/response.js';
 import { supabaseFetch } from '../../_shared/supabase.js';
+import { runGroqWithPool } from '../../_shared/groq.js';
 
 // Rate limiting: maks 20 request AI per user per hari
 const DAILY_LIMIT = 20;
@@ -57,12 +58,8 @@ export async function onRequestPost(context) {
     }
     const { user } = auth;
 
-    // 2. Pastikan Workers AI binding tersedia
-    if (!context.env.AI) {
-      return sendJson({
-        error: 'Fitur AI belum aktif. Silakan hubungi administrator.'
-      }, 503);
-    }
+    // 2. Pastikan minimal satu provider AI tersedia (Groq atau Cloudflare AI)
+    // (Cek detail dilakukan saat memanggil provider di langkah 9)
 
     // 3. Parse request body
     let body;
@@ -141,46 +138,57 @@ Aturan:
 - Jangan membuat informasi di luar data soal yang diberikan.
 - Jika data soal tidak cukup untuk memberi pembahasan mendalam, katakan bahwa pembahasan terbatas pada data yang ada.`;
 
-    // 9. Panggil Workers AI dengan fallback model jika ada yang deprecated
-    const modelsToTry = [
-      '@cf/meta/llama-3.1-8b-instruct-fp8',
-      '@cf/meta/llama-3.1-8b-instruct-awq',
-      '@cf/meta/llama-3-8b-instruct',
-      '@cf/meta/llama-2-7b-chat-int8'
+    const messages = [
+      {
+        role: 'system',
+        content: 'Kamu adalah tutor ujian yang membantu mahasiswa Indonesia belajar. Selalu jawab dalam Bahasa Indonesia yang jelas dan edukatif.'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
     ];
 
-    let aiResponse = null;
-    let lastError = null;
+    // 9. Panggil Groq pool terlebih dahulu, fallback ke Workers AI
+    let explanation = '';
+    const groqRes = await runGroqWithPool(context.env, messages, {
+      temperature: 0.3,
+      maxTokens: 700
+    });
+    if (groqRes.ok) {
+      explanation = groqRes.content;
+    } else if (context.env.AI) {
+      const modelsToTry = [
+        '@cf/meta/llama-3.1-8b-instruct-fast',
+        '@cf/meta/llama-3.1-8b-instruct-fp8'
+      ];
 
-    for (const model of modelsToTry) {
-      try {
-        aiResponse = await context.env.AI.run(model, {
-          messages: [
-            {
-              role: 'system',
-              content: 'Kamu adalah tutor ujian yang membantu mahasiswa Indonesia belajar. Selalu jawab dalam Bahasa Indonesia yang jelas dan edukatif.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 512,
-          temperature: 0.3
-        });
-        if (aiResponse) break; // Berhasil
-      } catch (err) {
-        console.warn(`Model ${model} gagal:`, err.message);
-        lastError = err;
-        // Lanjut coba model berikutnya
+      let aiResponse = null;
+      let lastError = null;
+
+      for (const model of modelsToTry) {
+        try {
+          aiResponse = await context.env.AI.run(model, {
+            messages,
+            max_tokens: 512,
+            temperature: 0.3
+          });
+          if (aiResponse) break;
+        } catch (err) {
+          console.warn(`Model ${model} gagal:`, err.message);
+          lastError = err;
+        }
       }
-    }
 
-    if (!aiResponse) {
-      throw lastError || new Error('Semua model AI fallback gagal.');
+      if (!aiResponse) {
+        throw lastError || new Error(groqRes.error || 'Semua model AI fallback gagal.');
+      }
+      explanation = aiResponse?.response || aiResponse?.result?.response || '';
+    } else {
+      return sendJson({
+        error: groqRes.error || 'Fitur AI belum aktif. Silakan hubungi administrator.'
+      }, 503);
     }
-
-    const explanation = aiResponse?.response || aiResponse?.result?.response || '';
     if (!explanation) {
       return sendJson({ error: 'AI tidak dapat membuat pembahasan saat ini. Coba lagi nanti.' }, 500);
     }
