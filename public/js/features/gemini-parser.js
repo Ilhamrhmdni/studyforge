@@ -308,29 +308,43 @@ function parseJsonArraySafe(rawText) {
   }
 }
 
-async function callGeminiAuditModel(model, geminiKey, promptText) {
+async function callGeminiAuditModel(model, geminiKey, promptText, onLog) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: promptText }] }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 8192,
-        responseMimeType: 'application/json'
+  let retries = 3;
+
+  while (retries > 0) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      const errMsg = data.error?.message || String(res.status);
+      const friendly = formatGeminiError(errMsg);
+      if (friendly !== errMsg) throw new Error(friendly);
+
+      const retryMatch = /retry in ([\d.]+)s/i.exec(errMsg);
+      if (retryMatch && retries > 1) {
+        const waitSec = Math.ceil(Number.parseFloat(retryMatch[1])) + 2;
+        onLog(`⏳ Rate limit audit — menunggu ${waitSec}s lalu retry...`);
+        await new Promise((r) => setTimeout(r, waitSec * 1000));
+        retries--;
+        continue;
       }
-    })
-  });
-  const data = await res.json();
-  if (!res.ok || data.error) {
-    const errMsg = data.error?.message || String(res.status);
-    const friendly = formatGeminiError(errMsg);
-    if (friendly !== errMsg) throw new Error(friendly);
-    return { ok: false, retryable: errMsg.includes('not found') || errMsg.includes('limit: 0'), errMsg };
+      return { ok: false, retryable: errMsg.includes('not found') || errMsg.includes('limit: 0'), errMsg };
+    }
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return { ok: true, raw };
   }
-  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  return { ok: true, raw };
+  return { ok: false, retryable: false, errMsg: 'Rate limit setelah beberapa kali retry.' };
 }
 
 async function requestGeminiAuditBatch(batch, geminiKey, preferredModel, onLog) {
@@ -340,7 +354,7 @@ async function requestGeminiAuditBatch(batch, geminiKey, preferredModel, onLog) 
   const promptText = buildQuizAuditPrompt(batch);
 
   for (const model of candidates) {
-    const first = await callGeminiAuditModel(model, geminiKey, promptText);
+    const first = await callGeminiAuditModel(model, geminiKey, promptText, onLog);
     if (!first.ok) {
       if (first.retryable) continue;
       onLog(`⚠️ Audit Gemini (${model}): ${first.errMsg.substring(0, 80)}`);
@@ -352,7 +366,7 @@ async function requestGeminiAuditBatch(batch, geminiKey, preferredModel, onLog) 
 
     // Single JSON repair retry per LLM-as-a-Judge self-correction pattern.
     const repairPrompt = `Perbaiki JSON berikut agar menjadi JSON array valid sesuai skema [{"num":1,"reasoning":"...","status":"ok","issues":[],"fixes":{}}] tanpa mengubah isi audit:\n${first.raw.slice(0, 6000)}`;
-    const repaired = await callGeminiAuditModel(model, geminiKey, repairPrompt);
+    const repaired = await callGeminiAuditModel(model, geminiKey, repairPrompt, onLog);
     const repairedParsed = repaired.ok ? parseJsonArraySafe(repaired.raw) : null;
     if (repairedParsed) return { results: repairedParsed, model };
   }
@@ -387,32 +401,50 @@ function applyAuditItemToQuestion(question, item) {
   return status;
 }
 
+function enrichBatchWithSource(batch, rawPdfText) {
+  if (!rawPdfText) return batch;
+  return batch.map((q) => {
+    const needsSource = Boolean(
+      q.errors?.length || q.warnings?.length || !q.answer || (q.options?.length || 0) < 4
+    );
+    if (!needsSource) return q;
+    const snippet = extractQuestionSourceSnippet(rawPdfText, q.num).slice(0, 900);
+    return snippet ? { ...q, rawSource: snippet } : q;
+  });
+}
+
 async function processAuditBatch(batch, batchIdx, totalBatches, state) {
-  const processed = batchIdx * 10;
+  const processed = batchIdx * state.batchSize;
   state.onProgress({ batchNum: batchIdx + 1, totalBatches, processed, total: state.total });
   state.onLog(`🤖 Mengaudit batch ${batchIdx + 1}/${totalBatches} (soal ${batch[0].num}–${batch.at(-1).num})...`);
 
-  const enrichedBatch = state.rawPdfText
-    ? batch.map((q) => ({ ...q, rawSource: extractQuestionSourceSnippet(state.rawPdfText, q.num) }))
-    : batch;
-
+  const enrichedBatch = enrichBatchWithSource(batch, state.rawPdfText);
   let batchResults = null;
-  if (state.geminiKey) {
-    const geminiOut = await requestGeminiAuditBatch(enrichedBatch, state.geminiKey, state.workingModel, state.onLog);
-    if (geminiOut) {
-      state.workingModel = geminiOut.model;
-      batchResults = geminiOut.results;
+  let batchError = '';
+
+  try {
+    if (state.geminiKey) {
+      const geminiOut = await requestGeminiAuditBatch(enrichedBatch, state.geminiKey, state.workingModel, state.onLog);
+      if (geminiOut) {
+        state.workingModel = geminiOut.model;
+        batchResults = geminiOut.results;
+      } else {
+        batchError = 'Gemini gagal mengembalikan JSON audit (kemungkinan rate limit).';
+      }
+    } else if (state.backendAuditFn) {
+      const backendRes = await state.backendAuditFn(enrichedBatch);
+      if (Array.isArray(backendRes?.results)) batchResults = backendRes.results;
+    } else {
+      throw new Error('Tidak ada penyedia AI yang tersedia untuk audit.');
     }
-  } else if (state.backendAuditFn) {
-    const backendRes = await state.backendAuditFn(enrichedBatch);
-    if (Array.isArray(backendRes?.results)) batchResults = backendRes.results;
-  } else {
-    throw new Error('Tidak ada penyedia AI yang tersedia untuk audit.');
+  } catch (err) {
+    batchError = err?.message || 'Gagal memproses batch audit AI.';
+    state.onLog(`⚠️ Batch ${batchIdx + 1} gagal: ${batchError}`);
   }
 
   if (!Array.isArray(batchResults)) {
     batch.forEach((q) => {
-      q.aiAudit = { status: 'flagged', reasoning: 'Gagal memproses batch audit AI.', issues: ['Batch audit gagal'] };
+      q.aiAudit = { status: 'flagged', reasoning: batchError || 'Gagal memproses batch audit AI.', issues: ['Batch audit gagal'] };
       state.summary.flagged++;
     });
     return;
@@ -426,19 +458,21 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
 }
 
 /**
- * Audit and auto-correct parsed questions in batches of 10 using Gemini or Cloudflare AI fallback.
+ * Audit and auto-correct parsed questions in batches using Gemini or Cloudflare AI fallback.
  */
 async function auditQuizWithAI(questions, options = {}) {
-  const BATCH_SIZE = 10;
+  const geminiKey = String(options.geminiKey || '').trim();
+  const batchSize = geminiKey ? 8 : 5;
   const batches = [];
-  for (let i = 0; i < questions.length; i += BATCH_SIZE) {
-    batches.push(questions.slice(i, i + BATCH_SIZE));
+  for (let i = 0; i < questions.length; i += batchSize) {
+    batches.push(questions.slice(i, i + batchSize));
   }
 
   const state = {
     onLog: typeof options.onLog === 'function' ? options.onLog : () => {},
     onProgress: typeof options.onProgress === 'function' ? options.onProgress : () => {},
-    geminiKey: String(options.geminiKey || '').trim(),
+    geminiKey,
+    batchSize,
     rawPdfText: String(options.rawPdfText || ''),
     backendAuditFn: typeof options.backendAuditFn === 'function' ? options.backendAuditFn : null,
     total: questions.length,
