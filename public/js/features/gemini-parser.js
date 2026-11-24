@@ -500,7 +500,9 @@ async function processAuditBatch(batch, batchIdx, totalBatches, state) {
       }
     } catch (err) {
       batchError = err?.message || 'Backend AI tidak tersedia.';
-      state.backendUnavailable = true;
+      if (err?.status === 501 || err?.status === 401 || err?.status === 403) {
+        state.backendUnavailable = true;
+      }
       state.onLog(`⚠️ Backend AI (${batchError}) — mencoba fallback...`);
     }
   }

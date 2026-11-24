@@ -26,8 +26,8 @@ Tugas per soal:
    - "flagged" jika soal rusak parah/butuh gambar/kurang opsi dan tidak bisa diperbaiki otomatis.
 6. Jika ada perbaikan, isi "fixes" secara nyata (jangan hanya menulis niat di "reasoning"): { "text"?, "options"?: [{"key":"A","text":"..."}, ...], "answer"?, "explanation"? }. Jika mengubah opsi, sertakan seluruh opsi A-D/E di "fixes.options". Jangan mengubah arti soal.
 
-Kembalikan HANYA JSON array valid tanpa markdown atau teks tambahan:
-[{"num":1,"reasoning":"...","status":"ok","remove":false,"issues":[],"fixes":{}}]
+Kembalikan HANYA JSON object valid dengan key "results" berisi array tanpa markdown atau teks tambahan:
+{"results":[{"num":1,"reasoning":"...","status":"ok","remove":false,"issues":[],"fixes":{}}]}
 
 Data soal:
 ${JSON.stringify(compact)}`;
@@ -35,6 +35,14 @@ ${JSON.stringify(compact)}`;
 
 function extractJsonArray(rawText) {
   const raw = String(rawText || '').trim();
+  try {
+    const direct = JSON.parse(raw);
+    if (Array.isArray(direct)) return direct;
+    if (Array.isArray(direct?.results)) return direct.results;
+  } catch {
+    // Fallback to bracket extraction below if wrapped in extra text.
+  }
+
   const start = raw.indexOf('[');
   const end = raw.lastIndexOf(']');
   if (start === -1 || end <= start) return null;
@@ -75,14 +83,20 @@ export async function onRequestPost(context) {
       { role: 'user', content: buildAuditPrompt(questions) }
     ];
 
-    // 1. Prefer Groq multi-key pool if configured.
-    const groqRes = await runGroqWithPool(context.env, messages, { temperature: 0.1, maxTokens: 4096 });
+    // 1. Prefer Groq multi-key pool if configured (with strict JSON object mode).
+    const groqRes = await runGroqWithPool(context.env, messages, {
+      temperature: 0.1,
+      maxTokens: 6144,
+      responseFormat: { type: 'json_object' }
+    });
     if (groqRes.ok) {
       const results = extractJsonArray(groqRes.content);
       if (results) {
         return sendJson({ results, provider: 'groq', model: groqRes.model });
       }
-      return sendJson({ error: 'Respons Groq tidak berbentuk JSON valid.' }, 502);
+      return sendJson({
+        error: `Respons Groq tidak berbentuk JSON valid (${groqRes.content.slice(0, 120)}).`
+      }, 502);
     }
 
     // 2. Fallback to Cloudflare Workers AI if Groq is not configured or unavailable.

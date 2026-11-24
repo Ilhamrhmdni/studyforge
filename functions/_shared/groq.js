@@ -28,7 +28,8 @@ async function callSingleGroq(apiKey, model, messages, options = {}) {
       model,
       messages,
       temperature: options.temperature ?? 0.1,
-      max_tokens: options.maxTokens ?? 4096
+      max_tokens: options.maxTokens ?? 4096,
+      ...(options.responseFormat ? { response_format: options.responseFormat } : {})
     })
   });
 
