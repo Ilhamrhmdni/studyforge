@@ -287,7 +287,7 @@ Untuk setiap soal:
    - "fixed": ada perbaikan aman yang kamu terapkan di "fixes" (memulihkan teks/opsi dari rawSource, mengganti opsi duplikat, merapikan spasi/typo OCR, menghapus metadata bocor, atau memperbaiki kunci jawaban yang jelas).
    - "flagged": soal butuh tinjauan manual admin (misalnya butuh gambar yang hilang, opsi terpotong parah, atau jawaban ambigu).
 6. Isi "issues" (array string, kosong [] jika tidak ada masalah).
-7. Isi "fixes" (object, hanya sertakan field yang diperbaiki: "text", "options", "answer", "explanation").
+7. Isi "fixes" secara nyata (jangan hanya menulis niat di "reasoning"): sertakan field yang diperbaiki ("text", "options", "answer", "explanation"). Jika mengubah opsi, sertakan seluruh opsi A-D/E secara lengkap di "fixes.options".
 
 Kembalikan HANYA JSON array valid:
 [{"num": 1, "reasoning": "...", "status": "ok", "remove": false, "issues": [], "fixes": {}}]
@@ -375,6 +375,69 @@ async function requestGeminiAuditBatch(batch, geminiKey, preferredModel, onLog) 
   return null;
 }
 
+function mergeFixedOptions(existingOptions, fixedOptions) {
+  const cleaned = fixedOptions
+    .filter((opt) => opt?.key && typeof opt.text === 'string' && opt.text.trim())
+    .map((opt) => ({ key: String(opt.key).trim().toUpperCase(), text: opt.text.trim() }));
+  if (cleaned.length === 0) return existingOptions;
+  if (cleaned.length >= Math.max(2, existingOptions.length)) return cleaned;
+
+  const byKey = new Map(cleaned.map((opt) => [opt.key, opt.text]));
+  return existingOptions.map((opt) => (
+    byKey.has(opt.key) ? { ...opt, text: byKey.get(opt.key) } : opt
+  ));
+}
+
+function buildDistinctDistractor(rawText, usedNorms) {
+  const numMatch = /(\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?/.exec(rawText);
+  if (numMatch) {
+    const rawNum = numMatch[1];
+    const hasThousandsDots = rawNum.includes('.');
+    const baseVal = Number.parseInt(rawNum.replaceAll('.', ''), 10);
+    if (!Number.isNaN(baseVal) && baseVal > 0) {
+      const step = Math.max(1, Math.round(baseVal * 0.1));
+      for (const mult of [1, -1, 2, -2, 3]) {
+        const candidateVal = Math.max(1, baseVal + (step * mult));
+        const formatted = hasThousandsDots
+          ? candidateVal.toLocaleString('id-ID')
+          : String(candidateVal);
+        const candidateText = rawText.replace(rawNum, formatted);
+        if (!usedNorms.has(candidateText.trim().toLowerCase())) {
+          return candidateText;
+        }
+      }
+    }
+  }
+  return `${rawText} (alternatif)`;
+}
+
+function ensureUniqueDuplicateOptions(question) {
+  if (!Array.isArray(question.options) || question.options.length < 2) return;
+  const answerKey = String(question.answer || '').trim().toUpperCase();
+  const seen = new Map();
+  question.options.forEach((opt, idx) => {
+    const norm = (opt?.text || '').trim().toLowerCase();
+    if (!norm) return;
+    if (!seen.has(norm)) {
+      seen.set(norm, idx);
+      return;
+    }
+    // Preserve the option matching the correct answer if the duplicate is at answerKey.
+    if (opt.key === answerKey) {
+      seen.set(norm, idx);
+    }
+  });
+
+  const usedNorms = new Set(seen.keys());
+  question.options = question.options.map((opt, idx) => {
+    const norm = (opt?.text || '').trim().toLowerCase();
+    if (!norm || seen.get(norm) === idx) return opt;
+    const replacement = buildDistinctDistractor(opt.text, usedNorms);
+    usedNorms.add(replacement.trim().toLowerCase());
+    return { ...opt, text: replacement };
+  });
+}
+
 function applyAuditItemToQuestion(question, item) {
   if (!item || typeof item !== 'object') return 'ok';
   if (item.remove === true) {
@@ -386,10 +449,8 @@ function applyAuditItemToQuestion(question, item) {
   if (typeof fixes.text === 'string' && fixes.text.trim().length >= 5) {
     question.text = fixes.text.trim();
   }
-  if (Array.isArray(fixes.options) && fixes.options.length >= 2) {
-    question.options = fixes.options
-      .filter((opt) => opt?.key && typeof opt.text === 'string')
-      .map((opt) => ({ key: String(opt.key).trim().toUpperCase(), text: opt.text.trim() }));
+  if (Array.isArray(fixes.options) && fixes.options.length >= 1) {
+    question.options = mergeFixedOptions(question.options || [], fixes.options);
   }
   if (typeof fixes.answer === 'string' && /^[A-E]$/i.test(fixes.answer.trim())) {
     question.answer = fixes.answer.trim().toUpperCase();
@@ -397,6 +458,8 @@ function applyAuditItemToQuestion(question, item) {
   if (typeof fixes.explanation === 'string' && fixes.explanation.trim()) {
     question.explanation = fixes.explanation.trim();
   }
+
+  ensureUniqueDuplicateOptions(question);
 
   const status = ['ok', 'fixed', 'flagged'].includes(item.status) ? item.status : 'ok';
   question.aiAudit = {

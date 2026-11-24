@@ -24,7 +24,7 @@ Tugas per soal:
    - "ok" jika soal, opsi, dan kunci jawaban sudah bersih & benar.
    - "fixed" jika kamu memperbaiki teks OCR/spasi, memulihkan teks/opsi dari rawSource, mengganti opsi duplikat, menghapus metadata bocor, atau melengkapi kunci jawaban yang jelas.
    - "flagged" jika soal rusak parah/butuh gambar/kurang opsi dan tidak bisa diperbaiki otomatis.
-6. Jika ada perbaikan, isi "fixes" hanya untuk field yang berubah: { "text"?, "options"?: [{"key":"A","text":"..."}], "answer"?, "explanation"? }. Jangan mengubah arti soal.
+6. Jika ada perbaikan, isi "fixes" secara nyata (jangan hanya menulis niat di "reasoning"): { "text"?, "options"?: [{"key":"A","text":"..."}, ...], "answer"?, "explanation"? }. Jika mengubah opsi, sertakan seluruh opsi A-D/E di "fixes.options". Jangan mengubah arti soal.
 
 Kembalikan HANYA JSON array valid tanpa markdown atau teks tambahan:
 [{"num":1,"reasoning":"...","status":"ok","remove":false,"issues":[],"fixes":{}}]
