@@ -45,6 +45,7 @@ function renderIssueChipsHtml() {
   return `
     <div style="flex-basis:100%;display:flex;align-items:center;gap:0.45rem;flex-wrap:wrap;padding-top:0.6rem;border-top:1px solid var(--border);">
       <button type="button" onclick="jumpToNextIssue()" style="background:rgba(245,158,11,0.16);border:1px solid rgba(245,158,11,0.45);color:var(--warning);border-radius:6px;padding:0.28rem 0.65rem;font-size:0.78rem;font-weight:600;cursor:pointer;">🎯 Lompat ke Bermasalah (${issues.length})</button>
+      <button type="button" onclick="fixAllIssuesWithAI()" style="background:rgba(92,156,252,0.16);border:1px solid rgba(92,156,252,0.45);color:var(--primary);border-radius:6px;padding:0.28rem 0.65rem;font-size:0.78rem;font-weight:600;cursor:pointer;">✨ Perbaiki Bermasalah dengan AI (${issues.length})</button>
       ${chips}${extra}
     </div>
   `;
@@ -95,6 +96,60 @@ function appendAuditLog(msg) {
   const time = new Date().toLocaleTimeString('id-ID', { hour12: false });
   pre.textContent += `[${time}] ${msg}\n`;
   pre.scrollTop = pre.scrollHeight;
+}
+
+async function executeTargetedAiAudit(targets, label) {
+  if (typeof auditQuizWithAI !== 'function') {
+    showToast('Modul audit AI belum termuat.', 'error');
+    return;
+  }
+  const { geminiKey } = getAdminConfig();
+  const statusEl = document.getElementById('aiAuditStatus');
+  appendAuditLog(`✨ ${label} (${targets.length} soal)...`);
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = `✨ ${escapeHTML(label)} (${targets.length} soal)...`;
+  }
+
+  try {
+    const result = await auditQuizWithAI(targets, {
+      geminiKey,
+      rawPdfText: adminState.rawPdfText,
+      onLog: appendAuditLog,
+      backendAuditFn: (batch) => adminApiFetch('/api/admin/audit-quiz', {
+        method: 'POST',
+        body: { questions: batch }
+      })
+    });
+
+    const fixedByNum = new Map(result.questions.map((q) => [q.num, q]));
+    adminState.parsedQuestions = adminState.parsedQuestions.map((q) => fixedByNum.get(q.num) || q);
+    updatePreview();
+
+    if (statusEl) {
+      const { ok, fixed, flagged } = result.summary;
+      statusEl.innerHTML = `✅ <strong>${escapeHTML(label)} selesai:</strong> ${ok} OK · <span style="color:var(--primary)">${fixed} diperbaiki AI</span> · <span style="color:var(--warning)">${flagged} perlu cek</span>`;
+    }
+    showToast(`${label} selesai: ${result.summary.fixed} diperbaiki AI.`, 'success');
+  } catch (error) {
+    appendAuditLog(`❌ ${label} gagal: ${error.message}`);
+    showToast(error.message, 'error');
+  }
+}
+
+export function fixSingleQuestionWithAI(qi) {
+  const question = adminState.parsedQuestions[qi];
+  if (!question) return;
+  return executeTargetedAiAudit([question], `Diagnosis & perbaikan soal No. ${question.num}`);
+}
+
+export function fixAllIssuesWithAI() {
+  const targets = getIssueIndices().map(({ q }) => q);
+  if (!targets.length) {
+    showToast('Tidak ada soal bermasalah untuk diperbaiki.', 'success');
+    return;
+  }
+  return executeTargetedAiAudit(targets, 'Perbaikan soal bermasalah');
 }
 
 export function renumberQuestions() {
@@ -228,6 +283,7 @@ export function buildQuizPreview(stats) {
         ${renderAiAuditBadge(q.aiAudit)}
         ${q.warnings?.length ? `<div style="background:rgba(245,158,11,0.1);color:var(--warning);padding:0.5rem;border-radius:6px;font-size:0.8rem;margin-bottom:0.8rem;">⚠️ ${q.warnings.join('<br>')}</div>` : ''}
         ${q.errors?.length ? `<div style="background:rgba(239,68,68,0.1);color:var(--danger);padding:0.5rem;border-radius:6px;font-size:0.8rem;margin-bottom:0.8rem;">❌ ${q.errors.join('<br>')}</div>` : ''}
+        ${(q.status !== 'valid' || q.aiAudit?.status === 'flagged') ? `<div style="margin-bottom:0.8rem;"><button type="button" onclick="fixSingleQuestionWithAI(${qi})" style="background:rgba(92,156,252,0.14);border:1px solid rgba(92,156,252,0.4);color:var(--primary);border-radius:6px;padding:0.32rem 0.7rem;font-size:0.78rem;font-weight:600;cursor:pointer;">✨ Diagnosis &amp; Perbaiki AI</button></div>` : ''}
         ${q.image ? `
           <div style="margin-bottom:0.8rem;position:relative;display:inline-block;">
             <div style="font-size:0.75rem;color:var(--primary);margin-bottom:0.4rem;">🖼️ Gambar terlampir</div>
